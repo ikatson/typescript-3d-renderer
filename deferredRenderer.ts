@@ -245,7 +245,9 @@ export class DeferredRenderer {
                     gl.uniformMatrix4fv(program.getUniformLocation(gl, "u_modelWorldMatrix"), false, modelWorldMatrix);
                     
                     gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2]);
-                    gl.drawArrays(gl.TRIANGLES, 0, o.mesh.mesh.getVertexCount());
+
+                    o.mesh.mesh.draw(gl);
+                    // gl.drawArrays(gl.TRIANGLES, 0, o.mesh.mesh.getVertexCount());
                 }
 
                 o.children.forEach(o => renderObject(o))
@@ -296,6 +298,7 @@ export class DeferredRenderer {
             gl.disable(gl.CULL_FACE);
 
             const lCamera = new Camera(gl);
+            lCamera.fov = 179;
 
             const tmp1 = vec3.create();
             const tmp2 = vec3.create();
@@ -304,7 +307,7 @@ export class DeferredRenderer {
             
             // determine forward direction
             vec3.sub(tmp1, light.transform.position, camera.position);
-            vec3.scale(tmp1, tmp1, vec3.dot(tmp1, camera.forward));
+            vec3.scale(tmp1, lCamera.forward, vec3.dot(tmp1, camera.forward));
             vec3.sub(lCamera.forward, light.transform.position, tmp1);
             vec3.normalize(lCamera.forward, lCamera.forward);
 
@@ -313,6 +316,8 @@ export class DeferredRenderer {
             vec3.scale(tmp1, lCamera.forward, vec3.dot(worldUp, lCamera.forward));
             vec3.sub(lCamera.up, worldUp, tmp1);
             vec3.normalize(lCamera.up, lCamera.up);
+
+            // debugger;
 
             const lProjection = lCamera.projectionMatrix();
             const lWorldToCamera = lCamera.getWorldToCamera();
@@ -336,7 +341,7 @@ export class DeferredRenderer {
 
                 gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelViewMatrix"), false, modelViewMatrix);
 
-                o.mesh.prepareMeshVertexAndShaderDataForRendering(gl, s);
+                o.mesh.prepareMeshVertexAndShaderDataForRendering(gl, s, false, false);
                 o.mesh.mesh.draw(gl);
                 o.children.forEach(drawObject);
             }
@@ -357,7 +362,7 @@ export class DeferredRenderer {
             this.bindUniformTx(s, "gbuf_normal", this.normalTX, 1);
             this.bindUniformTx(s, "gbuf_colormap", this.colorTX, 2);
             this.bindUniformTx(s, "gbuf_ssao", this.ssaoTx, 3);
-            this.bindUniformTx(s, "gbuf_shadomap", this.shadowMapTx, 4);
+            this.bindUniformTx(s, "gbuf_shadowmap", this.shadowMapTx, 4);
 
             // Common uniforms
             gl.uniform3fv(s.getUniformLocation(gl, "u_lightData"), this.generateLightData(scene.lights));
@@ -406,7 +411,8 @@ export class DeferredRenderer {
                     gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelViewMatrix"), false, modelViewMatrix);
                     gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelWorldMatrix"), false, modelWorldMatrix);
 
-                    gl.drawArrays(gl.TRIANGLES, 0, this.sphereMesh.getVertexCount());
+                    this.sphereMesh.draw(gl);
+                    // gl.drawArrays(gl.TRIANGLES, 0, this.sphereMesh.getVertexCount());
                 })
             }
             renderLights();

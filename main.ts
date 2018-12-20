@@ -214,7 +214,7 @@ function main() {
         const scene = new Scene();
 
         const sun = new GameObjectBuilder().setLightComponent(new LightComponent()).build();
-        sun.transform.position = [100., 100., -100.];
+        sun.transform.position = [5., 5., -5.];
         sun.transform.update();
         sun.light.radius = 0;
 
