@@ -441,12 +441,16 @@ export class DeferredRenderer {
         const tmp2 = vec3.create();
         lCamera.position = light.transform.position;
         // determine forward direction
-        vec3.sub(tmp1, light.transform.position, camera.position); // tmp1 = from camera to light DIR
-        vec3.scale(tmp1, camera.forward, vec3.dot(tmp1, camera.forward)); // tmp1 = forward multiplied by projection DIR
-        vec3.add(tmp1, camera.position, tmp1);
-        vec3.sub(tmp1, light.transform.position, tmp1);
-        vec3.scale(tmp1, tmp1, -1);
-        vec3.normalize(lCamera.forward, tmp1);
+        vec3.scale(lCamera.forward, lCamera.position, -1)
+        vec3.normalize(lCamera.forward, lCamera.forward)
+
+        // vec3.sub(tmp1, light.transform.position, camera.position); // tmp1 = from camera to light DIR
+        // vec3.scale(tmp1, camera.forward, vec3.dot(tmp1, camera.forward)); // tmp1 = forward multiplied by projection DIR
+        // vec3.add(tmp1, camera.position, tmp1);
+        // vec3.sub(tmp1, light.transform.position, tmp1);
+        // vec3.scale(tmp1, tmp1, -1);
+        // vec3.normalize(lCamera.forward, tmp1);
+
         // determine up direction
         const worldUp = [0, 1., 0];
         vec3.scale(tmp1, lCamera.forward, vec3.dot(worldUp, lCamera.forward));

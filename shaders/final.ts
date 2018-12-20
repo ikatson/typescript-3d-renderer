@@ -116,7 +116,22 @@ void main() {
         vec3 lightDir = pos.xyz - l.position;
 
         //ambient
-        lc += colAmbient * l.intensity * ssao;
+        vec3 ambient = colAmbient * l.intensity * ssao;
+        lc += ambient;
+
+        // SHADOW MAP sample
+        // Only the first light casts shadows for now
+        if (i == 0) {
+            float bias = 0.02;
+            vec4 posVS = u_lightWorldToCamera * pos;
+            vec4 posLSS = u_lightPerspectiveMatrix * posVS;
+            posLSS.xyz /= posLSS.w;
+            float shadowMapDepth = texture(gbuf_shadowmap, posLSS.xy / 2.0 + 0.5).r;
+            if (shadowMapDepth > posVS.z + bias) {
+                // in shadow of smth else;
+                l.intensity = 0.;
+            }
+        }
 
         // diffuse
         lc += colDiffuse * l.intensity * max(dot(normal.xyz, normalize(-lightDir)), 0.) * pos.a;
@@ -137,20 +152,7 @@ void main() {
             lc *= 1. - smoothstep(l.radius, l.radius + l.attenuation, length(lightDir));
         }
 
-        // SHADOW MAP sample
-        // Only the first light casts shadows for now
-        if (i == 0) {
-            float bias = 0.02;
-            vec4 posVS = u_lightWorldToCamera * pos;
-            vec4 posLSS = u_lightPerspectiveMatrix * posVS;
-            posLSS.xyz /= posLSS.w;
-            float shadowMapDepth = texture(gbuf_shadowmap, posLSS.xy / 2.0 + 0.5).r;
-            if (shadowMapDepth > posVS.z + bias) {
-                // in shadow of smth else;
-                lc = vec3(0.);
-            }
-            // lc = vec3(0.);
-        }
+        
 
         c += lc;
     }

@@ -1,7 +1,7 @@
 import { ShaderSourceBuilder } from "../shaders.js";
 
 const VS = new ShaderSourceBuilder().addChunk(`
-precision mediump float;
+precision highp float;
 
 in vec4 a_pos;
 
@@ -18,7 +18,7 @@ void main() {
 
 
 const FS = new ShaderSourceBuilder().addChunk(`
-precision mediump float;
+precision highp float;
 
 in vec4 v_pos;
 
