@@ -1,15 +1,15 @@
-import { Scene } from "./scene.js";
 import { Camera } from "./camera.js";
-import { glClearColorAndDepth, FullScreenQuad } from "./utils.js";
-import { GameObject } from "./object.js";
 import { mat4 } from "./gl-matrix.js";
-import { ShaderProgram, VertexShader, FragmentShader, redefine, ShaderSourceBuilder } from "./shaders.js";
-import { SSAO } from "./ssao.js";
-import { SSAO_SHADER_SOURCE } from "./shaders/ssao.js";
+import { GLMesh } from "./mesh.js";
+import { GameObject } from "./object.js";
+import { Scene } from "./scene.js";
+import { FragmentShader, ShaderProgram, VertexShader } from "./shaders.js";
 import { FINAL_SHADER_SOURCE } from "./shaders/final.js";
 import { GBUFFER_SHADER_SOURCE } from "./shaders/gBuffer/shaders.js";
-import { GLMesh } from "./mesh.js";
+import { SSAO_SHADER_SOURCE } from "./shaders/ssao.js";
 import { VISUALIZE_LIGHTS_SHADERS } from "./shaders/visualize-lights.js";
+import { SSAO } from "./ssao.js";
+import { FullScreenQuad, glClearColorAndDepth } from "./utils.js";
 
 
 export class SSAORuntimConfigurables {
