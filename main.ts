@@ -1,6 +1,6 @@
 import {ShaderProgram, VertexShader, FragmentShader} from "./shaders.js";
 import {ObjParser, fetchObject} from "./objparser.js";
-import { FullScreenQuad, glClearColorAndDepth, initGL, clip } from "./utils.js";
+import { FullScreenQuad, glClearColorAndDepth, initGL, clip, QuadArrayBufferData } from "./utils.js";
 import { ProgressBarCommon, ProgressBar } from "./progressbar.js";
 import {GLMesh, GLMeshFromObjParser} from "./mesh.js";
 import { Texture } from "./texture.js";
@@ -12,6 +12,7 @@ import {mat4, vec3} from "./gl-matrix.js";
 import { ForwardRenderer } from "./forwardRenderer.js";
 import { Scene, randomLights, randomLight } from "./scene.js";
 import { DeferredRenderer, ShowLayer } from "./deferredRenderer.js";
+import { GLArrayBuffer } from "./glArrayBuffer.js";
 
 
 const VERTEX_SHADER_FORWARD_RENDER_DEFAULT = `
@@ -147,7 +148,8 @@ function main() {
     // canvas.height = window.innerHeight;
     const gl = initGL(canvas);
 
-    const fb = new FullScreenQuad(gl);
+    const quadArrayBuffer = new GLArrayBuffer(gl, QuadArrayBufferData);
+    const fb = new FullScreenQuad(gl, quadArrayBuffer);
     const progressBarCommon = new ProgressBarCommon(gl, fb);
     const progressBar = new ProgressBar(gl, progressBarCommon);
 

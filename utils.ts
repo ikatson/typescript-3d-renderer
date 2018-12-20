@@ -37,8 +37,8 @@ export class FullScreenQuad {
     private glArrayBuffer: GLArrayBuffer;
     vertexShader: VertexShader;
 
-    constructor(gl: WebGLRenderingContext) {
-        this.glArrayBuffer = new GLArrayBuffer(gl, QuadArrayBufferData)
+    constructor(gl: WebGLRenderingContext, quadBuffer: GLArrayBuffer) {
+        this.glArrayBuffer = quadBuffer;
         this.vertexShader = new VertexShader(gl, FULLSCREEN_QUAD_VS);
         // this object owns the shader, don't let others delete it recursively.
         this.vertexShader.setAutodelete(false);
