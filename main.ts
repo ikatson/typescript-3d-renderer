@@ -15,6 +15,10 @@ import { DeferredRenderer, ShowLayer } from "./deferredRenderer.js";
 import { GLArrayBuffer } from "./glArrayBuffer.js";
 
 
+const originZero = vec3.create();
+const PI2 = Math.PI / 2.0 - 0.01;
+
+
 const VERTEX_SHADER_FORWARD_RENDER_DEFAULT = `
 precision highp float;
 
@@ -197,13 +201,16 @@ function main() {
             const mesh = GLMeshFromObjParser(gl, parser);
             return mesh;
         }),
-    ]).then(([aphrodite, corvette, sphereMesh]) => {
+        fetchObject('resources/plane.obj', onHeaders).then(parser => {
+            const mesh = GLMeshFromObjParser(gl, parser);
+            return mesh;
+        }),
+    ]).then(([aphrodite, corvette, sphereMesh, planeMesh]) => {
         const camera = new Camera(gl);
         camera.position = vec3.fromValues(0, 0, -10.);
 
         // const renderer = new ForwardRenderer(gl);
         const renderer = new DeferredRenderer(gl, fb, sphereMesh);
-
         const scene = new Scene();
 
         const sun = new GameObjectBuilder().setLightComponent(new LightComponent()).build();
@@ -213,6 +220,13 @@ function main() {
 
         scene.lights = [sun]
 
+        const plane = new GameObjectBuilder().setMesh(planeMesh).build();
+        plane.transform.position = [0, -2., 0];
+        plane.transform.scale = [5, 5, 5];
+        plane.transform.update();
+
+        
+        scene.addChild(plane);
         scene.addChild(aphrodite);
         aphrodite.addChild(corvette);
 
@@ -222,7 +236,7 @@ function main() {
             pressedKeys.forEach((v, k) => {
                 const moveSpeed = 0.05;
                 switch(k) {
-                    case ' ':
+                    case 'e':
                         vec3.scale(tmpVec, camera.up, moveSpeed);
                         vec3.add(camera.position, camera.position, tmpVec);
                         break;
@@ -265,8 +279,7 @@ function main() {
         var sensitivityY = 0.01;
         var sensitivityX = 0.01;
 
-        const originZero = vec3.create();
-        const PI2 = Math.PI / 2.0 - 0.01;
+        
 
         const pressedKeys = new Map<String, Boolean>();
 

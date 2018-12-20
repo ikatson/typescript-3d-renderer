@@ -8,6 +8,9 @@ export function GLMeshFromObjParser(gl: WebGLRenderingContext, parser: ObjParser
     );
 }
 
+/**
+ * @deprecated
+ */
 export class GLMesh {
     private buf: WebGLBuffer;
     private glArrayBuffer: GLArrayBuffer
