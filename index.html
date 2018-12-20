@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO"
+    crossorigin="anonymous">
+  <title>Test</title>
+</head>
+
+<body>
+
+
+  <div class="container">
+
+    <div class="row">
+      <div class="col-12">
+        <canvas id="gl" width="640" height="480"></canvas>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-12">
+        <form id="form" class="form">
+
+          <div class="form-group">
+            <label>SSAO</label>
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <span class="input-group-text">Radius</span>
+              </div>
+              <input type="number" class="form-control" name="ssao-radius" value="0.1" min="0.001" step="0.1">
+
+              <div class="input-group-prepend">
+                <span class="input-group-text">Bias</span>
+              </div>
+              <input type="number" class="form-control" name="ssao-bias" value="0.02" step="0.001" min="0.001">
+
+              <div class="input-group-prepend">
+                <span class="input-group-text">Strength</span>
+              </div>
+              <input type="number" class="form-control" name="ssao-strength" value="2.0" min="0.001" step="0.5">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Lighting</label>
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <span class="input-group-text">Lights count</span>
+              </div>
+              <input type="number" class="form-control" name="lights-count" value="10" min="0" step="1">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Sun</label>
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <span class="input-group-text">Ambient</span>
+              </div>
+              <input type="number" class="form-control" name="sun-ambient" value="0.2" min="0" step="0.1">
+
+              <div class="input-group-prepend">
+                <span class="input-group-text">Diffuse</span>
+              </div>
+              <input type="number" class="form-control" name="sun-diffuse" value="0.6" min="0" step="0.1">
+
+              <div class="input-group-prepend">
+                <span class="input-group-text">Specular</span>
+              </div>
+              <input type="number" class="form-control" name="sun-specular" value="0.2" min="0" step="0.1">
+
+              <div class="input-group-prepend">
+                <span class="input-group-text">Intensity</span>
+              </div>
+              <input type="number" class="form-control" name="sun-intensity" value="1.0" min="0" step="0.1">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>New lights</label>
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <span class="input-group-text">Radius</span>
+              </div>
+              <input type="number" class="form-control" name="new-light-radius" value="3.5" min="0" step="0.1">
+
+              <div class="input-group-prepend">
+                <span class="input-group-text">Position scale</span>
+              </div>
+              <input type="number" class="form-control" name="new-light-pos-scale" value="5.0" min="0" step="0.1">
+
+              <div class="input-group-prepend">
+                <span class="input-group-text">Attenuation</span>
+              </div>
+              <input type="number" class="form-control" name="new-light-attenuation" value="0.15" min="0" step="0.1">
+
+              <div class="input-group-prepend">
+                <span class="input-group-text">Intensity</span>
+              </div>
+              <input type="number" class="form-control" name="new-light-intensity" value="1" min="0" step="0.1">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Layer to show</label>
+
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="show-layer" id="radio-final" value="Final" checked>
+              <label class="form-check-label" for="radio-final">
+                Final
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="show-layer" id="radio-positions" value="Positions">
+              <label class="form-check-label" for="radio-positions">
+                Positions
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="show-layer" id="radio-normals" value="Normals">
+              <label class="form-check-label" for="radio-normals">
+                Normals
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="show-layer" id="radio-color" value="Color">
+              <label class="form-check-label" for="radio-color">
+                Color
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="show-layer" id="radio-ssao" value="SSAO">
+              <label class="form-check-label" for="radio-ssao">
+                SSAO
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+              <div class="form-check">
+                  <input class="form-check-input" type="checkbox" checked name="rotate" id="rotate">
+                  <label class="form-check-label" for="rotate">
+                    Rotate
+                  </label>
+                </div>
+          </div>
+        </form>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script src="gl-matrix.js" type="module"></script>
+  <script src="main.js" type="module"></script>
+</body>
+
+</html>
