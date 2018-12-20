@@ -14,6 +14,7 @@ uniform sampler2D gbuf_position;
 uniform sampler2D gbuf_normal;
 uniform sampler2D gbuf_colormap;
 uniform sampler2D gbuf_ssao;
+uniform sampler2D gbuf_shadowmap;
 
 uniform vec3 u_cameraPos;
 uniform mat4 u_worldToCameraMatrix;
@@ -82,6 +83,11 @@ void main() {
 
     #ifdef SHOW_COLORS
     color = tcolor;
+    return;
+    #endif
+
+    #ifdef SHOW_SHADOWMAP
+    color = texture(gbuf_shadowmap, tx_pos);
     return;
     #endif
 

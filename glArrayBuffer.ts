@@ -1,3 +1,5 @@
+import { ShaderProgram } from "./shaders.js";
+
 const FLOAT_BYTES = 4;
 const VEC3 = 3;
 const VEC4 = 4;
@@ -88,5 +90,26 @@ export class GLArrayBuffer {
 
     delete(gl: WebGLRenderingContext) {
         gl.deleteBuffer(this.buffer);
+    }
+
+    prepareMeshVertexAndShaderDataForRendering(gl: WebGLRenderingContext, program?: ShaderProgram, normals?: boolean, uv?: boolean) {
+        program.use(gl);
+        this.bind(gl);
+
+        if (normals === undefined) {
+            normals = this.params.hasNormals
+        }
+
+        if (uv === undefined) {
+            uv = this.params.hasUVs;
+        }
+
+        this.setupVertexPositionsPointer(gl, program.getAttribLocation(gl, "a_pos"));
+        if (normals) {
+            this.setupVertexNormalsPointer(gl, program.getAttribLocation(gl, "a_norm"));
+        }
+        if (uv) {
+            this.setupVertexUVPointer(gl, program.getAttribLocation(gl, "a_uv"));
+        }
     }
 }

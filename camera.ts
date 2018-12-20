@@ -1,9 +1,9 @@
 import { mat4, vec3 } from "./gl-matrix.js";
 
 export class Camera {
-    position: Float32Array;
-    forward: Float32Array;
-    up: Float32Array;
+    position: Float32Array | number[] | vec3;
+    forward: Float32Array | number[] | vec3;
+    up: Float32Array | number[] | vec3;
     private _right: Float32Array;
     near: number;
     far: number;

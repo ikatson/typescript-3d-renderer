@@ -13,7 +13,7 @@ export function GLMeshFromObjParser(gl: WebGLRenderingContext, parser: ObjParser
  */
 export class GLMesh {
     private buf: WebGLBuffer;
-    private glArrayBuffer: GLArrayBuffer
+    glArrayBuffer: GLArrayBuffer
     constructor(gl: WebGLRenderingContext, glArrayBuffer: GLArrayBuffer) {
         this.glArrayBuffer = glArrayBuffer;
     }
@@ -36,5 +36,9 @@ export class GLMesh {
 
     setupVertexUVPointer(gl: WebGLRenderingContext, attribLocation: number) {
         return this.glArrayBuffer.setupVertexUVPointer(gl, attribLocation);
+    }
+
+    draw(gl: WebGLRenderingContext) {
+        this.glArrayBuffer.draw(gl);
     }
 }

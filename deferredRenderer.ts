@@ -10,6 +10,8 @@ import { SSAO_SHADER_SOURCE } from "./shaders/ssao.js";
 import { VISUALIZE_LIGHTS_SHADERS } from "./shaders/visualize-lights.js";
 import { SSAO } from "./ssao.js";
 import { FullScreenQuad, glClearColorAndDepth } from "./utils.js";
+import { vec3 } from "./gl-matrix.js";
+import { SHADOWMAP_SHADERS } from "./shaders/shadowMap.js";
 
 
 export class SSAORuntimConfigurables {
@@ -23,7 +25,8 @@ export enum ShowLayer {
     Positions,
     Normals,
     Color,
-    SSAO
+    SSAO,
+    ShadowMap
 }
 
 export class DeferredRendererRuntimeConfigurables {
@@ -64,6 +67,9 @@ export class DeferredRenderer {
     lastLightCount: number = 0;
     sphereMesh: GLMesh;
     visualizeLightsShader: ShaderProgram;
+    shadowMapTx: WebGLTexture;
+    depthFB: WebGLFramebuffer;
+    shadowMapShader: ShaderProgram;
 
     constructor(gl: WebGLRenderingContext, fullScreenQuad: FullScreenQuad, sphere: GLMesh) {
         this.gl = gl;
@@ -72,11 +78,15 @@ export class DeferredRenderer {
         this.colorTX = this.createAndBindFullScreenBufferTexture(gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE);
         this.normalTX = this.createAndBindFullScreenBufferTexture(gl.RGBA16F, gl.RGBA, gl.FLOAT);
         this.posTx = this.createAndBindFullScreenBufferTexture(gl.RGBA16F, gl.RGBA, gl.FLOAT);
+        this.shadowMapTx = this.createAndBindFullScreenBufferTexture(gl.R16F, gl.RED, gl.FLOAT);
         this.depthTx = this.createAndBindFullScreenBufferTexture(gl.DEPTH_COMPONENT16, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT);
+        this.depthFB = gl.createFramebuffer();
 
         this.gFrameBuffer = gl.createFramebuffer();
         this.fullScreenQuad = fullScreenQuad;
         this.ssaoParameters = new SSAO(gl, 16, 4);
+
+        // TODO: remove this fb, use the same one.
         this.ssaoFrameBuffer = gl.createFramebuffer()
         this.ssaoTx = this.createAndBindFullScreenBufferTexture(gl.R16F, gl.RED, gl.FLOAT);
         
@@ -116,7 +126,7 @@ export class DeferredRenderer {
     }
 
     private actuallyRecompileShaders(lightCount: number) {
-        [this.ssaoShader, this.lightingShader, this.gBufferShader, this.visualizeLightsShader].forEach(s => {
+        [this.ssaoShader, this.lightingShader, this.gBufferShader, this.visualizeLightsShader, this.shadowMapShader].forEach(s => {
             if (!s) {
                 return;
             }
@@ -148,11 +158,26 @@ export class DeferredRenderer {
                     .defineIfTrue('SHOW_SSAO', this.config.showLayer === ShowLayer.SSAO)
                     .defineIfTrue('SHOW_COLORS', this.config.showLayer === ShowLayer.Color)
                     .defineIfTrue('SHOW_POSITIONS', this.config.showLayer === ShowLayer.Positions)
+                    .defineIfTrue('SHOW_SHADOWMAP', this.config.showLayer === ShowLayer.ShadowMap)
                     .defineIfTrue('SHOW_NORMALS', this.config.showLayer === ShowLayer.Normals)
                     .define('SSAO_NOISE_SCALE', this.ssaoParameters.rotationPower.toString())
                     .build()
             )
         )
+
+        this.shadowMapShader = new ShaderProgram(
+            gl,
+            new VertexShader(
+                gl,
+                SHADOWMAP_SHADERS.vs
+                .build(),
+            ),
+            new FragmentShader(
+                gl,
+                SHADOWMAP_SHADERS.fs
+                .build(),
+            )
+        );
 
         this.gBufferShader = new ShaderProgram(
             gl,
@@ -263,6 +288,61 @@ export class DeferredRenderer {
             this.fullScreenQuad.drawArrays(gl);
         }
 
+        const renderShadowMap = () => {
+            // todo: make this smarter and somehow allowe multiple lights with shadows.
+            const light = scene.lights[0];
+
+            gl.enable(gl.DEPTH_TEST);
+            gl.disable(gl.CULL_FACE);
+
+            const lCamera = new Camera(gl);
+
+            const tmp1 = vec3.create();
+            const tmp2 = vec3.create();
+            
+            lCamera.position = light.transform.position;
+            
+            // determine forward direction
+            vec3.sub(tmp1, light.transform.position, camera.position);
+            vec3.scale(tmp1, tmp1, vec3.dot(tmp1, camera.forward));
+            vec3.sub(lCamera.forward, light.transform.position, tmp1);
+            vec3.normalize(lCamera.forward, lCamera.forward);
+
+            // determine up direction
+            const worldUp = [0, 1., 0];
+            vec3.scale(tmp1, lCamera.forward, vec3.dot(worldUp, lCamera.forward));
+            vec3.sub(lCamera.up, worldUp, tmp1);
+            vec3.normalize(lCamera.up, lCamera.up);
+
+            const lProjection = lCamera.projectionMatrix();
+            const lWorldToCamera = lCamera.getWorldToCamera();
+
+            const s = this.shadowMapShader;
+
+            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.depthFB);
+            gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.ssaoTx, 0);
+            checkFrameBufferStatusOrThrow(gl);
+
+            s.use(gl);
+
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, lProjection);
+
+            const drawObject = (o: GameObject) => {
+                if (!o.mesh || !o.mesh.shadowCaster) {
+                    return;
+                }
+                const modelViewMatrix = tmpMatrix();
+                mat4.multiply(modelViewMatrix, lWorldToCamera, o.transform.getModelToWorld());
+
+                gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelViewMatrix"), false, modelViewMatrix);
+
+                o.mesh.prepareMeshVertexAndShaderDataForRendering(gl, s);
+                o.mesh.mesh.draw(gl);
+                o.children.forEach(drawObject);
+            }
+            scene.children.forEach(drawObject);
+        }
+
         const renderLighting = () => {
             const s = this.lightingShader;
 
@@ -277,6 +357,7 @@ export class DeferredRenderer {
             this.bindUniformTx(s, "gbuf_normal", this.normalTX, 1);
             this.bindUniformTx(s, "gbuf_colormap", this.colorTX, 2);
             this.bindUniformTx(s, "gbuf_ssao", this.ssaoTx, 3);
+            this.bindUniformTx(s, "gbuf_shadomap", this.shadowMapTx, 4);
 
             // Common uniforms
             gl.uniform3fv(s.getUniformLocation(gl, "u_lightData"), this.generateLightData(scene.lights));
@@ -293,8 +374,8 @@ export class DeferredRenderer {
         if (this.ssaoEnabled()) {
             renderSSAO()
         }
+        renderShadowMap()
         renderLighting()     
-        
         
         if (this.config.showLayer === ShowLayer.Final) {
             const renderLights = () => {
@@ -354,7 +435,7 @@ export class DeferredRenderer {
 }
 
 function checkFrameBufferStatusOrThrow(gl: WebGLRenderingContext) {
-    return true;
+    // return true;
     const fbStatus = gl.checkFramebufferStatus(gl.DRAW_FRAMEBUFFER);
     if (fbStatus !== gl.FRAMEBUFFER_COMPLETE) {
         switch (fbStatus) {

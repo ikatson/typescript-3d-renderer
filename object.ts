@@ -1,6 +1,7 @@
 import { GLMesh } from "./mesh";
 import { mat4 } from "./gl-matrix.js"
 import { ShaderProgram } from "./shaders";
+import { vec3 } from "./gl-matrix.js";
 
 export abstract class Component {
     object: GameObject = null;
@@ -9,17 +10,15 @@ export abstract class Component {
 export class MeshComponent extends Component {
     mesh: GLMesh;
     object: GameObject = null;
+    shadowCaster: boolean = true;
+    shadowReceiver: boolean = true;
+
     constructor(mesh: GLMesh) {
         super()
         this.mesh = mesh;
     }
-    prepareMeshVertexAndShaderDataForRendering(gl: WebGLRenderingContext, program?: ShaderProgram) {
-        gl.useProgram(program.getProgram());
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.mesh.getBuf());
-
-        this.mesh.setupVertexPositionsPointer(gl, program.getAttribLocation(gl, "a_pos"));
-        this.mesh.setupVertexNormalsPointer(gl, program.getAttribLocation(gl, "a_norm"));
-        this.mesh.setupVertexUVPointer(gl, program.getAttribLocation(gl, "a_uv"));
+    prepareMeshVertexAndShaderDataForRendering(gl: WebGLRenderingContext, program?: ShaderProgram, normals?: boolean, uv?: boolean) {
+        this.mesh.glArrayBuffer.prepareMeshVertexAndShaderDataForRendering(gl, program, normals, uv);
     }
 }
 
@@ -33,9 +32,9 @@ export class LightComponent extends Component {
 }
 
 export class TransformComponent extends Component {
-    position: number[] | Float32Array
-    rotation: number[] | Float32Array
-    scale: number[] | Float32Array
+    position: number[] | Float32Array | vec3
+    rotation: number[] | Float32Array | vec3
+    scale: number[] | Float32Array | vec3
     object: GameObject;
 
     private modelToWorld = mat4.create();
