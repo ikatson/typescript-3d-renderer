@@ -1,4 +1,14 @@
+const FLOAT_BYTES = 4;
+const VEC3 = 3;
+const VEC4 = 4;
+const UV_SIZE = 2;
+
 export class GLArrayBufferDataParams {
+    // how many floats per element
+    elementSize: number = VEC4;
+    normalsSize: number = VEC4;
+    uvSize: number = UV_SIZE;
+
     hasNormals: boolean;
     hasUVs: boolean;
     vertexCount: number;
@@ -10,13 +20,20 @@ export class GLArrayBufferDataParams {
         this.vertexCount = vertexCount;
     }
     computeStride() {
-        return 4 * (4 + (this.hasNormals ? 4 : 0) + (this.hasUVs ? 2 : 0));
+        let size = this.elementSize * FLOAT_BYTES;
+        if (this.hasNormals) {
+            size += this.normalsSize * FLOAT_BYTES;
+        }
+        if (this.hasUVs) {
+            size += this.uvSize * FLOAT_BYTES;
+        }
+        return size;
     }
     computeNormalOffset() {
-        return 4 * 4;
+        return FLOAT_BYTES * this.elementSize;
     }
     computeUVOffset() {
-        return 4 * 4 + (this.hasNormals ? 4 * 4 : 0);
+        return this.computeNormalOffset() + (this.hasNormals ? this.normalsSize * FLOAT_BYTES : 0);
     }
 }
 
@@ -48,21 +65,21 @@ export class GLArrayBuffer {
 
     setupVertexPositionsPointer(gl, attribLocation) {
         gl.enableVertexAttribArray(attribLocation);
-        gl.vertexAttribPointer(attribLocation, 4, gl.FLOAT, false, this.params.computeStride(), 0);
+        gl.vertexAttribPointer(attribLocation, this.params.elementSize, gl.FLOAT, false, this.params.computeStride(), 0);
     }
     setupVertexNormalsPointer(gl, attribLocation) {
         if (!this.params.hasNormals) {
             throw new Error("buf has no normals");
         }
         gl.enableVertexAttribArray(attribLocation);
-        gl.vertexAttribPointer(attribLocation, 4, gl.FLOAT, false, this.params.computeStride(), this.params.computeNormalOffset());
+        gl.vertexAttribPointer(attribLocation, this.params.normalsSize, gl.FLOAT, false, this.params.computeStride(), this.params.computeNormalOffset());
     }
     setupVertexUVPointer(gl, attribLocation) {
         if (!this.params.hasUVs) {
             throw new Error("buf has no UVs");
         }
         gl.enableVertexAttribArray(attribLocation);
-        gl.vertexAttribPointer(attribLocation, 2, gl.FLOAT, false, this.params.computeStride(), this.params.computeUVOffset());
+        gl.vertexAttribPointer(attribLocation, this.params.uvSize, gl.FLOAT, false, this.params.computeStride(), this.params.computeUVOffset());
     }
 
     draw(gl: WebGLRenderingContext) {

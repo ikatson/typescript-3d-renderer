@@ -1,8 +1,7 @@
 import { vec3 } from "./gl-matrix.js";
 import { VertexShader } from "./shaders.js";
-import { GLMesh } from "./mesh.js";
 import { fetchObject, ObjParser } from "./objparser.js";
-import { GLArrayBufferData, GLArrayBufferDataParams } from "./glArrayBuffer.js";
+import { GLArrayBufferData, GLArrayBufferDataParams, GLArrayBuffer } from "./glArrayBuffer.js";
 
 export const QuadVertices = new Float32Array([
     -1.0, 1.0,
@@ -12,12 +11,12 @@ export const QuadVertices = new Float32Array([
 ]);
 
 export const QuadArrayBufferData = (() => {
-    const d = new GLArrayBufferData(
-        QuadVertices, new GLArrayBufferDataParams(
-            false, false, 4
-        ));
-    d.params.isStrip = true;
-    return d;
+    const params = new GLArrayBufferDataParams(
+        false, false, 4
+    );
+    params.isStrip = true;
+    params.elementSize = 2;
+    return new GLArrayBufferData(QuadVertices, params);
 })();
 
 export const FULLSCREEN_QUAD_VS = `
@@ -35,26 +34,23 @@ void main() {
 `
 
 export class FullScreenQuad {
-    buf: WebGLBuffer;
+    private glArrayBuffer: GLArrayBuffer;
     vertexShader: VertexShader;
 
     constructor(gl: WebGLRenderingContext) {
-        this.buf = gl.createBuffer()
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.buf);
-        gl.bufferData(gl.ARRAY_BUFFER, QuadVertices, gl.STATIC_DRAW);
+        this.glArrayBuffer = new GLArrayBuffer(gl, QuadArrayBufferData)
         this.vertexShader = new VertexShader(gl, FULLSCREEN_QUAD_VS);
         // this object owns the shader, don't let others delete it recursively.
         this.vertexShader.setAutodelete(false);
     }
 
     bind(gl: WebGLRenderingContext, vertexPositionLocation: number) {
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.buf)
-        gl.enableVertexAttribArray(vertexPositionLocation);
-        gl.vertexAttribPointer(vertexPositionLocation, 2, gl.FLOAT, false, 0, 0);
+        this.glArrayBuffer.bind(gl);
+        this.glArrayBuffer.setupVertexPositionsPointer(gl, vertexPositionLocation);
     }
 
     drawArrays(gl: WebGLRenderingContext) {
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        this.glArrayBuffer.draw(gl);
     }
 }
 
