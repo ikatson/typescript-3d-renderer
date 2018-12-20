@@ -70,6 +70,8 @@ export class DeferredRenderer {
     shadowMapTx: WebGLTexture;
     shadowMapFB: WebGLFramebuffer;
     shadowMapShader: ShaderProgram;
+    shadowMapWidth: number;
+    shadowMapHeight: number;
 
     constructor(gl: WebGLRenderingContext, fullScreenQuad: FullScreenQuad, sphere: GLMesh) {
         this.gl = gl;
@@ -80,7 +82,9 @@ export class DeferredRenderer {
         this.posTx = this.createAndBindFullScreenBufferTexture(gl.RGBA16F, gl.RGBA, gl.FLOAT);
         this.depthTx = this.createAndBindFullScreenBufferTexture(gl.DEPTH_COMPONENT16, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT);
 
-        this.shadowMapTx = this.createAndBindFullScreenBufferTexture(gl.R32F, gl.RED, gl.FLOAT);
+        this.shadowMapWidth = 2048;
+        this.shadowMapHeight = 2048;
+        this.shadowMapTx = this.createShadowMapTexture();
         this.shadowMapFB = gl.createFramebuffer();
 
         this.gFrameBuffer = gl.createFramebuffer();
@@ -93,6 +97,31 @@ export class DeferredRenderer {
         
         this.sphereMesh = sphere;
         this.recompileShaders();
+    }
+
+    private createShadowMapTexture() {
+        const gl = this.gl;
+        let tx = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tx);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        gl.texImage2D(gl.TEXTURE_2D,
+            0,
+            gl.R32F,
+            this.shadowMapWidth,
+            this.shadowMapHeight,
+            0,
+            gl.RED,
+            gl.FLOAT,
+            null
+        );
+        return tx;
+    }
+    sh(TEXTURE_2D: number, arg1: number, R32F: any, shadowMapWidth: any, sh: any, arg5: number, RED: (R16F: any, RED: any, FLOAT: number) => WebGLTexture, FLOAT: number, arg8: null): any {
+        throw new Error("Method not implemented.");
     }
 
     private createAndBindFullScreenBufferTexture(internalFormat: number, format: number, type: number): WebGLTexture {
@@ -325,7 +354,10 @@ export class DeferredRenderer {
                 o.mesh.mesh.draw(gl);
                 o.children.forEach(drawObject);
             }
+
+            gl.viewport(0, 0, this.shadowMapWidth, this.shadowMapHeight);
             scene.children.forEach(drawObject);
+            gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
         }
 
         const renderLighting = () => {
