@@ -78,8 +78,9 @@ export class DeferredRenderer {
         this.colorTX = this.createAndBindFullScreenBufferTexture(gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE);
         this.normalTX = this.createAndBindFullScreenBufferTexture(gl.RGBA16F, gl.RGBA, gl.FLOAT);
         this.posTx = this.createAndBindFullScreenBufferTexture(gl.RGBA16F, gl.RGBA, gl.FLOAT);
-        this.shadowMapTx = this.createAndBindFullScreenBufferTexture(gl.R16F, gl.RED, gl.FLOAT);
         this.depthTx = this.createAndBindFullScreenBufferTexture(gl.DEPTH_COMPONENT16, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT);
+
+        this.shadowMapTx = this.createAndBindFullScreenBufferTexture(gl.R32F, gl.RED, gl.FLOAT);
         this.shadowMapFB = gl.createFramebuffer();
 
         this.gFrameBuffer = gl.createFramebuffer();
@@ -203,6 +204,11 @@ export class DeferredRenderer {
         const gl = this.gl;
         const deltaTime: number = (new Date()).getTime() / 1000. - this.timeStart;
         const worldToCamera = camera.getWorldToCamera();
+        const projectionMatrix = camera.projectionMatrix();
+
+        const lCamera = this.getSunCamera(gl, scene.lights[0], camera);
+        const lProjection = lCamera.projectionMatrix();
+        const lWorldToCamera = lCamera.getWorldToCamera();
 
         if (this.forceShadersRecompile || this.lastLightCount != scene.lights.length) {
             this.actuallyRecompileShaders(scene.lights.length);
@@ -231,7 +237,7 @@ export class DeferredRenderer {
             gl.uniform1f(program.getUniformLocation(gl, "u_time"), deltaTime);
             gl.uniform3fv(program.getUniformLocation(gl, "u_cameraPos"), camera.position);
             gl.uniformMatrix4fv(program.getUniformLocation(gl, "u_worldToCameraMatrix"), false, worldToCamera);
-            gl.uniformMatrix4fv(program.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix());
+            gl.uniformMatrix4fv(program.getUniformLocation(gl, "u_perspectiveMatrix"), false, projectionMatrix);
 
             const renderObject = (o: GameObject) => {
                 if (o.mesh != null) {
@@ -275,7 +281,7 @@ export class DeferredRenderer {
 
             // Common uniforms
             gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, worldToCamera);
-            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix());
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, projectionMatrix);
 
             // SSAO
             gl.uniform1f(s.getUniformLocation(gl, "u_ssaoRadius"), this.config.ssao.radius);
@@ -291,40 +297,8 @@ export class DeferredRenderer {
         }
 
         const renderShadowMap = () => {
-            // todo: make this smarter and somehow allowe multiple lights with shadows.
-            const light = scene.lights[0];
-
             gl.enable(gl.DEPTH_TEST);
             gl.disable(gl.CULL_FACE);
-
-            let lCamera = new Camera(gl);
-            lCamera.fov = 90.;
-
-            const tmp1 = vec3.create();
-            const tmp2 = vec3.create();
-            
-            lCamera.position = light.transform.position;
-            
-            // determine forward direction
-            vec3.sub(tmp1, light.transform.position, camera.position); // tmp1 = from camera to light DIR
-            vec3.scale(tmp1, camera.forward, vec3.dot(tmp1, camera.forward)); // tmp1 = forward multiplied by projection DIR
-            vec3.add(tmp1, camera.position, tmp1);
-            vec3.sub(tmp1, light.transform.position, tmp1);
-            vec3.scale(tmp1, tmp1, -1);
-            vec3.normalize(lCamera.forward, tmp1);
-
-            // determine up direction
-            const worldUp = [0, 1., 0];
-            vec3.scale(tmp1, lCamera.forward, vec3.dot(worldUp, lCamera.forward));
-            vec3.sub(lCamera.up, worldUp, tmp1);
-            vec3.normalize(lCamera.up, lCamera.up);
-
-            // lCamera = camera;
-
-            // debugger;
-
-            const lProjection = lCamera.projectionMatrix();
-            const lWorldToCamera = lCamera.getWorldToCamera();
 
             const s = this.shadowMapShader;
 
@@ -375,7 +349,10 @@ export class DeferredRenderer {
             gl.uniform1f(s.getUniformLocation(gl, "u_ssaoStrength"), this.config.ssao.strength);
             gl.uniform3fv(s.getUniformLocation(gl, "u_cameraPos"), camera.position);
             gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, worldToCamera);
-            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix());
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, projectionMatrix);
+
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_lightWorldToCamera"), false, lWorldToCamera);
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_lightPerspectiveMatrix"), false, lProjection);
 
             // Draw
             this.fullScreenQuad.drawArrays(gl);
@@ -425,6 +402,27 @@ export class DeferredRenderer {
         }
 
     }
+    private getSunCamera(gl: WebGLRenderingContext, light: GameObject, camera: Camera) {
+        let lCamera = new Camera(gl);
+        lCamera.fov = 90.;
+        const tmp1 = vec3.create();
+        const tmp2 = vec3.create();
+        lCamera.position = light.transform.position;
+        // determine forward direction
+        vec3.sub(tmp1, light.transform.position, camera.position); // tmp1 = from camera to light DIR
+        vec3.scale(tmp1, camera.forward, vec3.dot(tmp1, camera.forward)); // tmp1 = forward multiplied by projection DIR
+        vec3.add(tmp1, camera.position, tmp1);
+        vec3.sub(tmp1, light.transform.position, tmp1);
+        vec3.scale(tmp1, tmp1, -1);
+        vec3.normalize(lCamera.forward, tmp1);
+        // determine up direction
+        const worldUp = [0, 1., 0];
+        vec3.scale(tmp1, lCamera.forward, vec3.dot(worldUp, lCamera.forward));
+        vec3.sub(lCamera.up, worldUp, tmp1);
+        vec3.normalize(lCamera.up, lCamera.up);
+        return lCamera;
+    }
+
     generateLightData(lights: GameObject[]): Float32List {
         let result: number[] = [];
         lights.forEach(l => {

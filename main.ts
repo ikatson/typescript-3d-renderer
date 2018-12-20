@@ -225,7 +225,6 @@ function main() {
         plane.transform.scale = [5, 5, 5];
         plane.transform.update();
 
-        
         scene.addChild(plane);
         scene.addChild(aphrodite);
         aphrodite.addChild(corvette);

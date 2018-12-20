@@ -20,6 +20,9 @@ uniform vec3 u_cameraPos;
 uniform mat4 u_worldToCameraMatrix;
 uniform mat4 u_perspectiveMatrix;
 
+uniform mat4 u_lightWorldToCamera;
+uniform mat4 u_lightPerspectiveMatrix;
+
 struct light {
     vec3 position;
     vec3 ambient;
@@ -132,6 +135,21 @@ void main() {
 
         if (l.radius > 0.) {
             lc *= 1. - smoothstep(l.radius, l.radius + l.attenuation, length(lightDir));
+        }
+
+        // SHADOW MAP sample
+        // Only the first light casts shadows for now
+        if (i == 0) {
+            float bias = 0.02;
+            vec4 posVS = u_lightWorldToCamera * pos;
+            vec4 posLSS = u_lightPerspectiveMatrix * posVS;
+            posLSS.xyz /= posLSS.w;
+            float shadowMapDepth = texture(gbuf_shadowmap, posLSS.xy / 2.0 + 0.5).r;
+            if (shadowMapDepth > posVS.z + bias) {
+                // in shadow of smth else;
+                lc = vec3(0.);
+            }
+            // lc = vec3(0.);
         }
 
         c += lc;
