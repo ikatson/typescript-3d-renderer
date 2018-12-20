@@ -2,16 +2,23 @@ import { vec3 } from "./gl-matrix.js";
 import { VertexShader } from "./shaders.js";
 import { GLMesh } from "./mesh.js";
 import { fetchObject, ObjParser } from "./objparser.js";
+import { GLArrayBufferData, GLArrayBufferDataParams } from "./glArrayBuffer.js";
 
-export const fullScreenParams = {
-    buf:  new Float32Array([
-        -1.0,  1.0,
-        -1.0, -1.0,
-        1.0,  1.0,
-        1.0, -1.0,
-    ]),
-    mode: WebGLRenderingContext.TRIANGLE_STRIP,
-}
+export const QuadVertices = new Float32Array([
+    -1.0, 1.0,
+    -1.0, -1.0,
+    1.0, 1.0,
+    1.0, -1.0,
+]);
+
+export const QuadArrayBufferData = (() => {
+    const d = new GLArrayBufferData(
+        QuadVertices, new GLArrayBufferDataParams(
+            false, false, 4
+        ));
+    d.params.isStrip = true;
+    return d;
+})();
 
 export const FULLSCREEN_QUAD_VS = `
 precision highp float;
@@ -34,7 +41,7 @@ export class FullScreenQuad {
     constructor(gl: WebGLRenderingContext) {
         this.buf = gl.createBuffer()
         gl.bindBuffer(gl.ARRAY_BUFFER, this.buf);
-        gl.bufferData(gl.ARRAY_BUFFER, fullScreenParams.buf, gl.STATIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, QuadVertices, gl.STATIC_DRAW);
         this.vertexShader = new VertexShader(gl, FULLSCREEN_QUAD_VS);
         // this object owns the shader, don't let others delete it recursively.
         this.vertexShader.setAutodelete(false);
@@ -52,7 +59,7 @@ export class FullScreenQuad {
 }
 
 export function initGL(canvas: HTMLCanvasElement): WebGLRenderingContext {
-    let gl = <WebGLRenderingContext> canvas.getContext("webgl2");
+    let gl = <WebGLRenderingContext>canvas.getContext("webgl2");
     gl.getExtension("EXT_color_buffer_float");
 
     glClearColorAndDepth(gl, 0.0, 0.0, 0.0, 1.0);
