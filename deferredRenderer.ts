@@ -68,7 +68,7 @@ export class DeferredRenderer {
     sphereMesh: GLMesh;
     visualizeLightsShader: ShaderProgram;
     shadowMapTx: WebGLTexture;
-    depthFB: WebGLFramebuffer;
+    shadowMapFB: WebGLFramebuffer;
     shadowMapShader: ShaderProgram;
 
     constructor(gl: WebGLRenderingContext, fullScreenQuad: FullScreenQuad, sphere: GLMesh) {
@@ -80,7 +80,7 @@ export class DeferredRenderer {
         this.posTx = this.createAndBindFullScreenBufferTexture(gl.RGBA16F, gl.RGBA, gl.FLOAT);
         this.shadowMapTx = this.createAndBindFullScreenBufferTexture(gl.R16F, gl.RED, gl.FLOAT);
         this.depthTx = this.createAndBindFullScreenBufferTexture(gl.DEPTH_COMPONENT16, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT);
-        this.depthFB = gl.createFramebuffer();
+        this.shadowMapFB = gl.createFramebuffer();
 
         this.gFrameBuffer = gl.createFramebuffer();
         this.fullScreenQuad = fullScreenQuad;
@@ -263,7 +263,7 @@ export class DeferredRenderer {
             gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.ssaoTx, 0);
             checkFrameBufferStatusOrThrow(gl);
 
-            gl.useProgram(s.getProgram());
+            s.use(gl);
 
             glClearColorAndDepth(gl, 0., 0, 0, 1.);
 
@@ -297,8 +297,8 @@ export class DeferredRenderer {
             gl.enable(gl.DEPTH_TEST);
             gl.disable(gl.CULL_FACE);
 
-            const lCamera = new Camera(gl);
-            lCamera.fov = 179;
+            let lCamera = new Camera(gl);
+            lCamera.fov = 90.;
 
             const tmp1 = vec3.create();
             const tmp2 = vec3.create();
@@ -306,16 +306,20 @@ export class DeferredRenderer {
             lCamera.position = light.transform.position;
             
             // determine forward direction
-            vec3.sub(tmp1, light.transform.position, camera.position);
-            vec3.scale(tmp1, lCamera.forward, vec3.dot(tmp1, camera.forward));
-            vec3.sub(lCamera.forward, light.transform.position, tmp1);
-            vec3.normalize(lCamera.forward, lCamera.forward);
+            vec3.sub(tmp1, light.transform.position, camera.position); // tmp1 = from camera to light DIR
+            vec3.scale(tmp1, camera.forward, vec3.dot(tmp1, camera.forward)); // tmp1 = forward multiplied by projection DIR
+            vec3.add(tmp1, camera.position, tmp1);
+            vec3.sub(tmp1, light.transform.position, tmp1);
+            vec3.scale(tmp1, tmp1, -1);
+            vec3.normalize(lCamera.forward, tmp1);
 
             // determine up direction
             const worldUp = [0, 1., 0];
             vec3.scale(tmp1, lCamera.forward, vec3.dot(worldUp, lCamera.forward));
             vec3.sub(lCamera.up, worldUp, tmp1);
             vec3.normalize(lCamera.up, lCamera.up);
+
+            // lCamera = camera;
 
             // debugger;
 
@@ -324,9 +328,11 @@ export class DeferredRenderer {
 
             const s = this.shadowMapShader;
 
-            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.depthFB);
-            gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.ssaoTx, 0);
+            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.shadowMapFB);
+            gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.shadowMapTx, 0);
             checkFrameBufferStatusOrThrow(gl);
+
+            glClearColorAndDepth(gl, 0., 0, 0., 1.);
 
             s.use(gl);
 
