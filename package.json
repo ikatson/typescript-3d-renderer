@@ -1,7 +1,6 @@
 {
   "devDependencies": {
-    "@machinomy/types-readable-stream": "git+https://github.com/machinomy/types-readable-stream.git",
-    "@types/react": "^16.7.18"
+    "@machinomy/types-readable-stream": "git+https://github.com/machinomy/types-readable-stream.git"
   },
   "dependencies": {
     "@types/gl-matrix": "^2.4.4",

@@ -146,7 +146,6 @@ export class DeferredRenderer {
     }
 
     recompileShaders() {
-        console.log('will recompile shaders on next iteration');
         this.forceShadersRecompile = true;
     }
 
