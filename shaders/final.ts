@@ -122,15 +122,26 @@ void main() {
         // SHADOW MAP sample
         // Only the first light casts shadows for now
         if (i == 0) {
-            float bias = 0.01 + 0.07 * (1.0 - abs(dot(normal.xyz, normalize(l.position - pos.xyz))));
+            float bias = 0.04 + 0.2 * (1.0 - abs(dot(normal.xyz, normalize(l.position - pos.xyz))));
             vec4 posVS = u_lightWorldToCamera * pos;
             vec4 posLSS = u_lightPerspectiveMatrix * posVS;
             posLSS.xyz /= posLSS.w;
-            float shadowMapDepth = texture(gbuf_shadowmap, posLSS.xy / 2.0 + 0.5).r;
-            if (shadowMapDepth > posVS.z + bias) {
-                // in shadow of smth else;
-                l.intensity = 0.;
+
+            float inShadow = 0.;
+            int inShadowSamples = 0;
+
+            for (int i = -2; i < 2; i++) {
+                for (int j = -2; j < 2; j++) {
+                    vec2 offset = vec2(float(i) / 2048., float(j) / 2048.);
+                    float shadowMapDepth = texture(gbuf_shadowmap, posLSS.xy / 2.0 + 0.5 + offset).r;
+                    if (shadowMapDepth > posVS.z + bias) {
+                        inShadow += 1.;
+                    }
+                    inShadowSamples += 1;
+                }
             }
+
+            l.intensity *= (1. - (inShadow / float(inShadowSamples)));
         }
 
         // diffuse

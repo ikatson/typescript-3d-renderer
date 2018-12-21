@@ -98,7 +98,7 @@ export class DeferredRenderer {
         // SHADOWMAP
         this.shadowMapWidth = 2048;
         this.shadowMapHeight = 2048;
-        this.shadowMapTx = this.createAndBindBufferTexture(gl.R32F, gl.RED, gl.FLOAT, this.shadowMapWidth, this.shadowMapHeight);
+        this.shadowMapTx = this.createAndBindBufferTexture(gl.R16F, gl.RED, gl.HALF_FLOAT, this.shadowMapWidth, this.shadowMapHeight);
         this.shadowMapFB = gl.createFramebuffer();
         this.shadowMapRB = gl.createRenderbuffer()
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.shadowMapFB);
@@ -424,6 +424,8 @@ export class DeferredRenderer {
     private getSunCamera(gl: WebGLRenderingContext, light: GameObject, camera: Camera) {
         let lCamera = new Camera(gl);
         lCamera.fov = 90.;
+        lCamera.near = 4.;
+        lCamera.far = 15.;
         const tmp1 = vec3.create();
         const tmp2 = vec3.create();
         lCamera.position = light.transform.position;
