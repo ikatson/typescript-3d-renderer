@@ -9,7 +9,6 @@ import { Material } from "./material.js";
 import { Camera } from "./camera.js";
 
 import {mat4, vec3} from "./gl-matrix.js";
-import { ForwardRenderer } from "./forwardRenderer.js";
 import { Scene, randomLights, randomLight } from "./scene.js";
 import { DeferredRenderer, ShowLayer } from "./deferredRenderer.js";
 import { GLArrayBuffer } from "./glArrayBuffer.js";
@@ -17,134 +16,6 @@ import { GLArrayBuffer } from "./glArrayBuffer.js";
 
 const originZero = vec3.create();
 const PI2 = Math.PI / 2.0 - 0.01;
-
-
-const VERTEX_SHADER_FORWARD_RENDER_DEFAULT = `
-precision highp float;
-
-in vec4 a_pos;
-in vec4 a_norm;
-in vec2 a_uv;
-
-uniform mat4 u_modelViewMatrix;
-uniform mat4 u_perspectiveMatrix;
-
-out vec4 v_pos;
-out vec4 v_norm;
-out vec2 v_uv;
-
-void main() {
-    gl_Position = u_perspectiveMatrix * u_modelViewMatrix * a_pos;
-    
-    v_pos = gl_Position;
-    v_norm = normalize(u_modelViewMatrix * a_norm);
-    v_norm.z = -v_norm.z;
-    v_uv = a_uv;
-}
-`;
-
-
-const FRAGMENT_SHADER_FORWARD_RENDER_DEFAULT = `
-precision highp float;
-in vec4 v_pos;
-in vec4 v_norm;
-in vec2 v_uv;
-
-out vec4 color;
-
-uniform float u_time;
-uniform sampler2D u_sampler_ao;
-uniform sampler2D u_sampler_normals;
-uniform mat4 u_modelViewMatrix;
-uniform mat4 u_perspectiveMatrix;
-
-struct light {
-    vec3 position;
-    vec3 color;
-    float intensity;
-};
-
-struct material {
-    vec3 specular;
-    vec3 diffuse;
-    vec3 ambient;
-    float shininess;
-};
-
-vec3 perturbNormal2Arb( vec3 eye_pos, vec3 surf_norm ) {
-    vec2 vUv = v_uv;
-    float normalScale = 1.;
-    vec3 q0 = vec3( dFdx( eye_pos.x ), dFdx( eye_pos.y ), dFdx( eye_pos.z ) );
-    vec3 q1 = vec3( dFdy( eye_pos.x ), dFdy( eye_pos.y ), dFdy( eye_pos.z ) );
-    vec2 st0 = dFdx( vUv.st );
-    vec2 st1 = dFdy( vUv.st );
-
-    float scale = sign( st1.t * st0.s - st0.t * st1.s ); // we do not care about the magnitude
-
-    vec3 S = normalize( ( q0 * st1.t - q1 * st0.t ) * scale );
-    vec3 T = normalize( ( - q0 * st1.s + q1 * st0.s ) * scale );
-    vec3 N = normalize( surf_norm );
-    mat3 tsn = mat3( S, T, N );
-
-    vec3 mapN = texture( u_sampler_normals, vUv ).xyz * 2.0 - 1.0;
-
-    mapN.xy *= normalScale;
-    mapN.xy *= ( float( gl_FrontFacing ) * 2.0 - 1.0 );
-
-    return normalize( tsn * mapN );
-}
-
-vec3 phong(vec3 normal, vec3 point, vec3 eye) {
-    light l;
-
-    float c = cos(u_time);
-    
-    l.position = vec3(0.0, cos(u_time) * 5.0 - 10.0, -5.);
-    l.color = vec3(1.);
-    l.intensity = 0.8;
-
-    vec3 skin = vec3(1., 0.87, 0.74);
-    
-    material m;
-    m.specular = vec3(0.2);
-    m.diffuse = skin;
-    m.ambient = skin * 0.01;
-    m.shininess = 5.;
-    
-    vec3 color = m.ambient;
-    
-    vec3 lightDirection = normalize(point - l.position);
-    float dNL = max(dot(normal, -lightDirection), 0.);
-
-    vec3 ao = texture(u_sampler_ao, v_uv).xyz;
-    // ao = pow(ao, vec3(3.));
-
-    vec3 diffuse = m.diffuse * l.color * l.intensity * ao * dNL;
-    vec3 r = reflect(lightDirection, normal);
-    vec3 specular = m.specular * l.color * l.intensity * ao * pow(max(dot(r, normalize(eye - point)), 0.), m.shininess);
-    color += diffuse + specular;
-    
-    return color;
-}
-
-void main() {
-    // texture normal
-    // vec4 txNormal = texture(u_sampler_normals, v_uv);
-    // txNormal.w = 0.;
-    // vec3 normal = normalize(u_perspectiveMatrix * u_modelViewMatrix * txNormal).xyz;
-    
-    // This is vertex normal, not texture normal.
-    vec3 normal = normalize(v_norm.xyz);
-    // normal = perturbNormal2Arb(v_pos.xyz, normal);
-
-    color = vec4(vec3(phong(normal, v_pos.xyz, vec3(0., 0., -10.))), 1.);
-    // color = vec4(normal / 2.0 + 0.5, 1.);
-
-    //normal = normalize(normal);
-    // gl_FragColor = vec4(normal.xyz, 1.);
-    // gl_FragColor = vec4(1.);
-}
-`;
 
 function main() {
     const canvas = <HTMLCanvasElement> document.getElementById("gl");
@@ -173,16 +44,7 @@ function main() {
             progressBar.render(gl, progress);
         }
     }
-
-    const defaultForwardRenderShader = new ShaderProgram(
-        gl,
-        new VertexShader(gl, VERTEX_SHADER_FORWARD_RENDER_DEFAULT),
-        new FragmentShader(gl, FRAGMENT_SHADER_FORWARD_RENDER_DEFAULT)
-    )
-    const aphroditeMaterial = new Material(defaultForwardRenderShader);
-    aphroditeMaterial.setAmbientOcclusionTexture(new Texture(gl, "ao.png", gl.TEXTURE0));
-    aphroditeMaterial.setNormalMapTexture(new Texture(gl, "normals.png", gl.TEXTURE1));
-
+    
     Promise.all([
         fetchObject('resources/aphrodite/aphrodite.obj', onHeaders).then(parser => {
             const mesh = GLMeshFromObjParser(gl, parser);
