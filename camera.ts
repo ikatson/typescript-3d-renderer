@@ -4,12 +4,15 @@ export class Camera {
     position: Float32Array | number[] | vec3;
     forward: Float32Array | number[] | vec3;
     up: Float32Array | number[] | vec3;
-    private _right: Float32Array;
     near: number;
     far: number;
     fov: number;
     aspect: number;
-    _projectionMatrix: any;
+
+    private _right: Float32Array;
+    private _projectionMatrix: any;
+    private _worldToCamera: any;
+    private _lookAt: any;
 
     constructor(gl: WebGLRenderingContext) {
         this.position = vec3.fromValues(0, 0, -1);
@@ -21,11 +24,13 @@ export class Camera {
         this.fov = Math.PI * 45. / 180.0;
         this.aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
         this._projectionMatrix = mat4.create();
+        this._worldToCamera = mat4.create();
+        this._lookAt = vec3.create();
     }
 
     getWorldToCamera() {
-        const m = mat4.create()
-        const lookAt = vec3.create();
+        const m = this._worldToCamera;
+        const lookAt = this._lookAt;
         vec3.add(lookAt, this.position, this.forward)
         mat4.lookAt(m, this.position, lookAt, this.up);
         return m;

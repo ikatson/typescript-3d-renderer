@@ -49,7 +49,6 @@ export class DeferredRenderer {
     posTx: WebGLTexture;
     normalTX: WebGLTexture;
     colorTX: WebGLTexture;
-    depthTx: WebGLTexture;
 
     gFrameBuffer: WebGLFramebuffer;
     gBufferShader: ShaderProgram;
@@ -73,31 +72,50 @@ export class DeferredRenderer {
     shadowMapWidth: number;
     shadowMapHeight: number;
     shadowMapRB: WebGLRenderbuffer;
+    depthRB: WebGLRenderbuffer;
 
     constructor(gl: WebGLRenderingContext, fullScreenQuad: FullScreenQuad, sphere: GLMesh) {
         this.gl = gl;
         this.timeStart = (new Date()).getTime() / 1000.
 
+        // G-BUFFER
         this.colorTX = this.createAndBindBufferTexture(gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE);
         this.normalTX = this.createAndBindBufferTexture(gl.RGBA16F, gl.RGBA, gl.FLOAT);
         this.posTx = this.createAndBindBufferTexture(gl.RGBA16F, gl.RGBA, gl.FLOAT);
-        this.depthTx = this.createAndBindBufferTexture(gl.DEPTH_COMPONENT16, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT);
+        this.depthRB = gl.createRenderbuffer();
+        // createAndBindBufferTexture(gl.DEPTH_COMPONENT16, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT);
+        this.gFrameBuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.gFrameBuffer);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthRB)
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, gl.canvas.width, gl.canvas.height);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + 0, gl.TEXTURE_2D, this.posTx, 0);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + 1, gl.TEXTURE_2D, this.normalTX, 0);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + 2, gl.TEXTURE_2D, this.colorTX, 0);
+        gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthRB);
+        checkFrameBufferStatusOrThrow(gl);        
 
+        // SHADOWMAP
         this.shadowMapWidth = 2048;
         this.shadowMapHeight = 2048;
         this.shadowMapTx = this.createAndBindBufferTexture(gl.R32F, gl.RED, gl.FLOAT, this.shadowMapWidth, this.shadowMapHeight);
         this.shadowMapFB = gl.createFramebuffer();
-        this.shadowMapRB = gl.createRenderbuffer();
+        this.shadowMapRB = gl.createRenderbuffer()
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.shadowMapFB);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.shadowMapTx, 0);
         gl.bindRenderbuffer(gl.RENDERBUFFER, this.shadowMapRB);
         gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this.shadowMapWidth, this.shadowMapHeight);
-
-        this.gFrameBuffer = gl.createFramebuffer();
+        gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.shadowMapRB);
+        checkFrameBufferStatusOrThrow(gl);
+        
         this.fullScreenQuad = fullScreenQuad;
-        this.ssaoParameters = new SSAO(gl, 16, 4);
 
-        // TODO: remove this fb, use the same one.
+        // SSAO
+        this.ssaoParameters = new SSAO(gl, 16, 4);
         this.ssaoFrameBuffer = gl.createFramebuffer()
         this.ssaoTx = this.createAndBindBufferTexture(gl.R16F, gl.RED, gl.FLOAT);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.ssaoFrameBuffer);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.ssaoTx, 0);
+        checkFrameBufferStatusOrThrow(gl);
         
         this.sphereMesh = sphere;
         this.recompileShaders();
@@ -230,13 +248,6 @@ export class DeferredRenderer {
         const renderGBuffer = () => {
             gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.gFrameBuffer);
 
-            gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + 0, gl.TEXTURE_2D, this.posTx, 0);
-            gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + 1, gl.TEXTURE_2D, this.normalTX, 0);
-            gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + 2, gl.TEXTURE_2D, this.colorTX, 0);
-            gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, this.depthTx, 0);
-
-            checkFrameBufferStatusOrThrow(gl);
-
             glClearColorAndDepth(gl, 0, 0, 0, 0.);
 
             gl.enable(gl.CULL_FACE);
@@ -277,9 +288,7 @@ export class DeferredRenderer {
             const s = this.ssaoShader;
 
             gl.bindFramebuffer(gl.FRAMEBUFFER, this.ssaoFrameBuffer);
-            gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.ssaoTx, 0);
-            checkFrameBufferStatusOrThrow(gl);
-
+            
             s.use(gl);
 
             glClearColorAndDepth(gl, 0., 0, 0, 1.);
@@ -314,10 +323,6 @@ export class DeferredRenderer {
             const s = this.shadowMapShader;
 
             gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.shadowMapFB);
-            gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.shadowMapTx, 0);
-            gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.shadowMapRB);
-
-            checkFrameBufferStatusOrThrow(gl);
 
             glClearColorAndDepth(gl, 0., 0, 0., 1.);
 
