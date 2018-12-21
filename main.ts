@@ -1,153 +1,133 @@
-import {ShaderProgram, VertexShader, FragmentShader} from "./shaders.js";
-import {ObjParser, fetchObject} from "./objparser.js";
+import { ShaderProgram, VertexShader, FragmentShader } from "./shaders.js";
+import { ObjParser, fetchObject } from "./objparser.js";
 import { FullScreenQuad, glClearColorAndDepth, initGL, clip, QuadArrayBufferData } from "./utils.js";
 import { ProgressBarCommon, ProgressBar } from "./progressbar.js";
-import {GLMesh, GLMeshFromObjParser} from "./mesh.js";
+import { GLMesh, GLMeshFromObjParser } from "./mesh.js";
 import { Texture } from "./texture.js";
 import { GameObject, GameObjectBuilder, LightComponent } from "./object.js";
 import { Material } from "./material.js";
 import { Camera } from "./camera.js";
 
-import {mat4, vec3} from "./gl-matrix.js";
-import { ForwardRenderer } from "./forwardRenderer.js";
+import { mat4, vec3 } from "./gl-matrix.js";
 import { Scene, randomLights, randomLight } from "./scene.js";
 import { DeferredRenderer, ShowLayer } from "./deferredRenderer.js";
 import { GLArrayBuffer } from "./glArrayBuffer.js";
+import * as ui from "./ui.js";
+// import * as React from "react";
 
 
 const originZero = vec3.create();
 const PI2 = Math.PI / 2.0 - 0.01;
 
-
-const VERTEX_SHADER_FORWARD_RENDER_DEFAULT = `
-precision highp float;
-
-in vec4 a_pos;
-in vec4 a_norm;
-in vec2 a_uv;
-
-uniform mat4 u_modelViewMatrix;
-uniform mat4 u_perspectiveMatrix;
-
-out vec4 v_pos;
-out vec4 v_norm;
-out vec2 v_uv;
-
-void main() {
-    gl_Position = u_perspectiveMatrix * u_modelViewMatrix * a_pos;
-    
-    v_pos = gl_Position;
-    v_norm = normalize(u_modelViewMatrix * a_norm);
-    v_norm.z = -v_norm.z;
-    v_uv = a_uv;
-}
-`;
-
-
-const FRAGMENT_SHADER_FORWARD_RENDER_DEFAULT = `
-precision highp float;
-in vec4 v_pos;
-in vec4 v_norm;
-in vec2 v_uv;
-
-out vec4 color;
-
-uniform float u_time;
-uniform sampler2D u_sampler_ao;
-uniform sampler2D u_sampler_normals;
-uniform mat4 u_modelViewMatrix;
-uniform mat4 u_perspectiveMatrix;
-
-struct light {
-    vec3 position;
-    vec3 color;
-    float intensity;
-};
-
-struct material {
-    vec3 specular;
-    vec3 diffuse;
-    vec3 ambient;
-    float shininess;
-};
-
-vec3 perturbNormal2Arb( vec3 eye_pos, vec3 surf_norm ) {
-    vec2 vUv = v_uv;
-    float normalScale = 1.;
-    vec3 q0 = vec3( dFdx( eye_pos.x ), dFdx( eye_pos.y ), dFdx( eye_pos.z ) );
-    vec3 q1 = vec3( dFdy( eye_pos.x ), dFdy( eye_pos.y ), dFdy( eye_pos.z ) );
-    vec2 st0 = dFdx( vUv.st );
-    vec2 st1 = dFdy( vUv.st );
-
-    float scale = sign( st1.t * st0.s - st0.t * st1.s ); // we do not care about the magnitude
-
-    vec3 S = normalize( ( q0 * st1.t - q1 * st0.t ) * scale );
-    vec3 T = normalize( ( - q0 * st1.s + q1 * st0.s ) * scale );
-    vec3 N = normalize( surf_norm );
-    mat3 tsn = mat3( S, T, N );
-
-    vec3 mapN = texture( u_sampler_normals, vUv ).xyz * 2.0 - 1.0;
-
-    mapN.xy *= normalScale;
-    mapN.xy *= ( float( gl_FrontFacing ) * 2.0 - 1.0 );
-
-    return normalize( tsn * mapN );
-}
-
-vec3 phong(vec3 normal, vec3 point, vec3 eye) {
-    light l;
-
-    float c = cos(u_time);
-    
-    l.position = vec3(0.0, cos(u_time) * 5.0 - 10.0, -5.);
-    l.color = vec3(1.);
-    l.intensity = 0.8;
-
-    vec3 skin = vec3(1., 0.87, 0.74);
-    
-    material m;
-    m.specular = vec3(0.2);
-    m.diffuse = skin;
-    m.ambient = skin * 0.01;
-    m.shininess = 5.;
-    
-    vec3 color = m.ambient;
-    
-    vec3 lightDirection = normalize(point - l.position);
-    float dNL = max(dot(normal, -lightDirection), 0.);
-
-    vec3 ao = texture(u_sampler_ao, v_uv).xyz;
-    // ao = pow(ao, vec3(3.));
-
-    vec3 diffuse = m.diffuse * l.color * l.intensity * ao * dNL;
-    vec3 r = reflect(lightDirection, normal);
-    vec3 specular = m.specular * l.color * l.intensity * ao * pow(max(dot(r, normalize(eye - point)), 0.), m.shininess);
-    color += diffuse + specular;
-    
-    return color;
-}
-
-void main() {
-    // texture normal
-    // vec4 txNormal = texture(u_sampler_normals, v_uv);
-    // txNormal.w = 0.;
-    // vec3 normal = normalize(u_perspectiveMatrix * u_modelViewMatrix * txNormal).xyz;
-    
-    // This is vertex normal, not texture normal.
-    vec3 normal = normalize(v_norm.xyz);
-    // normal = perturbNormal2Arb(v_pos.xyz, normal);
-
-    color = vec4(vec3(phong(normal, v_pos.xyz, vec3(0., 0., -10.))), 1.);
-    // color = vec4(normal / 2.0 + 0.5, 1.);
-
-    //normal = normalize(normal);
-    // gl_FragColor = vec4(normal.xyz, 1.);
-    // gl_FragColor = vec4(1.);
-}
-`;
-
 function main() {
-    const canvas = <HTMLCanvasElement> document.getElementById("gl");
+    const e = React.createElement;
+
+    const state = {
+        lighting: {
+            lightCount: {
+                label: 'Lights count',
+                value: 10,
+                min: 1,
+                step: 1,
+                onChange: ui.makeFunctionReference(),
+            },
+            sun: {
+                ambient: { label: 'Ambient', value: 0.2, min: 0, step: 0.1, onChange: ui.makeFunctionReference() },
+                diffuse: { label: 'Diffuse', value: 0.6, min: 0, step: 0.1, onChange: ui.makeFunctionReference() },
+                specular: { label: 'Specular', value: 0.2, min: 0, step: 0.1, onChange: ui.makeFunctionReference() },
+                intensity: { label: 'Intensity', value: 1., min: 0, step: 0.1, onChange: ui.makeFunctionReference() },
+            },
+            'new': {
+                radius: { label: 'Radius', value: 3.5, min: 0, step: 0.1, onChange: ui.makeFunctionReference() },
+                posScale: { label: 'Position scale', value: 5., min: 0, step: 0.1, onChange: ui.makeFunctionReference() },
+                attenuation: { label: 'Attenuation', value: 0.15, min: 0, step: 0.1, onChange: ui.makeFunctionReference() },
+                intensity: { label: 'Intensity', value: 1., min: 0, step: 0.1, onChange: ui.makeFunctionReference()},
+            }
+        },
+        ssao: {
+            radius: {
+                label: 'Radius',
+                value: 2.0,
+                min: 0.001,
+                step: 0.1,
+                onChange: ui.makeFunctionReference(),
+            },
+            bias: {
+                label: 'Bias',
+                value: 0.02,
+                step: 0.001,
+                min: 0.001,
+                onChange: ui.makeFunctionReference(),
+            },
+            strength: {
+                label: 'Strength',
+                value: 1.0,
+                min: 0,
+                step: 0.5,
+                onChange: ui.makeFunctionReference(),
+            }
+        },
+        showLayer: {
+            value: ShowLayer.Final,
+            onChange: ui.makeFunctionReference(),
+            options: (() => {
+                const items = [
+                    { label: 'Final', value: ShowLayer.Final },
+                    { label: 'Positions', value: ShowLayer.Positions },
+                    { label: 'Normals', value: ShowLayer.Normals },
+                    { label: 'SSAO', value: ShowLayer.SSAO },
+                    { label: 'Color', value: ShowLayer.Color },
+                    { label: 'Color', value: ShowLayer.ShadowMap },
+                ];
+                return items;
+            })()
+        },
+        shouldRotate: {
+            label: 'Rotation enabled',
+            onChange: ui.makeFunctionReference(),
+            checked: true
+        }
+    }
+
+    ReactDOM.render(
+        e(
+            ui.Form, null,
+            e(ui.FormGroup, { label: 'SSAO' },
+                e(ui.InputGroup, null,
+                    e(ui.NumberInput, state.ssao.radius),
+                    e(ui.NumberInput, state.ssao.bias),
+                    e(ui.NumberInput, state.ssao.strength),
+                )
+            ),
+            e(ui.FormGroup, { label: 'Lighting' },
+                e(ui.InputGroup, null,
+                    e(ui.NumberInput, state.lighting.lightCount),
+                ),
+            ),
+            e(ui.FormGroup, { label: 'Sun' },
+                e(ui.InputGroup, null,
+                    e(ui.NumberInput, state.lighting.sun.ambient),
+                    e(ui.NumberInput, state.lighting.sun.diffuse),
+                    e(ui.NumberInput, state.lighting.sun.specular),
+                    e(ui.NumberInput, state.lighting.sun.intensity),
+                )
+            ),
+            e(ui.FormGroup, { label: 'New lights' },
+                e(ui.InputGroup, null,
+                    e(ui.NumberInput, state.lighting.new.radius),
+                    e(ui.NumberInput, state.lighting.new.posScale),
+                    e(ui.NumberInput, state.lighting.new.attenuation),
+                    e(ui.NumberInput, state.lighting.new.intensity),
+                )
+            ),
+            e(ui.FormGroup, { label: 'Layer to show' },
+                e(ui.RadioInput, state.showLayer)
+            ),
+        ),
+        document.getElementById('react-app')
+    );
+
+    const canvas = <HTMLCanvasElement>document.getElementById("gl");
     // canvas.width = window.innerWidth;
     // canvas.height = window.innerHeight;
     const gl = initGL(canvas);
@@ -164,7 +144,7 @@ function main() {
 
     progressBar.prepare(gl);
 
-    const onHeaders = ({headers, length}) => {
+    const onHeaders = ({ headers, length }) => {
         if (headers) {
             contentLength = parseInt(headers.get("content-length"));
         } else {
@@ -173,15 +153,6 @@ function main() {
             progressBar.render(gl, progress);
         }
     }
-
-    const defaultForwardRenderShader = new ShaderProgram(
-        gl,
-        new VertexShader(gl, VERTEX_SHADER_FORWARD_RENDER_DEFAULT),
-        new FragmentShader(gl, FRAGMENT_SHADER_FORWARD_RENDER_DEFAULT)
-    )
-    const aphroditeMaterial = new Material(defaultForwardRenderShader);
-    aphroditeMaterial.setAmbientOcclusionTexture(new Texture(gl, "ao.png", gl.TEXTURE0));
-    aphroditeMaterial.setNormalMapTexture(new Texture(gl, "normals.png", gl.TEXTURE1));
 
     Promise.all([
         fetchObject('resources/aphrodite/aphrodite.obj', onHeaders).then(parser => {
@@ -230,11 +201,11 @@ function main() {
         aphrodite.addChild(corvette);
 
         const tmpVec = vec3.create();
-        
+
         function processFrame() {
             pressedKeys.forEach((v, k) => {
                 const moveSpeed = 0.05;
-                switch(k) {
+                switch (k) {
                     case 'e':
                         vec3.scale(tmpVec, camera.up, moveSpeed);
                         vec3.add(camera.position, camera.position, tmpVec);
@@ -262,7 +233,7 @@ function main() {
                 }
             })
 
-            if (shouldRotate.checked) {
+            if (state.shouldRotate.checked) {
                 aphrodite.transform.rotation[1] += 0.01;
                 aphrodite.transform.update();
             }
@@ -278,7 +249,7 @@ function main() {
         var sensitivityY = 0.01;
         var sensitivityX = 0.01;
 
-        
+
 
         const pressedKeys = new Map<String, Boolean>();
 
@@ -310,75 +281,66 @@ function main() {
 
                 let forward = vec3.fromValues(0, 0, 1);
                 let up = vec3.fromValues(0, 1, 0);
-                
+
                 vec3.rotateX(forward, forward, originZero, pitch);
                 vec3.rotateY(forward, forward, originZero, yaw);
-                
+
                 vec3.rotateX(up, up, originZero, pitch);
                 vec3.rotateY(up, up, originZero, yaw);
                 camera.forward = forward;
                 camera.up = up;
 
             }
-            
+
             event.preventDefault();
         }
 
-        const getFormEl = name => {
-            const el = <HTMLInputElement> document.getElementsByName(name)[0];
-            if (el === undefined) {
-                throw new Error(`can't find element by name ${name}`)
-            }
-            return el;
-        }
-
-        const onChange = (name, callback: Function) => {
-            const el = getFormEl(name);
-            const set = () => {
-                console.log(`setting value of ${name} to ${el.value}`)
-                callback(el.value);
-            }
-            el.addEventListener('change', set);
-            set();
-        }
-
-        const onChangeNumber = (name, callback: Function) => {
-            onChange(name, v => {
-                callback(Number.parseFloat(v));
-            })
-        }
-
-        const newLightIntensity = getFormEl('new-light-intensity');
-        const newLightRadius = getFormEl('new-light-radius');
-        const newLightAttenuation = getFormEl('new-light-attenuation');
-        const newLightPosScale = getFormEl('new-light-pos-scale');
-        const shouldRotate = getFormEl('rotate');
-
-        onChangeNumber('ssao-strength', v => {
+        state.ssao.strength.onChange.ref = (v, prev) => {
             renderer.config.ssao.strength = v;
-            // this is only needed if one changed SSAO to 0 then back to 5, but
-            // laziness here, whatever let's just recompile just in case.
-            renderer.recompileShaders();
-        })
-        onChangeNumber('ssao-bias', v => {
+            if (v === 0 || prev === 0){
+                renderer.recompileShaders();
+            }
+        }
+        state.ssao.bias.onChange.ref = v => {
             renderer.config.ssao.bias = v;
-        })
-        onChangeNumber('ssao-radius', v => {
+        }
+        state.ssao.radius.onChange.ref = v => {
             renderer.config.ssao.radius = v;
-        })
-        onChangeNumber('sun-ambient', v => {
+        }
+        state.lighting.sun.ambient.onChange.ref = v => {
             sun.light.ambient = [v, v, v];
-        })
-        onChangeNumber('sun-specular', v => {
+        }
+        state.lighting.sun.specular.onChange.ref = v => {
             sun.light.specular = [v, v, v];
-        })
-        onChangeNumber('sun-diffuse', v => {
+        }
+        state.lighting.sun.diffuse.onChange.ref = v => {
             sun.light.diffuse = [v, v, v];
-        })
-        onChangeNumber('sun-intensity', v => {
+        }
+        state.lighting.sun.intensity.onChange.ref = v => {
             sun.light.intensity = v;
-        })
-        onChangeNumber('lights-count', v => {
+        }
+
+        state.lighting.new.attenuation.onChange.ref = v => {
+            state.lighting.new.attenuation.value = v;
+        }
+
+        state.lighting.new.posScale.onChange.ref = v => {
+            state.lighting.new.posScale.value = v;
+        }
+
+        state.lighting.new.intensity.onChange.ref = v => {
+            state.lighting.new.intensity.value = v;
+        }
+
+        state.lighting.new.radius.onChange.ref = v => {
+            state.lighting.new.radius.value = v;
+        }
+
+        state.lighting.new.radius.onChange.ref = v => {
+            state.lighting.new.radius.value = v;
+        }
+
+        state.lighting.lightCount.onChange.ref = v => {
             v = clip(v, 1, 500);
             console.log(scene.lights.length);
             const diff = scene.lights.length - v;
@@ -388,28 +350,44 @@ function main() {
                 }
             } else if (diff < 0) {
                 for (let index = 0; index < -diff; index++) {
-                    const l = randomLight(newLightPosScale.valueAsNumber, newLightIntensity.valueAsNumber);
-                    l.light.radius = newLightRadius.valueAsNumber;
-                    l.light.attenuation = newLightAttenuation.valueAsNumber;
+                    const l = randomLight(state.lighting.new.posScale.value, state.lighting.new.intensity.value);
+                    l.light.radius = state.lighting.new.radius.value;
+                    l.light.attenuation = state.lighting.new.attenuation.value;
                     scene.lights.push(l)
                 }
             }
             console.log('new light count ' + scene.lights.length);
-        })
+        }
 
-        document.getElementsByName('show-layer').forEach(_el => {
-            const el = <HTMLInputElement> _el;
-            const set = (el: HTMLInputElement) => {
-                if (el.checked) {
-                    const v = ShowLayer[el.value];
-                    console.log('setting show layer to ' + v);
-                    renderer.config.showLayer = v;
-                    renderer.recompileShaders();
+        state.lighting.lightCount.onChange.ref = v => {
+            v = clip(v, 1, 500);
+            console.log(scene.lights.length);
+            const diff = scene.lights.length - v;
+            if (diff > 0) {
+                for (let index = 0; index < diff; index++) {
+                    scene.lights.pop();
+                }
+            } else if (diff < 0) {
+                for (let index = 0; index < -diff; index++) {
+                    const l = randomLight(state.lighting.new.posScale.value, state.lighting.new.intensity.value);
+                    l.light.radius = state.lighting.new.radius.value;
+                    l.light.attenuation = state.lighting.new.attenuation.value;
+                    scene.lights.push(l)
                 }
             }
-            set(el);
-            el.addEventListener('change', () => set(el))
-        });
+            console.log('new light count ' + scene.lights.length);
+        }
+
+        state.showLayer.onChange.ref = v => {
+            console.log('setting show layer to ' + v, ShowLayer[v]);
+            renderer.config.showLayer = Number.parseInt(v);
+            renderer.recompileShaders();
+        }
+
+        state.shouldRotate.onChange.ref = (v) => {
+            console.log('rotation enabled:', v);
+            state.shouldRotate.checked = v;
+        }
         
         processFrame()
 
