@@ -72,6 +72,7 @@ export class DeferredRenderer {
     shadowMapShader: ShaderProgram;
     shadowMapWidth: number;
     shadowMapHeight: number;
+    shadowMapRB: WebGLRenderbuffer;
 
     constructor(gl: WebGLRenderingContext, fullScreenQuad: FullScreenQuad, sphere: GLMesh) {
         this.gl = gl;
@@ -86,6 +87,9 @@ export class DeferredRenderer {
         this.shadowMapHeight = 2048;
         this.shadowMapTx = this.createAndBindBufferTexture(gl.R32F, gl.RED, gl.FLOAT, this.shadowMapWidth, this.shadowMapHeight);
         this.shadowMapFB = gl.createFramebuffer();
+        this.shadowMapRB = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, this.shadowMapRB);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this.shadowMapWidth, this.shadowMapHeight);
 
         this.gFrameBuffer = gl.createFramebuffer();
         this.fullScreenQuad = fullScreenQuad;
@@ -311,6 +315,7 @@ export class DeferredRenderer {
 
             gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.shadowMapFB);
             gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.shadowMapTx, 0);
+            gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.shadowMapRB);
 
             checkFrameBufferStatusOrThrow(gl);
 
