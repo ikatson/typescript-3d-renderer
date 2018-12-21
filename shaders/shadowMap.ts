@@ -26,6 +26,7 @@ out vec4 depth;
 
 void main() {
     // depth = vec4(1.);
+    // depth = vec4(gl_FragCoord.z);
     depth = vec4(vec3(v_pos.z), 1.);
 }
 `);

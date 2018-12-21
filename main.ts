@@ -222,7 +222,7 @@ function main() {
 
         const plane = new GameObjectBuilder().setMesh(planeMesh).build();
         plane.transform.position = [0, -2., 0];
-        plane.transform.scale = [5, 5, 5];
+        plane.transform.scale = [15, 15, 15];
         plane.transform.update();
 
         scene.addChild(plane);
