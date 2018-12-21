@@ -182,6 +182,8 @@ export class DeferredRenderer {
                     .define('LIGHT_COUNT', lightCount.toString())
                     .define('SCREEN_WIDTH', gl.canvas.width.toString())
                     .define('SCREEN_HEIGHT', gl.canvas.height.toString())
+                    .define('SHADOW_MAP_WIDTH', `${this.shadowMapWidth}.`)
+                    .define('SHADOW_MAP_HEIGHT', `${this.shadowMapHeight}.`)
                     .defineIfTrue('SSAO_ENABLED', this.ssaoEnabled())
                     .defineIfTrue('SHOW_SSAO', this.config.showLayer === ShowLayer.SSAO)
                     .defineIfTrue('SHOW_COLORS', this.config.showLayer === ShowLayer.Color)

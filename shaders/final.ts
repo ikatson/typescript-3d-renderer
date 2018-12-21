@@ -132,7 +132,7 @@ void main() {
 
             for (int i = -2; i < 2; i++) {
                 for (int j = -2; j < 2; j++) {
-                    vec2 offset = vec2(float(i) / 2048., float(j) / 2048.);
+                    vec2 offset = vec2(float(i) / SHADOW_MAP_WIDTH, float(j) / SHADOW_MAP_HEIGHT);
                     float shadowMapDepth = texture(gbuf_shadowmap, posLSS.xy / 2.0 + 0.5 + offset).r;
                     if (shadowMapDepth > posVS.z + bias) {
                         inShadow += 1.;
