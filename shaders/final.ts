@@ -90,7 +90,7 @@ void main() {
     #endif
 
     #ifdef SHOW_SHADOWMAP
-    color = texture(gbuf_shadowmap, tx_pos);
+    color = vec4(abs(texture(gbuf_shadowmap, tx_pos).rrr) / 15.0, 1.);
     return;
     #endif
 

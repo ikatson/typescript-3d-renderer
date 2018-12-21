@@ -327,12 +327,13 @@ export class DeferredRenderer {
 
         const renderShadowMap = () => {
             gl.enable(gl.DEPTH_TEST);
-            gl.disable(gl.CULL_FACE);
+            gl.enable(gl.CULL_FACE);
 
             const s = this.shadowMapShader;
 
             gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.shadowMapFB);
             gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.shadowMapTx, 0);
+
             checkFrameBufferStatusOrThrow(gl);
 
             glClearColorAndDepth(gl, 0., 0, 0., 1.);

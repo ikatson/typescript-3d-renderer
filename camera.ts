@@ -17,7 +17,7 @@ export class Camera {
         this.up = vec3.fromValues(0, 1, 0);
         this._right = vec3.create()
         this.near = 0.1;
-        this.far = 100.0;
+        this.far = 30.0;
         this.fov = Math.PI * 45. / 180.0;
         this.aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
         this._projectionMatrix = mat4.create();
