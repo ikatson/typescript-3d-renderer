@@ -77,14 +77,14 @@ export class DeferredRenderer {
         this.gl = gl;
         this.timeStart = (new Date()).getTime() / 1000.
 
-        this.colorTX = this.createAndBindFullScreenBufferTexture(gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE);
-        this.normalTX = this.createAndBindFullScreenBufferTexture(gl.RGBA16F, gl.RGBA, gl.FLOAT);
-        this.posTx = this.createAndBindFullScreenBufferTexture(gl.RGBA16F, gl.RGBA, gl.FLOAT);
-        this.depthTx = this.createAndBindFullScreenBufferTexture(gl.DEPTH_COMPONENT16, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT);
+        this.colorTX = this.createAndBindBufferTexture(gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE);
+        this.normalTX = this.createAndBindBufferTexture(gl.RGBA16F, gl.RGBA, gl.FLOAT);
+        this.posTx = this.createAndBindBufferTexture(gl.RGBA16F, gl.RGBA, gl.FLOAT);
+        this.depthTx = this.createAndBindBufferTexture(gl.DEPTH_COMPONENT16, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT);
 
         this.shadowMapWidth = 2048;
         this.shadowMapHeight = 2048;
-        this.shadowMapTx = this.createShadowMapTexture();
+        this.shadowMapTx = this.createAndBindBufferTexture(gl.R32F, gl.RED, gl.FLOAT, this.shadowMapWidth, this.shadowMapHeight);
         this.shadowMapFB = gl.createFramebuffer();
 
         this.gFrameBuffer = gl.createFramebuffer();
@@ -93,39 +93,17 @@ export class DeferredRenderer {
 
         // TODO: remove this fb, use the same one.
         this.ssaoFrameBuffer = gl.createFramebuffer()
-        this.ssaoTx = this.createAndBindFullScreenBufferTexture(gl.R16F, gl.RED, gl.FLOAT);
+        this.ssaoTx = this.createAndBindBufferTexture(gl.R16F, gl.RED, gl.FLOAT);
         
         this.sphereMesh = sphere;
         this.recompileShaders();
     }
-
-    private createShadowMapTexture() {
+    
+    private createAndBindBufferTexture(internalFormat: number, format: number, type: number, x?: number, y?: number): WebGLTexture {
         const gl = this.gl;
-        let tx = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, tx);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-        gl.texImage2D(gl.TEXTURE_2D,
-            0,
-            gl.R32F,
-            this.shadowMapWidth,
-            this.shadowMapHeight,
-            0,
-            gl.RED,
-            gl.FLOAT,
-            null
-        );
-        return tx;
-    }
-    sh(TEXTURE_2D: number, arg1: number, R32F: any, shadowMapWidth: any, sh: any, arg5: number, RED: (R16F: any, RED: any, FLOAT: number) => WebGLTexture, FLOAT: number, arg8: null): any {
-        throw new Error("Method not implemented.");
-    }
-
-    private createAndBindFullScreenBufferTexture(internalFormat: number, format: number, type: number): WebGLTexture {
-        const gl = this.gl;
+        x = x || gl.canvas.width;
+        y = y || gl.canvas.height;
 
         let tx = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, tx);
@@ -137,8 +115,8 @@ export class DeferredRenderer {
         gl.texImage2D(gl.TEXTURE_2D,
             0,
             internalFormat,
-            gl.canvas.width,
-            gl.canvas.height,
+            x,
+            y,
             0,
             format,
             type,
