@@ -77,13 +77,14 @@ export class DeferredRenderer {
     constructor(gl: WebGLRenderingContext, fullScreenQuad: FullScreenQuad, sphere: GLMesh) {
         this.gl = gl;
         this.timeStart = (new Date()).getTime() / 1000.
+        this.fullScreenQuad = fullScreenQuad;
+        this.sphereMesh = sphere;
 
         // G-BUFFER
         this.colorTX = this.createAndBindBufferTexture(gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE);
         this.normalTX = this.createAndBindBufferTexture(gl.RGBA16F, gl.RGBA, gl.FLOAT);
         this.posTx = this.createAndBindBufferTexture(gl.RGBA16F, gl.RGBA, gl.FLOAT);
         this.depthRB = gl.createRenderbuffer();
-        // createAndBindBufferTexture(gl.DEPTH_COMPONENT16, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT);
         this.gFrameBuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.gFrameBuffer);
         gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthRB)
@@ -107,17 +108,14 @@ export class DeferredRenderer {
         gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.shadowMapRB);
         checkFrameBufferStatusOrThrow(gl);
         
-        this.fullScreenQuad = fullScreenQuad;
-
         // SSAO
-        this.ssaoParameters = new SSAO(gl, 16, 4);
+        this.ssaoParameters = new SSAO(gl, 64, 4);
         this.ssaoFrameBuffer = gl.createFramebuffer()
         this.ssaoTx = this.createAndBindBufferTexture(gl.R16F, gl.RED, gl.FLOAT);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.ssaoFrameBuffer);
         gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.ssaoTx, 0);
         checkFrameBufferStatusOrThrow(gl);
-        
-        this.sphereMesh = sphere;
+
         this.recompileShaders();
     }
     
