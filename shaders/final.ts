@@ -122,7 +122,7 @@ void main() {
         // SHADOW MAP sample
         // Only the first light casts shadows for now
         if (i == 0) {
-            float bias = 0.02;
+            float bias = 0.005 + 0.05 * (1.0 - abs(dot(normal.xyz, normalize(l.position - pos.xyz))));
             vec4 posVS = u_lightWorldToCamera * pos;
             vec4 posLSS = u_lightPerspectiveMatrix * posVS;
             posLSS.xyz /= posLSS.w;
