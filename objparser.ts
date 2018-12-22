@@ -17,9 +17,12 @@ export class ObjParser {
     }
 
     getArrayBuffer(): GLArrayBufferData {
+        const params = new GLArrayBufferDataParams(this.hasNormals, this.hasUVs, this.getTriangleCount() * 3)
+        params.elementSize = 3;
+        params.normalsSize = 3;
         return new GLArrayBufferData(
             new Float32Array(this.finalBuf),
-            new GLArrayBufferDataParams(this.hasNormals, this.hasUVs, this.getTriangleCount() * 3)
+            params
         );
     }
 
@@ -59,13 +62,11 @@ export class ObjParser {
                 this.finalBuf.push(this.vertexBuf[vidx]);
                 this.finalBuf.push(this.vertexBuf[vidx + 1]);
                 this.finalBuf.push(this.vertexBuf[vidx + 2]);
-                this.finalBuf.push(1.);
                 // normal
                 if (this.hasNormals) {
                     this.finalBuf.push(this.normalBuf[nidx]);
                     this.finalBuf.push(this.normalBuf[nidx + 1]);
                     this.finalBuf.push(this.normalBuf[nidx + 2]);
-                    this.finalBuf.push(0.);
                 }
                 // UV
                 if (this.hasUVs) {

@@ -2,7 +2,7 @@ const VS = `
 precision mediump float;
 
 in vec4 a_pos;
-in vec4 a_norm;
+in vec3 a_norm;
 in vec2 a_uv;
 
 uniform mat4 u_modelViewMatrix;
@@ -18,7 +18,7 @@ void main() {
     v_pos = u_modelWorldMatrix * a_pos;
     gl_Position = u_perspectiveMatrix * u_modelViewMatrix * a_pos;
 
-    v_norm = normalize(u_modelWorldMatrix * a_norm);
+    v_norm = normalize(u_modelWorldMatrix * vec4(a_norm, 0.));
     v_uv = a_uv;
 }
 `
