@@ -215,6 +215,7 @@ function main() {
         const newLightAttenuation = getFormEl('new-light-attenuation');
         const newLightPosScale = getFormEl('new-light-pos-scale');
         const shouldRotate = getFormEl('rotate');
+        const shadowMapEnabled = getFormEl('shadowmap-enabled');
 
         onChangeNumber('ssao-strength', v => {
             renderer.config.ssao.strength = v;
@@ -258,6 +259,11 @@ function main() {
             }
             console.log('new light count ' + scene.lights.length);
         })
+        shadowMapEnabled.addEventListener('change', ev => {
+            renderer.shadowMapEnabled = shadowMapEnabled.checked;
+            console.log('shadowmap enabled', renderer.shadowMapEnabled);
+            renderer.recompileShaders();
+        });
 
         document.getElementsByName('show-layer').forEach(_el => {
             const el = <HTMLInputElement> _el;

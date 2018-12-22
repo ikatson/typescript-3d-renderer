@@ -73,6 +73,7 @@ export class DeferredRenderer {
     shadowMapHeight: number;
     shadowMapRB: WebGLRenderbuffer;
     depthRB: WebGLRenderbuffer;
+    shadowMapEnabled: boolean = true;
 
     constructor(gl: WebGLRenderingContext, fullScreenQuad: FullScreenQuad, sphere: GLMesh) {
         this.gl = gl;
@@ -185,6 +186,7 @@ export class DeferredRenderer {
                     .define('SHADOW_MAP_WIDTH', `${this.shadowMapWidth}.`)
                     .define('SHADOW_MAP_HEIGHT', `${this.shadowMapHeight}.`)
                     .defineIfTrue('SSAO_ENABLED', this.ssaoEnabled())
+                    .defineIfTrue('SHADOWMAP_ENABLED', this.shadowMapEnabled)
                     .defineIfTrue('SHOW_SSAO', this.config.showLayer === ShowLayer.SSAO)
                     .defineIfTrue('SHOW_COLORS', this.config.showLayer === ShowLayer.Color)
                     .defineIfTrue('SHOW_POSITIONS', this.config.showLayer === ShowLayer.Positions)
@@ -383,7 +385,10 @@ export class DeferredRenderer {
         if (this.ssaoEnabled()) {
             renderSSAO()
         }
-        renderShadowMap()
+        if (this.shadowMapEnabled) {
+            renderShadowMap()
+        }
+        
         renderLighting()     
         
         if (this.config.showLayer === ShowLayer.Final) {

@@ -89,9 +89,11 @@ void main() {
     return;
     #endif
 
+    #ifdef SHADOWMAP_ENABLED
     #ifdef SHOW_SHADOWMAP
     color = vec4(abs(texture(gbuf_shadowmap, tx_pos).rrr) / 15.0, 1.);
     return;
+    #endif
     #endif
 
     #ifdef SSAO_ENABLED
@@ -119,6 +121,7 @@ void main() {
         vec3 ambient = colAmbient * l.intensity * ssao;
         lc += ambient;
 
+        #ifdef SHADOWMAP_ENABLED
         // SHADOW MAP sample
         // Only the first light casts shadows for now
         if (i == 0) {
@@ -172,6 +175,7 @@ void main() {
 
             l.intensity *= (1. - (inShadow / float(inShadowSamples)));
         }
+        #endif
 
         // diffuse
         lc += colDiffuse * l.intensity * max(dot(normal.xyz, normalize(-lightDir)), 0.) * pos.a;
