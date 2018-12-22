@@ -113,7 +113,7 @@ export class DeferredRenderer {
         // SSAO
         this.ssaoParameters = ssaoParameters || new SSAO(gl, 16, 4);
         this.ssaoFrameBuffer = gl.createFramebuffer()
-        this.ssaoTx = this.createAndBindBufferTexture(gl.R16F, gl.RED, gl.FLOAT);
+        this.ssaoTx = this.createAndBindBufferTexture(gl.R16F, gl.RED, gl.HALF_FLOAT);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.ssaoFrameBuffer);
         gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.ssaoTx, 0);
         checkFrameBufferStatusOrThrow(gl);
