@@ -76,7 +76,7 @@ export class DeferredRenderer {
     depthRB: WebGLRenderbuffer;
     shadowMapEnabled: boolean = true;
 
-    constructor(gl: WebGLRenderingContext, fullScreenQuad: FullScreenQuad, sphere: GLMesh) {
+    constructor(gl: WebGLRenderingContext, fullScreenQuad: FullScreenQuad, sphere: GLMesh, ssaoParameters?: SSAO) {
         this.gl = gl;
         this.timeStart = (new Date()).getTime() / 1000.
         this.fullScreenQuad = fullScreenQuad;
@@ -111,7 +111,7 @@ export class DeferredRenderer {
         checkFrameBufferStatusOrThrow(gl);
         
         // SSAO
-        this.ssaoParameters = new SSAO(gl, 64, 4);
+        this.ssaoParameters = ssaoParameters || new SSAO(gl, 16, 4);
         this.ssaoFrameBuffer = gl.createFramebuffer()
         this.ssaoTx = this.createAndBindBufferTexture(gl.R16F, gl.RED, gl.FLOAT);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.ssaoFrameBuffer);

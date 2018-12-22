@@ -13,6 +13,7 @@ import { Scene, randomLights, randomLight } from "./scene.js";
 import { DeferredRenderer, ShowLayer } from "./deferredRenderer.js";
 import { GLArrayBuffer } from "./glArrayBuffer.js";
 import * as ui from "./ui.js";
+import { SSAO } from "./ssao.js";
 
 
 const originZero = vec3.create();
@@ -42,6 +43,18 @@ function main() {
             }
         },
         ssao: {
+            sampleCount: {
+                value: 16,
+                min: 1,
+                step: 1,
+                onChange: ui.funcRef()
+            },
+            rotationPower: {
+                value: 2,
+                min: 2,
+                step: 1,
+                onChange: ui.funcRef()
+            },
             radius: {
                 value: 2.0,
                 min: 0.001,
@@ -99,6 +112,8 @@ function main() {
         ui.Form(
             ui.FormGroup('SSAO',
                 ui.InputGroup(
+                    n('Samples', state.ssao.sampleCount),
+                    n('Noise size', state.ssao.rotationPower),
                     n('Radius', state.ssao.radius),
                     n('Bias', state.ssao.bias),
                     n('Strength', state.ssao.strength),
@@ -191,13 +206,26 @@ function main() {
         camera.position = vec3.fromValues(0, 0, -10.);
 
         // const renderer = new ForwardRenderer(gl);
-        const renderer = new DeferredRenderer(gl, fb, sphereMesh);
+        const makeSSAO = () => {
+            return new SSAO(gl, state.ssao.sampleCount.value, Math.pow(2, state.ssao.rotationPower.value));
+        }
+        const renderer = new DeferredRenderer(gl, fb, sphereMesh, makeSSAO());
+        renderer.config.ssao.strength = state.ssao.strength.value;
+        renderer.config.ssao.bias = state.ssao.bias.value;
+        renderer.config.ssao.radius = state.ssao.radius.value;
+
         const scene = new Scene();
+
+        const v3 = v => [v, v, v];
 
         const sun = new GameObjectBuilder().setLightComponent(new LightComponent()).build();
         sun.transform.position = [5., 5., -5.];
         sun.transform.update();
         sun.light.radius = 0;
+        sun.light.intensity = state.lighting.sun.intensity.value;
+        sun.light.ambient = v3(state.lighting.sun.ambient.value);
+        sun.light.diffuse = v3(state.lighting.sun.diffuse.value);
+        sun.light.specular = v3(state.lighting.sun.specular.value);
 
         scene.lights = [sun]
 
@@ -307,11 +335,23 @@ function main() {
             event.preventDefault();
         }
 
-        state.ssao.strength.onChange.ref = v => {
-            renderer.config.ssao.strength = v;
-            // this is only needed if one changed SSAO to 0 then back to 5, but
-            // laziness here, whatever let's just recompile just in case.
+        state.ssao.sampleCount.onChange.ref = v => {
+            renderer.ssaoParameters.delete(gl);
+            renderer.ssaoParameters = makeSSAO();
             renderer.recompileShaders();
+        }
+
+        state.ssao.rotationPower.onChange.ref = v => {
+            renderer.ssaoParameters.delete(gl);
+            renderer.ssaoParameters = makeSSAO();
+            renderer.recompileShaders();
+        }
+
+        state.ssao.strength.onChange.ref = (v, prev) => {
+            renderer.config.ssao.strength = v;
+            if (v === 0 || prev === 0) {
+                renderer.recompileShaders();
+            }
         }
         state.ssao.bias.onChange.ref = v => {
             renderer.config.ssao.bias = v;
