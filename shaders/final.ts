@@ -132,50 +132,10 @@ void main() {
             vec4 posLSS = u_lightPerspectiveMatrix * posVS;
             posLSS.xyz /= posLSS.w;
 
-            float inShadow = 0.;
-            int inShadowSamples = 0;
-
             float shadowMapDepth = texture(gbuf_shadowmap, posLSS.xy / 2.0 + 0.5).r;
-            float diff = abs(shadowMapDepth - posVS.z + bias);
-
-            vec2 lightMapTexelScale = vec2(1. / SHADOW_MAP_WIDTH, 1. / SHADOW_MAP_HEIGHT);
-
-            int blurKernelSize = 2;
-            int offsetScale = 1;
-            if (diff < 1.) {
-            } else if (diff < 2.) {
-                blurKernelSize = 3;
-            } else if (diff < 3.) {
-                blurKernelSize = 3;
-                offsetScale = 2;
-            } else if (diff < 4.) {
-                blurKernelSize = 4;
-                offsetScale = 2;
-            } else if (diff < 5.) {
-                blurKernelSize = 4;
-                offsetScale = 3;                                
-            } else {
-                blurKernelSize = 5;
-                offsetScale = 3;
+            if (shadowMapDepth > posVS.z + bias)  {
+                l.intensity = 0.;
             }
-            // not sure if this gives any benefit at all
-            // bias *= 1. + (float(blurKernelSize * offsetScale - 3)) * .5;
-
-            int blurKernelSizeLeft = - blurKernelSize / 2;
-            int blurKernelSizeRight = -blurKernelSizeLeft + 1;
-
-            for (int i = blurKernelSizeLeft; i < blurKernelSizeRight; i++) {
-                for (int j = -blurKernelSizeLeft; j < blurKernelSizeRight; j++) {
-                    vec2 offset = vec2(float(i), float(j)) * lightMapTexelScale * float(offsetScale);
-                    shadowMapDepth = texture(gbuf_shadowmap, posLSS.xy / 2.0 + 0.5 + offset).r;
-                    if (shadowMapDepth > posVS.z + bias)  {
-                        inShadow += 1.;
-                    }
-                    inShadowSamples += 1;
-                }
-            }
-
-            l.intensity *= (1. - (inShadow / float(inShadowSamples)));
         }
         #endif
 
