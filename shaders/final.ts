@@ -132,10 +132,22 @@ void main() {
             vec4 posLSS = u_lightPerspectiveMatrix * posVS;
             posLSS.xyz /= posLSS.w;
 
-            float shadowMapDepth = texture(gbuf_shadowmap, posLSS.xy / 2.0 + 0.5).r;
-            if (shadowMapDepth > posVS.z + bias)  {
-                l.intensity = 0.;
+            vec2 texmapscale = vec2(1. / SHADOW_MAP_WIDTH, 1. / SHADOW_MAP_HEIGHT);
+
+            int sum = 0;
+            float x, y;
+            float shadowMapDepth;
+
+            for (y = -1.5; y <= 1.5; y += 1.0) {
+                for (x = -1.5; x <= 1.5; x += 1.0) {
+                    vec2 offset = vec2(x, y);
+                    shadowMapDepth = texture(gbuf_shadowmap, posLSS.xy * 0.5 + 0.5 + offset * texmapscale).r;
+                    if (shadowMapDepth < posVS.z + bias)  {
+                        sum++;
+                    }
+                }
             }
+            l.intensity *= float(sum) / 16.0;
         }
         #endif
 
