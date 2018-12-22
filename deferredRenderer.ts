@@ -15,6 +15,7 @@ import { SHADOWMAP_SHADERS } from "./shaders/shadowMap.js";
 
 
 export class SSAORuntimConfigurables {
+    enabled: boolean = true;
     radius: number = 0.1;
     bias: number = 0.025;
     strength: number = 1.0;
@@ -228,7 +229,7 @@ export class DeferredRenderer {
     }
 
     private ssaoEnabled(): boolean {
-        return this.config.ssao.strength > 0;
+        return this.config.ssao.strength > 0 && this.config.ssao.enabled;
     }
 
     render(scene: Scene, camera: Camera) {

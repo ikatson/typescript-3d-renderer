@@ -216,6 +216,7 @@ function main() {
         const newLightPosScale = getFormEl('new-light-pos-scale');
         const shouldRotate = getFormEl('rotate');
         const shadowMapEnabled = getFormEl('shadowmap-enabled');
+        const ssaoEnabled = getFormEl('ssao-enabled');
 
         onChangeNumber('ssao-strength', v => {
             renderer.config.ssao.strength = v;
@@ -262,6 +263,12 @@ function main() {
         shadowMapEnabled.addEventListener('change', ev => {
             renderer.shadowMapEnabled = shadowMapEnabled.checked;
             console.log('shadowmap enabled', renderer.shadowMapEnabled);
+            renderer.recompileShaders();
+        });
+
+        ssaoEnabled.addEventListener('change', ev => {
+            renderer.config.ssao.enabled = ssaoEnabled.checked;
+            console.log('SSAO enabled', renderer.config.ssao.enabled);
             renderer.recompileShaders();
         });
 
