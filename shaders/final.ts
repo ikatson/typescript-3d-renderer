@@ -135,19 +135,26 @@ void main() {
 
             vec2 lightMapTexelScale = vec2(1. / SHADOW_MAP_WIDTH, 1. / SHADOW_MAP_HEIGHT);
 
-            int blurKernelSize = 1;
+            int blurKernelSize = 2;
             int offsetScale = 1;
             if (diff < 1.) {
             } else if (diff < 2.) {
-                blurKernelSize = 2;
+                blurKernelSize = 3;
             } else if (diff < 3.) {
-                blurKernelSize = 2;
-                offsetScale = 2;
-            } else {
                 blurKernelSize = 3;
                 offsetScale = 2;
+            } else if (diff < 4.) {
+                blurKernelSize = 4;
+                offsetScale = 2;
+            } else if (diff < 5.) {
+                blurKernelSize = 4;
+                offsetScale = 3;                                
+            } else {
+                blurKernelSize = 5;
+                offsetScale = 3;
             }
-            // bias *= (offsetScale - 1.) * .5 + 1.;
+            // not sure if this gives any benefit at all
+            // bias *= 1. + (float(blurKernelSize * offsetScale - 3)) * .5;
 
             int blurKernelSizeLeft = - blurKernelSize / 2;
             int blurKernelSizeRight = -blurKernelSizeLeft + 1;

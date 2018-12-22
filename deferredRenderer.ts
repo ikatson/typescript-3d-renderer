@@ -427,7 +427,7 @@ export class DeferredRenderer {
         let lCamera = new Camera(gl);
         lCamera.fov = 90.;
         lCamera.near = 2.;
-        lCamera.far = 25.;
+        lCamera.far = 50.;
         const tmp1 = vec3.create();
         const tmp2 = vec3.create();
         lCamera.position = light.transform.position;
