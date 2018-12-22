@@ -130,10 +130,24 @@ void main() {
             float inShadow = 0.;
             int inShadowSamples = 0;
 
-            for (int i = -2; i < 2; i++) {
-                for (int j = -2; j < 2; j++) {
+            float shadowMapDepth = texture(gbuf_shadowmap, posLSS.xy / 2.0 + 0.5).r;
+            float diff = abs(shadowMapDepth - posVS.z + bias);
+
+            int iter = 0;
+            if (diff < 0.1) {
+                iter = 1;
+            } else if (diff < 0.5) {
+                iter = 2;
+            } else if (diff < 1.) {
+                iter = 3;
+            } else {
+                iter = 8;
+            }
+
+            for (int i = -iter; i < iter; i++) {
+                for (int j = -iter; j < iter; j++) {
                     vec2 offset = vec2(float(i) / SHADOW_MAP_WIDTH, float(j) / SHADOW_MAP_HEIGHT);
-                    float shadowMapDepth = texture(gbuf_shadowmap, posLSS.xy / 2.0 + 0.5 + offset).r;
+                    shadowMapDepth = texture(gbuf_shadowmap, posLSS.xy / 2.0 + 0.5 + offset).r;
                     if (shadowMapDepth > posVS.z + bias) {
                         inShadow += 1.;
                     }
