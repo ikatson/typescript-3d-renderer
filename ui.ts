@@ -2,6 +2,7 @@ type Props = {
     // onChange: Function,
     checked?: boolean,
     id?: string;
+    name?: string;
     type?: string,
     className?: string,
     for?: string,
@@ -16,7 +17,7 @@ type HTMLOrString = HTMLElement | string;
 type Child = HTMLOrString | HTMLOrString[];
 type RadioInputOption = {
     label: string,
-    value: string,
+    value: string | number,
 }
 
 const nextId = (() => {
@@ -29,7 +30,7 @@ const nextId = (() => {
 
 export const c = (name: string) => { return { className: name } };
 
-export const funcRef = (ref?: Function) => {
+export const funcRef: Function = (ref?: Function) => {
     const f = function () {
         if (f.ref) {
             f.ref.apply(null, arguments);
@@ -42,33 +43,21 @@ export const funcRef = (ref?: Function) => {
 export const e = (name: string, props: Props, ...children: HTMLOrString[]) => {
     const el = document.createElement(name);
     if (props) {
-        el.className = props.className;
-        if (props.id) {
-            el.id = props.id;
-        }
-        if (props.type) {
-            el.type = props.type;
-        }
-        if (props.value) {
-            el.value = props.value;
-        }
-        if (props.min) {
-            el.min = props.min;
-        }
-        if (props.max) {
-            el.max = props.max;
-        }
-        if (props.step) {
-            el.step = props.step;
-        }
-        if (props.for) {
-            el.setAttribute('for', props.for);
-        }
-        if (props.onChange) {
-            el.onchange = props.onChange;
-        }
-        if (props.checked) {
-            el.checked = props.checked;
+        for (const k in props) {
+            if (!props.hasOwnProperty(k)) {
+                continue;
+            }
+            const v = props[k];
+            switch (k) {
+                case 'for': 
+                    el.setAttribute('for', props.for);
+                    break;
+                case 'onChange':
+                    el.onchange = v;
+                    break;
+                default:
+                    el[k] = v;
+            }
         }
     }
     children.map(c => {
@@ -106,29 +95,52 @@ export const NumberInput = (label: string, props: Props, onChange: (number) => v
             e('span', c('input-group-text'), label)
         ),
         e('input', {
+            ...props,
             className: 'form-control',
             type: 'number',
             onChange: (ev) => {
+                props.value = ev.target.value;
                 onChange(ev.target.value);
             },
-            ...props
         }),
     ]
 }
 
-export const RadioInput = (options: RadioInputOption[], value: string, onChange: (string) => void) => {
+export const RadioInput = (options: RadioInputOption[], props: Props, onChange: (string) => void) => {
     const id = nextId();
     return options.map(o => {
         const eid = nextId();
         return e('div', c('form-check'),
             e('input', {
                 className: 'form-check-input',
+                name: id.toString(),
                 type: 'radio',
                 id: eid.toString(),
                 value: o.value,
-                checked: o.value === value
+                checked: o.value === props.value,
+                onChange: (ev) => {
+                    props.value = ev.target.value;
+                    onChange(ev.target.value);
+                }
             }),
             e('label', { className: 'form-check-label', for: eid.toString() }, o.label)
         )
     });
+}
+
+export const CheckBoxInput = (label: string, props: Props, onChange: (boolean) => void) => {
+    const id = nextId();
+    return e('div', c('form-check'),
+        e('input', {
+            ...props,
+            className: 'form-check-input',
+            type: 'checkbox',
+            id: id.toString(),
+            onChange: (ev) => {
+                props.checked = ev.target.checked;
+                onChange(ev.target.checked)
+            }
+        }),
+        e('label', {className: 'form-check-label', for: id.toString()}, label)
+    )
 }
