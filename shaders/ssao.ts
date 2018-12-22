@@ -37,7 +37,8 @@ float ssao(vec4 normalWS, vec4 posWS, vec2 tx_pos) {
 
     float radius = u_ssaoRadius;
     float samples = float(SSAO_SAMPLES);
-    float occlusion = samples;
+    float occlusion = 0.;
+    float totalWeight = 0.;
     float bias = u_ssaoBias;
 
     for (int i = 0; i < SSAO_SAMPLES; i++) {
@@ -50,17 +51,31 @@ float ssao(vec4 normalWS, vec4 posWS, vec2 tx_pos) {
 
         vec4 sampleSS = u_perspectiveMatrix * sampleVS;
         sampleSS /= sampleSS.w;
+        
+        float weight = dot(randomVectorVS.xyz, normalVS.xyz);
+        totalWeight += weight;
+
+        vec2 absSampleSS = abs(sampleSS.xy);
+        if (absSampleSS.x >= 1. || absSampleSS.y >= 1.) {
+            continue;
+        }
+        if (sampleSS.a < 0.00001) {
+            continue;
+        }
 
         vec4 storedPosWS = texture(gbuf_position, sampleSS.xy * 0.5 + 0.5);
         vec4 storedPosVS = u_worldToCameraMatrix * storedPosWS;
         float storedDepthVS = storedPosVS.z;
 
-        float rangeCheck = smoothstep(0.0, 1.0, radius / abs(storedDepthVS - sampleVS.z));
+        // float falloff = smoothstep(0.0, 1.0, radius / abs(storedDepthVS - sampleVS.z));
+        
+        // float falloff = 1.;
         if (storedDepthVS > sampleVS.z + bias) {
-            occlusion -= 1.0 * rangeCheck;
+            float falloff = smoothstep(0.0, 1.0, radius / length(storedPosVS.xyz - posVS.xyz));
+            occlusion += falloff * weight;
         }
     }
-    occlusion = clamp(occlusion / samples, 0., 1.);
+    occlusion = 1. - (occlusion / totalWeight);
     return occlusion;
 }
 

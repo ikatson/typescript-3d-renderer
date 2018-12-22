@@ -95,7 +95,7 @@ export const InputGroup = (...children) => {
 }
 
 export const NumberInput = (label: string, props: Props, onChange: (number) => void) => {
-    return e('div', c('input-group input-group-sm'),
+    return e('div', c('input-group input-group-xs'),
         e('div', c('input-group-prepend'),
             e('span', c('input-group-text'), label)
         ),

@@ -114,7 +114,7 @@ function main() {
     document.getElementById('app').appendChild(
         ui.Form(
             ui.FormRow(
-                ui.e('div', ui.c('col-sm'),
+                ui.e('div', ui.c('col-lg'),
                     ui.FormGroup('SSAO',
                         ui.InputGroup(
                             n('Samples', state.ssao.sampleCount),
@@ -134,7 +134,7 @@ function main() {
                         ui.CheckBoxInput('Pause', state.pause, state.pause.onChange),
                     ),
                 ),
-                ui.e('div', ui.c('col-sm'),
+                ui.e('div', ui.c('col-lg'),
                     ui.FormGroup('Lighting',
                         ui.InputGroup(
                             n('Light count', state.lighting.lightCount),
