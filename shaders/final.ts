@@ -133,22 +133,30 @@ void main() {
             float shadowMapDepth = texture(gbuf_shadowmap, posLSS.xy / 2.0 + 0.5).r;
             float diff = abs(shadowMapDepth - posVS.z + bias);
 
-            int iter = 0;
-            if (diff < 0.1) {
-                iter = 1;
-            } else if (diff < 0.5) {
-                iter = 2;
-            } else if (diff < 1.) {
-                iter = 3;
-            } else {
-                iter = 8;
-            }
+            vec2 lightMapTexelScale = vec2(1. / SHADOW_MAP_WIDTH, 1. / SHADOW_MAP_HEIGHT);
 
-            for (int i = -iter; i < iter; i++) {
-                for (int j = -iter; j < iter; j++) {
-                    vec2 offset = vec2(float(i) / SHADOW_MAP_WIDTH, float(j) / SHADOW_MAP_HEIGHT);
+            int blurKernelSize = 1;
+            int offsetScale = 1;
+            if (diff < 1.) {
+            } else if (diff < 2.) {
+                blurKernelSize = 2;
+            } else if (diff < 3.) {
+                blurKernelSize = 2;
+                offsetScale = 2;
+            } else {
+                blurKernelSize = 3;
+                offsetScale = 2;
+            }
+            // bias *= (offsetScale - 1.) * .5 + 1.;
+
+            int blurKernelSizeLeft = - blurKernelSize / 2;
+            int blurKernelSizeRight = -blurKernelSizeLeft + 1;
+
+            for (int i = blurKernelSizeLeft; i < blurKernelSizeRight; i++) {
+                for (int j = -blurKernelSizeLeft; j < blurKernelSizeRight; j++) {
+                    vec2 offset = vec2(float(i), float(j)) * lightMapTexelScale * float(offsetScale);
                     shadowMapDepth = texture(gbuf_shadowmap, posLSS.xy / 2.0 + 0.5 + offset).r;
-                    if (shadowMapDepth > posVS.z + bias) {
+                    if (shadowMapDepth > posVS.z + bias)  {
                         inShadow += 1.;
                     }
                     inShadowSamples += 1;
