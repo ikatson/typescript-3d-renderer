@@ -121,16 +121,17 @@ export class DeferredRenderer {
         this.recompileShaders();
     }
     
-    private createAndBindBufferTexture(internalFormat: number, format: number, type: number, x?: number, y?: number): WebGLTexture {
+    private createAndBindBufferTexture(internalFormat: number, format: number, type: number, x?: number, y?: number, filtering?: number): WebGLTexture {
         const gl = this.gl;
 
         x = x || gl.canvas.width;
         y = y || gl.canvas.height;
+        filtering = filtering || gl.NEAREST;
 
         let tx = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, tx);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filtering);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filtering);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
