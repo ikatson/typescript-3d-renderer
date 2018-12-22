@@ -220,6 +220,7 @@ function main() {
         }
         const renderer = new DeferredRenderer(gl, fb, sphereMesh, makeSSAO());
         renderer.config.showLayer = state.showLayer.value;
+        renderer.shadowMapEnabled = state.shadowMapEnabled.checked;
         renderer.config.ssao.strength = state.ssao.strength.value;
         renderer.config.ssao.bias = state.ssao.bias.value;
         renderer.config.ssao.radius = state.ssao.radius.value;
