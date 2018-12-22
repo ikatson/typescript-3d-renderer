@@ -137,11 +137,11 @@ void main() {
             int sum = 0;
             float x, y;
             float shadowMapDepth;
+            vec2 base = posLSS.xy * 0.5 + 0.5;
 
             for (y = -1.5; y <= 1.5; y += 1.0) {
                 for (x = -1.5; x <= 1.5; x += 1.0) {
-                    vec2 offset = vec2(x, y);
-                    shadowMapDepth = texture(gbuf_shadowmap, posLSS.xy * 0.5 + 0.5 + offset * texmapscale).r;
+                    shadowMapDepth = texture(gbuf_shadowmap, base + vec2(x, y) * texmapscale).r;
                     if (shadowMapDepth < posVS.z + bias)  {
                         sum++;
                     }
