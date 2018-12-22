@@ -38,6 +38,8 @@ uniform vec3[LIGHT_COUNT * 5] u_lightData;
 float getSsaoBlurred() {
     vec2 offset = vec2(1. / float(SCREEN_WIDTH), 1. / float(SCREEN_HEIGHT));
 
+    // return texture(gbuf_ssao, tx_pos).r;
+
     int samples = 0;
     float occlusion = 0.;
     for (int i = -SSAO_NOISE_SCALE / 2; i < SSAO_NOISE_SCALE / 2; i++) {

@@ -1,5 +1,5 @@
 const VS = `
-precision mediump float;
+precision highp float;
 
 in vec4 a_pos;
 in vec3 a_norm;
@@ -24,7 +24,7 @@ void main() {
 `
 
 const FS = `
-precision mediump float;
+precision highp float;
 
 in vec4 v_pos;
 in vec4 v_norm;

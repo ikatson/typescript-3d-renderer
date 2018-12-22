@@ -85,12 +85,17 @@ export const FormGroup = (label: string, ...children) => {
     );
 }
 
+export const FormRow = (...children) => {
+    return e('div', c('form-row'), ...children);
+}
+
 export const InputGroup = (...children) => {
-    return e('div', c('input-group'), ...children);
+    // return e('div', c('input-group input-group-sm'), ...children);
+    return children;
 }
 
 export const NumberInput = (label: string, props: Props, onChange: (number) => void) => {
-    return [
+    return e('div', c('input-group input-group-sm'),
         e('div', c('input-group-prepend'),
             e('span', c('input-group-text'), label)
         ),
@@ -103,7 +108,7 @@ export const NumberInput = (label: string, props: Props, onChange: (number) => v
                 onChange(ev.target.value);
             },
         }),
-    ]
+    )
 }
 
 export const RadioInput = (options: RadioInputOption[], props: Props, onChange: (string) => void) => {

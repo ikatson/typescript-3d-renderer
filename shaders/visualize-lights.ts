@@ -1,7 +1,7 @@
 import { ShaderSourceBuilder } from "../shaders.js";
 
 const VS = `
-precision mediump float;
+precision highp float;
 
 in vec4 a_pos;
 
@@ -21,7 +21,7 @@ void main() {
 `
 
 const FS = `
-precision mediump float;
+precision highp float;
 
 in vec4 v_pos;
 in vec2 tx_pos;

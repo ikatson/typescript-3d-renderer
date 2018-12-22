@@ -24,7 +24,8 @@ function main() {
         lighting: {
             lightCount: {
                 label: 'Lights count',
-                value: 10,
+                // value: 10,
+                value: 1,
                 min: 1,
                 step: 1,
                 onChange: ui.funcRef(),
@@ -44,7 +45,7 @@ function main() {
         },
         ssao: {
             sampleCount: {
-                value: 16,
+                value: 32,
                 min: 1,
                 step: 1,
                 onChange: ui.funcRef()
@@ -56,7 +57,7 @@ function main() {
                 onChange: ui.funcRef()
             },
             radius: {
-                value: 2.0,
+                value: 0.75,
                 min: 0.001,
                 step: 0.1,
                 onChange: ui.funcRef(),
@@ -75,7 +76,8 @@ function main() {
             }
         },
         showLayer: {
-            value: ShowLayer.Final,
+            // value: ShowLayer.Final,
+            value: ShowLayer.SSAO,
             onChange: ui.funcRef(),
             options: [
                 { label: 'Final', value: ShowLayer.Final },
@@ -92,7 +94,8 @@ function main() {
         },
         shadowMapEnabled: {
             onChange: ui.funcRef(),
-            checked: true
+            // checked: true
+            checked: false,
         },
         enableSsao: {
             onChange: ui.funcRef(),
@@ -110,44 +113,50 @@ function main() {
 
     document.getElementById('app').appendChild(
         ui.Form(
-            ui.FormGroup('SSAO',
-                ui.InputGroup(
-                    n('Samples', state.ssao.sampleCount),
-                    n('Noise size', state.ssao.rotationPower),
-                    n('Radius', state.ssao.radius),
-                    n('Bias', state.ssao.bias),
-                    n('Strength', state.ssao.strength),
-                )
-            ),
-            ui.FormGroup('Lighting',
-                ui.InputGroup(
-                    n('Light count', state.lighting.lightCount),
+            ui.FormRow(
+                ui.e('div', ui.c('col-sm'),
+                    ui.FormGroup('SSAO',
+                        ui.InputGroup(
+                            n('Samples', state.ssao.sampleCount),
+                            n('Noise size', state.ssao.rotationPower),
+                            n('Radius', state.ssao.radius),
+                            n('Bias', state.ssao.bias),
+                            n('Strength', state.ssao.strength),
+                        )
+                    ),
+                    ui.FormGroup('Layer to show',
+                        ui.RadioInput(state.showLayer.options, state.showLayer, state.showLayer.onChange)
+                    ),
+                    ui.FormGroup('Other',
+                        ui.CheckBoxInput('Should rotate', state.shouldRotate, state.shouldRotate.onChange),
+                        ui.CheckBoxInput('Enable SSAO', state.enableSsao, state.enableSsao.onChange),
+                        ui.CheckBoxInput('Enable Shadowmap', state.shadowMapEnabled, state.shadowMapEnabled.onChange),
+                        ui.CheckBoxInput('Pause', state.pause, state.pause.onChange),
+                    ),
                 ),
-            ),
-            ui.FormGroup('Sun',
-                ui.InputGroup(
-                    n('Ambient', state.lighting.sun.ambient),
-                    n('Diffuse', state.lighting.sun.diffuse),
-                    n('Specular', state.lighting.sun.specular),
-                    n('Intensity', state.lighting.sun.intensity),
-                )
-            ),
-            ui.FormGroup('New lights',
-                ui.InputGroup(
-                    n('Radius', state.lighting.new.radius),
-                    n('Pos scale', state.lighting.new.posScale),
-                    n('Attenuation', state.lighting.new.attenuation),
-                    n('Intensity', state.lighting.new.intensity),
-                )
-            ),
-            ui.FormGroup('Layer to show',
-                ui.RadioInput(state.showLayer.options, state.showLayer, state.showLayer.onChange)
-            ),
-            ui.FormGroup('Other',
-                ui.CheckBoxInput('Should rotate', state.shouldRotate, state.shouldRotate.onChange),
-                ui.CheckBoxInput('Enable SSAO', state.enableSsao, state.enableSsao.onChange),
-                ui.CheckBoxInput('Enable Shadowmap', state.shadowMapEnabled, state.shadowMapEnabled.onChange),
-                ui.CheckBoxInput('Pause', state.pause, state.pause.onChange),
+                ui.e('div', ui.c('col-sm'),
+                    ui.FormGroup('Lighting',
+                        ui.InputGroup(
+                            n('Light count', state.lighting.lightCount),
+                        ),
+                    ),
+                    ui.FormGroup('Sun',
+                        ui.InputGroup(
+                            n('Ambient', state.lighting.sun.ambient),
+                            n('Diffuse', state.lighting.sun.diffuse),
+                            n('Specular', state.lighting.sun.specular),
+                            n('Intensity', state.lighting.sun.intensity),
+                        )
+                    ),
+                    ui.FormGroup('New lights',
+                        ui.InputGroup(
+                            n('Radius', state.lighting.new.radius),
+                            n('Pos scale', state.lighting.new.posScale),
+                            n('Attenuation', state.lighting.new.attenuation),
+                            n('Intensity', state.lighting.new.intensity),
+                        )
+                    ),
+                ),
             ),
         )
     );
@@ -210,6 +219,7 @@ function main() {
             return new SSAO(gl, state.ssao.sampleCount.value, Math.pow(2, state.ssao.rotationPower.value));
         }
         const renderer = new DeferredRenderer(gl, fb, sphereMesh, makeSSAO());
+        renderer.config.showLayer = state.showLayer.value;
         renderer.config.ssao.strength = state.ssao.strength.value;
         renderer.config.ssao.bias = state.ssao.bias.value;
         renderer.config.ssao.radius = state.ssao.radius.value;

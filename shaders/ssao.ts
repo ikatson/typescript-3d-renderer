@@ -1,7 +1,7 @@
 import { ShaderSourceBuilder } from "../shaders.js";
 
 const SSAO_FS = new ShaderSourceBuilder().addChunk(`
-precision highp float;
+precision lowp float;
 
 in vec2 v_pos;
 in vec2 tx_pos;
@@ -24,6 +24,7 @@ uniform mat4 u_perspectiveMatrix;
 
 float ssao(vec4 normalWS, vec4 posWS, vec2 tx_pos) {
     vec3 random = normalize(texture(u_ssaoNoise, tx_pos * u_ssaoNoiseScale).xyz);
+    // vec3 random = normalize(vec3(1., 1., 0.));
     vec3 normalVS = (u_worldToCameraMatrix * vec4(normalWS.xyz, 0.)).xyz;
 
     vec3 tangent = normalize(random - normalVS * dot(normalVS, random));
@@ -40,16 +41,19 @@ float ssao(vec4 normalWS, vec4 posWS, vec2 tx_pos) {
     float bias = u_ssaoBias;
 
     for (int i = 0; i < SSAO_SAMPLES; i++) {
-        vec4 randomVectorVS = vec4(tangentToViewSpaceMatrix * normalize(u_ssaoSamples[i]), 0.);
+        vec4 randomVectorVS = vec4(tangentToViewSpaceMatrix * u_ssaoSamples[i], 0.);
+        // vec4 randomVectorVS = vec4(tangentToViewSpaceMatrix * vec3(0., 0., 1.), 0.);
 
         // Sample in view space.
-        vec4 sampleVS = u_worldToCameraMatrix * posWS + randomVectorVS * radius;
+        vec4 posVS = u_worldToCameraMatrix * posWS;
+        vec4 sampleVS = posVS + randomVectorVS * radius;
 
         vec4 sampleSS = u_perspectiveMatrix * sampleVS;
-        vec3 sampleSS3 = sampleSS.xyz / sampleSS.w;
+        sampleSS /= sampleSS.w;
 
-        vec4 storedPosWS = texture(gbuf_position, sampleSS3.xy / 2.0 + 0.5);
-        float storedDepthVS = (u_worldToCameraMatrix * storedPosWS).z;
+        vec4 storedPosWS = texture(gbuf_position, sampleSS.xy * 0.5 + 0.5);
+        vec4 storedPosVS = u_worldToCameraMatrix * storedPosWS;
+        float storedDepthVS = storedPosVS.z;
 
         float rangeCheck = smoothstep(0.0, 1.0, radius / abs(storedDepthVS - sampleVS.z));
         if (storedDepthVS > sampleVS.z + bias) {

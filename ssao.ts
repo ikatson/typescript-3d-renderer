@@ -16,6 +16,7 @@ export class SSAO {
         for (let index = 0; index < sampleCount; index++) {
             let scale = index / sampleCount;
             scale = lerp(scale * scale, 0., 1., 0.1, 1.);
+            // scale = 1.0;
             samples.push(randFloat(-1, 1)) * scale;
             samples.push(randFloat(-1, 1)) * scale;
             samples.push(randFloat(0, 1)) * scale;
