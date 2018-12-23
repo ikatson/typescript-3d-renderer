@@ -1,5 +1,13 @@
 import {fetchObject} from "./objparser.js";
-import {clip, FullScreenQuad, glClearColorAndDepth, initGL, QuadArrayBufferData, tmpMatrix} from "./utils.js";
+import {
+    clip,
+    FullScreenQuad,
+    glClearColorAndDepth,
+    initGL,
+    makeCameraThatBoundsAnotherOne,
+    QuadArrayBufferData,
+    tmpMatrix
+} from "./utils.js";
 import {ProgressBar, ProgressBarCommon} from "./progressbar.js";
 import {GLMeshFromObjParser} from "./mesh.js";
 import {GameObjectBuilder, LightComponent} from "./object.js";
@@ -181,12 +189,12 @@ function main() {
             return GLMeshFromObjParser(gl, parser);
         }),
         fetchObject('resources/cube.obj', onHeaders).then(parser => {
-            return GLMeshFromObjParser(gl, parser);
+            return parser;
         }),
         fetchObject('resources/plane.obj', onHeaders).then(parser => {
             return GLMeshFromObjParser(gl, parser);
         }),
-    ]).then(([aphrodite, corvette, sphereMesh, cubeMesh, planeMesh]) => {
+    ]).then(([aphrodite, corvette, sphereMesh, cubeObjParser, planeMesh]) => {
         const camera = new Camera(gl.canvas.width / gl.canvas.height);
         camera.position = vec3.fromValues(0, 0, -3.);
 
@@ -244,6 +252,8 @@ function main() {
         const tmpVec = vec3.create();
         let delta = 1000. / 60;
         let start = new Date().getTime();
+
+        makeCameraThatBoundsAnotherOne(camera, sun.transform.position, cubeObjParser.getArrayBuffer());
 
         function processFrame() {
             if (state.pause.checked) {

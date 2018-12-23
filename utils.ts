@@ -120,5 +120,11 @@ export const makeCameraThatBoundsAnotherOne = (camera: Camera, position: number[
     const tmp = tmpMatrix();
     mat4.invert(camera.projectionMatrix(), tmp);
 
-    const result = new Camera();
+    // debugger;
+    cubeVertices.iterData((v) => {
+       console.log(v);
+    });
+
+    const result = new Camera(1.);
+    return result;
 };

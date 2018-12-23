@@ -21,7 +21,10 @@ export class GLArrayBufferDataParams {
         this.hasUVs = hasUVs;
         this.vertexCount = vertexCount;
     }
-    computeStride() {
+    computeStrideInElements() {
+        return this.computeStrideInBytes() / FLOAT_BYTES;
+    }
+    computeStrideInBytes() {
         let size = this.elementSize * FLOAT_BYTES;
         if (this.hasNormals) {
             size += this.normalsSize * FLOAT_BYTES;
@@ -39,6 +42,12 @@ export class GLArrayBufferDataParams {
     }
 }
 
+export type GLArrayBufferDataIterResult = {
+    vertex: Float32Array,
+    normal: Float32Array,
+    uv: Float32Array,
+}
+
 export class GLArrayBufferData {
     buf: Float32Array;
     params: GLArrayBufferDataParams;
@@ -46,6 +55,21 @@ export class GLArrayBufferData {
         this.buf = buf;
         this.params = params;
     }
+
+    iterData(callback: (GLArrayBufferDataIterResult) => void) {
+        const stride = this.params.computeStrideInElements();
+        for (let i = 0; i < this.params.vertexCount; i++) {
+            const offset = i * stride;
+            const noffset = offset + this.params.elementSize;
+            const uvoffset = this.params.hasNormals ? noffset + this.params.normalsSize : noffset;
+
+            callback({
+                vertex: this.buf.slice(offset, offset + this.params.elementSize),
+                normal: this.buf.slice(noffset, this.params.hasNormals ? noffset + this.params.normalsSize : noffset),
+                uv: this.buf.slice(uvoffset, this.params.hasUVs ? uvoffset + this.params.uvSize : uvoffset),
+            })
+        }
+    };
 }
 
 export class GLArrayBuffer {
@@ -55,7 +79,7 @@ export class GLArrayBuffer {
         if (usage === undefined) {
             usage = gl.STATIC_DRAW;
         }
-        this.buffer = gl.createBuffer()
+        this.buffer = gl.createBuffer();
         this.params = data.params;
         gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
         gl.bufferData(gl.ARRAY_BUFFER, data.buf, usage);
@@ -67,21 +91,21 @@ export class GLArrayBuffer {
 
     setupVertexPositionsPointer(gl, attribLocation) {
         gl.enableVertexAttribArray(attribLocation);
-        gl.vertexAttribPointer(attribLocation, this.params.elementSize, gl.FLOAT, false, this.params.computeStride(), 0);
+        gl.vertexAttribPointer(attribLocation, this.params.elementSize, gl.FLOAT, false, this.params.computeStrideInBytes(), 0);
     }
     setupVertexNormalsPointer(gl, attribLocation) {
         if (!this.params.hasNormals) {
             throw new Error("buf has no normals");
         }
         gl.enableVertexAttribArray(attribLocation);
-        gl.vertexAttribPointer(attribLocation, this.params.normalsSize, gl.FLOAT, false, this.params.computeStride(), this.params.computeNormalOffset());
+        gl.vertexAttribPointer(attribLocation, this.params.normalsSize, gl.FLOAT, false, this.params.computeStrideInBytes(), this.params.computeNormalOffset());
     }
     setupVertexUVPointer(gl, attribLocation) {
         if (!this.params.hasUVs) {
             throw new Error("buf has no UVs");
         }
         gl.enableVertexAttribArray(attribLocation);
-        gl.vertexAttribPointer(attribLocation, this.params.uvSize, gl.FLOAT, false, this.params.computeStride(), this.params.computeUVOffset());
+        gl.vertexAttribPointer(attribLocation, this.params.uvSize, gl.FLOAT, false, this.params.computeStrideInBytes(), this.params.computeUVOffset());
     }
 
     draw(gl: WebGLRenderingContext) {
