@@ -86,8 +86,8 @@ void main() {
     float occlusion = ssao(normal, pos, tx_pos);
     color = vec4(vec3(occlusion), pos.a);
 }
-`)
+`);
 
 export const SSAO_SHADER_SOURCE = {
     fs: SSAO_FS
-}
+};
