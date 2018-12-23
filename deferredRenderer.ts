@@ -587,7 +587,7 @@ export class DeferredRenderer {
         return this._config;
     }
 
-    private static getSunCamera(gl: WebGLRenderingContext, light: GameObject, camera: Camera) {
+    static getLightCamera(light: GameObject) {
         let lCamera = new Camera(1.);
         lCamera.fov = 86.;
         lCamera.near = 0.1;
@@ -620,7 +620,7 @@ export class DeferredRenderer {
 
     render(scene: Scene, camera: Camera) {
         const gl: WebGLRenderingContext = this.gl;
-        const lCamera: Camera = DeferredRenderer.getSunCamera(gl, scene.lights[0], camera);
+        const lCamera: Camera = DeferredRenderer.getLightCamera(scene.lights[0]);
 
         if (this.recompileOnNextRun) {
             this.ssaoRenderer.recompileShaders(gl);

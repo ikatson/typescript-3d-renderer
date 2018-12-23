@@ -1,7 +1,12 @@
-import { vec3, mat4 } from "./gl-matrix.js";
+import { vec3, mat4, vec4 } from "./gl-matrix.js";
 import { VertexShader } from "./shaders.js";
 import { fetchObject, ObjParser } from "./objparser.js";
-import { GLArrayBufferData, GLArrayBufferDataParams, GLArrayBuffer } from "./glArrayBuffer.js";
+import {
+    GLArrayBufferData,
+    GLArrayBufferDataParams,
+    GLArrayBuffer,
+    GLArrayBufferDataIterResult
+} from "./glArrayBuffer.js";
 import {Camera} from "./camera.js";
 
 export const QuadVertices = new Float32Array([
@@ -115,14 +120,45 @@ export const tmpMatrix = (function () {
     }
 })();
 
+export const makeFrustum = (camera: Camera, cubeVertices: GLArrayBufferData): GLArrayBufferData => {
+    const tmp = tmpMatrix();
+    const camToWorld = camera.getCameraToWorld();
+
+    mat4.invert(tmp, camera.projectionMatrix());
+
+    const data = [];
+
+    // debugger;
+    cubeVertices.iterData((i: GLArrayBufferDataIterResult) => {
+        const v = i.vertex;
+        const n = i.normal;
+        vec4.transformMat4(v, v, tmp);
+        // vec4.transformMat4(n, n, tmp);
+        vec4.scale(v, v, 1. / v[3]);
+
+        vec4.transformMat4(v, v, camToWorld);
+        // vec4.transformMat4(n, n, camToWorld);
+
+        data.push(...v);
+        data.push(...n);
+        data.push(...i.uv);
+    });
+
+    return new GLArrayBufferData(new Float32Array(data), cubeVertices.params);
+};
+
 
 export const makeCameraThatBoundsAnotherOne = (camera: Camera, position: number[], cubeVertices: GLArrayBufferData): Camera => {
     const tmp = tmpMatrix();
-    mat4.invert(camera.projectionMatrix(), tmp);
+    mat4.invert(tmp, camera.projectionMatrix());
 
     // debugger;
-    cubeVertices.iterData((v) => {
-       console.log(v);
+    cubeVertices.iterData((i: GLArrayBufferDataIterResult) => {
+        const v = i.vertex;
+        const n = i.normal;
+        vec4.transformMat4(v, v, tmp);
+        vec4.transformMat4(n, n, tmp);
+        vec4.scale(v, v, 1. / v[3]);
     });
 
     const result = new Camera(1.);

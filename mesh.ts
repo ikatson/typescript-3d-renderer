@@ -3,7 +3,7 @@ import { GLArrayBufferData, GLArrayBuffer } from "./glArrayBuffer.js";
 
 export function GLMeshFromObjParser(gl: WebGLRenderingContext, parser: ObjParser) {
     return new GLMesh(
-        gl, 
+        gl,
         new GLArrayBuffer(gl, parser.getArrayBuffer())
     );
 }
@@ -13,7 +13,7 @@ export function GLMeshFromObjParser(gl: WebGLRenderingContext, parser: ObjParser
  */
 export class GLMesh {
     private buf: WebGLBuffer;
-    glArrayBuffer: GLArrayBuffer
+    glArrayBuffer: GLArrayBuffer;
     constructor(gl: WebGLRenderingContext, glArrayBuffer: GLArrayBuffer) {
         this.glArrayBuffer = glArrayBuffer;
     }

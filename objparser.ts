@@ -12,14 +12,16 @@ export class ObjParser {
     private hasNormals = false;
     private hasUVs = false;
     private finalBuf: Array<number> = [];
+    private addHomogenous: boolean;
 
-    constructor() {
+    constructor(addHomogenousCoordinate: boolean = false) {
+        this.addHomogenous = addHomogenousCoordinate;
     }
 
     getArrayBuffer(): GLArrayBufferData {
-        const params = new GLArrayBufferDataParams(this.hasNormals, this.hasUVs, this.getTriangleCount() * 3)
-        params.elementSize = 3;
-        params.normalsSize = 3;
+        const params = new GLArrayBufferDataParams(this.hasNormals, this.hasUVs, this.getTriangleCount() * 3);
+        params.elementSize = 3 + (this.addHomogenous ? 1 : 0);
+        params.normalsSize = 3 + (this.addHomogenous ? 1 : 0);
         return new GLArrayBufferData(
             new Float32Array(this.finalBuf),
             params
@@ -40,7 +42,7 @@ export class ObjParser {
             const tx = line.split(' ');
             tx.slice(1).forEach((v: string) => {
                 this.texBuf.push(parseFloat(v));
-            })
+            });
             this.hasUVs = true;
         } else if (line.startsWith('f ')) {
             const indexes = line.split(' ');
@@ -62,24 +64,32 @@ export class ObjParser {
                 this.finalBuf.push(this.vertexBuf[vidx]);
                 this.finalBuf.push(this.vertexBuf[vidx + 1]);
                 this.finalBuf.push(this.vertexBuf[vidx + 2]);
+
+                if (this.addHomogenous) {
+                    this.finalBuf.push(1.);
+                }
+
                 // normal
                 if (this.hasNormals) {
                     this.finalBuf.push(this.normalBuf[nidx]);
                     this.finalBuf.push(this.normalBuf[nidx + 1]);
                     this.finalBuf.push(this.normalBuf[nidx + 2]);
+                    if (this.addHomogenous) {
+                        this.finalBuf.push(0.);
+                    }
                 }
                 // UV
                 if (this.hasUVs) {
-                    this.finalBuf.push(this.texBuf[tidx] || 0.)
+                    this.finalBuf.push(this.texBuf[tidx] || 0.);
                     this.finalBuf.push(1. - this.texBuf[tidx + 1] || 0.);
                 }
-            })
+            });
             this.faceCount += 1;
         } else if (line.startsWith('vn ')) {
             const normals = line.split(' ');
             normals.slice(1).forEach((v: string) => {
                 this.normalBuf.push(parseFloat(v));
-            })
+            });
             this.hasNormals = true;
         }
     }
@@ -112,7 +122,7 @@ export class ObjParser {
     }
 }
 
-export function fetchObject(url: string, progressCallback?: Function): Promise<ObjParser> {
+export function fetchObject(url: string, progressCallback?: Function, parser?: ObjParser): Promise<ObjParser> {
     return new Promise<ObjParser>((resolve, reject) => {
         fetch(url).then(response => {
             if (progressCallback) {
@@ -120,13 +130,13 @@ export function fetchObject(url: string, progressCallback?: Function): Promise<O
             }
 
             const reader = response.body.getReader();
-            const objParser = new ObjParser();
+            const objParser = parser || new ObjParser();
 
             reader.read().then(function readChunk({ done, value }) {
                 try {
                     if (done) {
                         objParser.endParsing();
-                        console.log(`fetched object from ${url}`)
+                        console.log(`fetched object from ${url}`);
                         resolve(objParser);
                         return;
                     }

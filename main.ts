@@ -1,9 +1,10 @@
-import {fetchObject} from "./objparser.js";
+import {fetchObject, ObjParser} from "./objparser.js";
 import {
     clip,
     FullScreenQuad,
     glClearColorAndDepth,
     initGL,
+    makeFrustum,
     makeCameraThatBoundsAnotherOne,
     QuadArrayBufferData,
     tmpMatrix
@@ -188,7 +189,7 @@ function main() {
         fetchObject('resources/sphere.obj', onHeaders).then(parser => {
             return GLMeshFromObjParser(gl, parser);
         }),
-        fetchObject('resources/cube.obj', onHeaders).then(parser => {
+        fetchObject('resources/cube.obj', onHeaders, new ObjParser(true)).then(parser => {
             return parser;
         }),
         fetchObject('resources/plane.obj', onHeaders).then(parser => {
@@ -242,9 +243,12 @@ function main() {
         plane.transform.scale = [5, 5, 5];
         plane.transform.update();
 
+        const cubeData = cubeObjParser.getArrayBuffer();
+        const cube = new GameObjectBuilder().setMesh(GLMeshFromObjParser(gl, cubeObjParser)).build();
+
         scene.addChild(plane);
         scene.addChild(corvette);
-        // scene.addChild(new GameObjectBuilder().setMesh(cubeMesh).build());
+        scene.addChild(cube);
         corvette.addChild(aphrodite);
 
         // console.log({scene, aphrodite, corvette, plane});
@@ -253,12 +257,13 @@ function main() {
         let delta = 1000. / 60;
         let start = new Date().getTime();
 
-        makeCameraThatBoundsAnotherOne(camera, sun.transform.position, cubeObjParser.getArrayBuffer());
-
         function processFrame() {
             if (state.pause.checked) {
                 return;
             }
+
+            cube.mesh.mesh.glArrayBuffer.delete(gl);
+            cube.mesh.mesh.glArrayBuffer = new GLArrayBuffer(gl, makeFrustum(camera, cubeData));
 
             pressedKeys.forEach((v, k) => {
                 const moveSpeed = delta * 0.0015;
