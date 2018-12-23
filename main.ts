@@ -220,7 +220,7 @@ function main() {
         }
         const renderer = new DeferredRenderer(gl, fb, sphereMesh, makeSSAO());
         renderer.config.showLayer = state.showLayer.value;
-        renderer.shadowMapEnabled = state.shadowMapEnabled.checked;
+        renderer.config.shadowMapEnabled = state.shadowMapEnabled.checked;
         renderer.config.ssao.strength = state.ssao.strength.value;
         renderer.config.ssao.bias = state.ssao.bias.value;
         renderer.config.ssao.radius = state.ssao.radius.value;
@@ -347,15 +347,11 @@ function main() {
         }
 
         state.ssao.sampleCount.onChange.ref = v => {
-            renderer.ssaoParameters.delete(gl);
-            renderer.ssaoParameters = makeSSAO();
-            renderer.recompileShaders();
+            renderer.changeSSAOParameters(makeSSAO());
         }
 
         state.ssao.rotationPower.onChange.ref = v => {
-            renderer.ssaoParameters.delete(gl);
-            renderer.ssaoParameters = makeSSAO();
-            renderer.recompileShaders();
+            renderer.changeSSAOParameters(makeSSAO());
         }
 
         state.ssao.strength.onChange.ref = (v, prev) => {
@@ -403,8 +399,8 @@ function main() {
         state.lighting.lightCount.onChange(state.lighting.lightCount.value);
 
         state.shadowMapEnabled.onChange.ref = v => {
-            renderer.shadowMapEnabled = v;
-            console.log('shadowmap enabled', renderer.shadowMapEnabled);
+            renderer.config.shadowMapEnabled = v;
+            console.log('shadowmap enabled', renderer.config.shadowMapEnabled);
             renderer.recompileShaders();
         };
 
