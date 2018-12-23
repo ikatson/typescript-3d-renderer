@@ -10,7 +10,8 @@ import {randomLight, Scene} from "./scene.js";
 import {DeferredRenderer, DeferredRendererConfig, ShowLayer} from "./deferredRenderer.js";
 import {GLArrayBuffer} from "./glArrayBuffer.js";
 import * as ui from "./ui.js";
-import {SSAOState, SSAOConfig} from "./SSAOState.js";
+import {SSAOConfig, SSAOState} from "./SSAOState.js";
+import {GLMeshFromObjParser} from "./mesh";
 
 
 const originZero = vec3.create();
@@ -163,28 +164,29 @@ function main() {
     Promise.all([
         fetchObject('resources/aphrodite/aphrodite.obj', onHeaders).then(parser => {
             const mesh = GLMeshFromObjParser(gl, parser);
-            return new GameObjectBuilder().setMesh(mesh).build();
+            const aphrodite = new GameObjectBuilder().setMesh(mesh).build();
+            aphrodite.transform.scale = [1/3, 1/3, 1/3];
+            aphrodite.transform.rotation = [0, -Math.PI / 2.0, 0];
+            aphrodite.transform.position = [0, 1., 0];
+            aphrodite.transform.update();
+            return aphrodite;
         }),
         fetchObject('resources/corvette/corvette.obj', onHeaders).then(parser => {
             const mesh = GLMeshFromObjParser(gl, parser);
             const corvette = new GameObjectBuilder().setMesh(mesh).build();
-            corvette.transform.scale = [3., 3., 3.];
-            corvette.transform.rotation = [0, Math.PI / 2.0, 0];
-            corvette.transform.position = [0, -3., 0];
+            corvette.transform.position = [0, -1., 0];
             corvette.transform.update();
             return corvette;
         }),
         fetchObject('resources/sphere.obj', onHeaders).then(parser => {
-            const mesh = GLMeshFromObjParser(gl, parser);
-            return mesh;
+            return GLMeshFromObjParser(gl, parser);
         }),
         fetchObject('resources/plane.obj', onHeaders).then(parser => {
-            const mesh = GLMeshFromObjParser(gl, parser);
-            return mesh;
+            return GLMeshFromObjParser(gl, parser);
         }),
     ]).then(([aphrodite, corvette, sphereMesh, planeMesh]) => {
         const camera = new Camera(gl);
-        camera.position = vec3.fromValues(0, 0, -10.);
+        camera.position = vec3.fromValues(0, 0, -3.);
 
         // const renderer = new ForwardRenderer(gl);
         const ssaoConfig = new SSAOConfig();
@@ -226,13 +228,15 @@ function main() {
         scene.lights = [sun];
 
         const plane = new GameObjectBuilder().setMesh(planeMesh).build();
-        plane.transform.position = [0, -2., 0];
-        plane.transform.scale = [15, 15, 15];
+        plane.transform.position = [0, -0.8, 0];
+        plane.transform.scale = [5, 5, 5];
         plane.transform.update();
 
         scene.addChild(plane);
-        scene.addChild(aphrodite);
-        aphrodite.addChild(corvette);
+        scene.addChild(corvette);
+        corvette.addChild(aphrodite);
+
+        console.log({scene, aphrodite, corvette, plane})
 
         const tmpVec = vec3.create();
         let delta = 1000. / 60;
@@ -244,7 +248,7 @@ function main() {
             }
 
             pressedKeys.forEach((v, k) => {
-                const moveSpeed = delta / 1000 * 4;
+                const moveSpeed = delta * 0.003;
                 switch (k) {
                     case 'e':
                         vec3.scale(tmpVec, camera.up, moveSpeed);
@@ -280,8 +284,8 @@ function main() {
             });
 
             if (state.shouldRotate.checked) {
-                aphrodite.transform.rotation[1] += delta / 2000;
-                aphrodite.transform.update();
+                corvette.transform.rotation[1] += delta / 2000;
+                corvette.transform.update();
             }
 
             renderer.render(scene, camera);

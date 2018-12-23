@@ -1,7 +1,6 @@
-import { GLMesh } from "./mesh";
-import { mat4 } from "./gl-matrix.js"
-import { ShaderProgram } from "./shaders";
-import { vec3 } from "./gl-matrix.js";
+import {GLMesh} from "./mesh";
+import {mat4, vec3} from "./gl-matrix.js"
+import {ShaderProgram} from "./shaders";
 
 export abstract class Component {
     object: GameObject = null;
@@ -14,9 +13,10 @@ export class MeshComponent extends Component {
     shadowReceiver: boolean = true;
 
     constructor(mesh: GLMesh) {
-        super()
+        super();
         this.mesh = mesh;
     }
+
     prepareMeshVertexAndShaderDataForRendering(gl: WebGLRenderingContext, program?: ShaderProgram, normals?: boolean, uv?: boolean) {
         this.mesh.glArrayBuffer.prepareMeshVertexAndShaderDataForRendering(gl, program, normals, uv);
     }
@@ -24,7 +24,7 @@ export class MeshComponent extends Component {
 
 export class LightComponent extends Component {
     diffuse: number[] | Float32Array = [1., 1., 1.];
-    specular: number[] | Float32Array = [1., 1., 1.]
+    specular: number[] | Float32Array = [1., 1., 1.];
     ambient: number[] | Float32Array = [0., 0., 0.];
     intensity: number = 1.;
     radius: number = 1.;
@@ -32,9 +32,9 @@ export class LightComponent extends Component {
 }
 
 export class TransformComponent extends Component {
-    position: number[] | Float32Array | vec3
-    rotation: number[] | Float32Array | vec3
-    scale: number[] | Float32Array | vec3
+    position: number[] | Float32Array | vec3;
+    rotation: number[] | Float32Array | vec3;
+    scale: number[] | Float32Array | vec3;
     object: GameObject;
 
     private modelToWorld = mat4.create();
@@ -59,7 +59,7 @@ export class TransformComponent extends Component {
     }
 
     computeModelToWorld() {
-        mat4.copy(this.modelToWorld, this.getModelToParent())
+        mat4.copy(this.modelToWorld, this.getModelToParent());
         const mw = this.modelToWorld;
         let parent = this.object.parent;
         while (parent) {
@@ -90,7 +90,7 @@ export class TransformComponent extends Component {
 }
 
 export class GameObject {
-    children: GameObject[] = []
+    children: GameObject[] = [];
     parent: GameObject;
 
     transform: TransformComponent;
@@ -102,7 +102,6 @@ export class GameObject {
     }
 
     addChild(o: GameObject) {
-        this.transform = new TransformComponent(this);
         this.children.push(o);
         o.parent = this;
     }
@@ -110,19 +109,23 @@ export class GameObject {
 
 export class GameObjectBuilder {
     o: GameObject;
+
     constructor() {
         this.o = new GameObject();
     }
+
     setMesh(mesh: GLMesh): GameObjectBuilder {
         this.o.mesh = new MeshComponent(mesh);
         this.o.mesh.object = this.o;
         return this;
     }
+
     setLightComponent(light: LightComponent): GameObjectBuilder {
         this.o.light = light;
         light.object = this.o;
         return this;
     }
+
     build(): GameObject {
         return this.o;
     }
