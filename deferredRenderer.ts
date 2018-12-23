@@ -1,20 +1,20 @@
-import { Camera } from "./camera.js";
-import { mat4 } from "./gl-matrix.js";
-import { GLMesh } from "./mesh.js";
-import { GameObject } from "./object.js";
-import { Scene } from "./scene.js";
-import { FragmentShader, ShaderProgram, VertexShader } from "./shaders.js";
-import { FINAL_SHADER_SOURCE } from "./shaders/final.js";
-import { GBUFFER_SHADER_SOURCE } from "./shaders/gBuffer/shaders.js";
-import { SSAO_SHADER_SOURCE } from "./shaders/ssao.js";
-import { VISUALIZE_LIGHTS_SHADERS } from "./shaders/visualize-lights.js";
-import { SSAO } from "./ssao.js";
-import { FullScreenQuad, glClearColorAndDepth } from "./utils.js";
-import { vec3 } from "./gl-matrix.js";
-import { SHADOWMAP_SHADERS } from "./shaders/shadowMap.js";
+import {Camera} from "./camera.js";
+import {mat4} from "./gl-matrix.js";
+import {GLMesh} from "./mesh.js";
+import {GameObject} from "./object.js";
+import {Scene} from "./scene.js";
+import {FragmentShader, ShaderProgram, VertexShader} from "./shaders.js";
+import {FINAL_SHADER_SOURCE} from "./shaders/final.js";
+import {GBUFFER_SHADER_SOURCE} from "./shaders/gBuffer/shaders.js";
+import {SSAO_SHADER_SOURCE} from "./shaders/ssao.js";
+import {VISUALIZE_LIGHTS_SHADERS} from "./shaders/visualize-lights.js";
+import {SSAO} from "./ssao.js";
+import {FullScreenQuad, glClearColorAndDepth} from "./utils.js";
+import {vec3} from "./gl-matrix.js";
+import {SHADOWMAP_SHADERS} from "./shaders/shadowMap.js";
 
 
-export class SSAORuntimConfigurables {
+export class SSAORuntimeConfigurables {
     enabled: boolean = true;
     radius: number = 0.1;
     bias: number = 0.025;
@@ -32,7 +32,7 @@ export enum ShowLayer {
 
 export class DeferredRendererRuntimeConfigurables {
     showLayer: ShowLayer = ShowLayer.Final;
-    ssao = new SSAORuntimConfigurables();
+    ssao = new SSAORuntimeConfigurables();
 }
 
 const tmpMatrix = (function () {
@@ -41,7 +41,7 @@ const tmpMatrix = (function () {
         mat4.identity(m);
         return m;
     }
-})()
+})();
 
 export class DeferredRenderer {
     private gl: WebGLRenderingContext;
@@ -62,7 +62,7 @@ export class DeferredRenderer {
     ssaoParameters: SSAO;
     ssaoShader: ShaderProgram;
     ssaoTx: WebGLTexture;
-    config = new DeferredRendererRuntimeConfigurables()
+    config = new DeferredRendererRuntimeConfigurables();
     forceShadersRecompile: boolean = true;
     lastLightCount: number = 0;
     sphereMesh: GLMesh;
@@ -78,7 +78,7 @@ export class DeferredRenderer {
 
     constructor(gl: WebGLRenderingContext, fullScreenQuad: FullScreenQuad, sphere: GLMesh, ssaoParameters?: SSAO) {
         this.gl = gl;
-        this.timeStart = (new Date()).getTime() / 1000.
+        this.timeStart = (new Date()).getTime() / 1000.;
         this.fullScreenQuad = fullScreenQuad;
         this.sphereMesh = sphere;
 
@@ -89,30 +89,30 @@ export class DeferredRenderer {
         this.depthRB = gl.createRenderbuffer();
         this.gFrameBuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.gFrameBuffer);
-        gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthRB)
+        gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthRB);
         gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, gl.canvas.width, gl.canvas.height);
         gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + 0, gl.TEXTURE_2D, this.posTx, 0);
         gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + 1, gl.TEXTURE_2D, this.normalTX, 0);
         gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + 2, gl.TEXTURE_2D, this.colorTX, 0);
         gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthRB);
-        checkFrameBufferStatusOrThrow(gl);        
+        checkFrameBufferStatusOrThrow(gl);
 
         // SHADOWMAP
         this.shadowMapWidth = 2048;
         this.shadowMapHeight = 2048;
         this.shadowMapTx = this.createAndBindBufferTexture(gl.R16F, gl.RED, gl.HALF_FLOAT, this.shadowMapWidth, this.shadowMapHeight, gl.LINEAR);
         this.shadowMapFB = gl.createFramebuffer();
-        this.shadowMapRB = gl.createRenderbuffer()
+        this.shadowMapRB = gl.createRenderbuffer();
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.shadowMapFB);
         gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.shadowMapTx, 0);
         gl.bindRenderbuffer(gl.RENDERBUFFER, this.shadowMapRB);
         gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this.shadowMapWidth, this.shadowMapHeight);
         gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.shadowMapRB);
         checkFrameBufferStatusOrThrow(gl);
-        
+
         // SSAO
         this.ssaoParameters = ssaoParameters || new SSAO(gl, 16, 4);
-        this.ssaoFrameBuffer = gl.createFramebuffer()
+        this.ssaoFrameBuffer = gl.createFramebuffer();
         this.ssaoTx = this.createAndBindBufferTexture(gl.R16F, gl.RED, gl.HALF_FLOAT);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.ssaoFrameBuffer);
         gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.ssaoTx, 0);
@@ -120,7 +120,7 @@ export class DeferredRenderer {
 
         this.recompileShaders();
     }
-    
+
     private createAndBindBufferTexture(internalFormat: number, format: number, type: number, x?: number, y?: number, filtering?: number): WebGLTexture {
         const gl = this.gl;
 
@@ -173,7 +173,7 @@ export class DeferredRenderer {
                     .define("SSAO_SAMPLES", this.ssaoParameters.sampleCount.toString())
                     .build()
             )
-        )
+        );
 
         this.lightingShader = new ShaderProgram(
             gl,
@@ -197,19 +197,19 @@ export class DeferredRenderer {
                     .define('SSAO_NOISE_SCALE', this.ssaoParameters.rotationPower.toString())
                     .build()
             )
-        )
+        );
 
         this.shadowMapShader = new ShaderProgram(
             gl,
             new VertexShader(
                 gl,
                 SHADOWMAP_SHADERS.vs
-                .build(),
+                    .build(),
             ),
             new FragmentShader(
                 gl,
                 SHADOWMAP_SHADERS.fs
-                .build(),
+                    .build(),
             )
         );
 
@@ -217,13 +217,13 @@ export class DeferredRenderer {
             gl,
             new VertexShader(gl, GBUFFER_SHADER_SOURCE.vs),
             new FragmentShader(gl, GBUFFER_SHADER_SOURCE.fs)
-        )
+        );
 
         this.visualizeLightsShader = new ShaderProgram(
             gl,
             new VertexShader(gl, VISUALIZE_LIGHTS_SHADERS.vs.build()),
             new FragmentShader(gl, VISUALIZE_LIGHTS_SHADERS.FS.build())
-        )
+        );
 
         this.forceShadersRecompile = false;
         this.lastLightCount = lightCount;
@@ -239,7 +239,7 @@ export class DeferredRenderer {
         const worldToCamera = camera.getWorldToCamera();
         const projectionMatrix = camera.projectionMatrix();
 
-        const lCamera = this.getSunCamera(gl, scene.lights[0], camera);
+        const lCamera = DeferredRenderer.getSunCamera(gl, scene.lights[0], camera);
         const lProjection = lCamera.projectionMatrix();
         const lWorldToCamera = lCamera.getWorldToCamera();
 
@@ -270,12 +270,12 @@ export class DeferredRenderer {
                     const modelWorldMatrix = o.transform.getModelToWorld();
                     const modelViewMatrix = tmpMatrix();
                     mat4.multiply(modelViewMatrix, worldToCamera, modelWorldMatrix);
-    
+
                     o.mesh.prepareMeshVertexAndShaderDataForRendering(gl, program);
-    
+
                     gl.uniformMatrix4fv(program.getUniformLocation(gl, "u_modelViewMatrix"), false, modelViewMatrix);
                     gl.uniformMatrix4fv(program.getUniformLocation(gl, "u_modelWorldMatrix"), false, modelWorldMatrix);
-                    
+
                     gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2]);
 
                     o.mesh.mesh.draw(gl);
@@ -283,16 +283,16 @@ export class DeferredRenderer {
                 }
 
                 o.children.forEach(o => renderObject(o))
-            }
+            };
 
             scene.children.forEach(o => renderObject(o))
-        }
+        };
 
         const renderSSAO = () => {
             const s = this.ssaoShader;
 
             gl.bindFramebuffer(gl.FRAMEBUFFER, this.ssaoFrameBuffer);
-            
+
             s.use(gl);
 
             glClearColorAndDepth(gl, 0., 0, 0, 1.);
@@ -318,7 +318,7 @@ export class DeferredRenderer {
 
             // Draw
             this.fullScreenQuad.drawArrays(gl);
-        }
+        };
 
         const renderShadowMap = () => {
             gl.enable(gl.DEPTH_TEST);
@@ -346,12 +346,12 @@ export class DeferredRenderer {
                 o.mesh.prepareMeshVertexAndShaderDataForRendering(gl, s, false, false);
                 o.mesh.mesh.draw(gl);
                 o.children.forEach(drawObject);
-            }
+            };
 
             gl.viewport(0, 0, this.shadowMapWidth, this.shadowMapHeight);
             scene.children.forEach(drawObject);
             gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
-        }
+        };
 
         const renderLighting = () => {
             const s = this.lightingShader;
@@ -381,18 +381,18 @@ export class DeferredRenderer {
 
             // Draw
             this.fullScreenQuad.drawArrays(gl);
-        }
+        };
 
-        renderGBuffer()
+        renderGBuffer();
         if (this.ssaoEnabled()) {
             renderSSAO()
         }
         if (this.shadowMapEnabled) {
             renderShadowMap()
         }
-        
-        renderLighting()     
-        
+
+        renderLighting();
+
         if (this.config.showLayer === ShowLayer.Final) {
             const renderLights = () => {
                 const s = this.visualizeLightsShader;
@@ -405,18 +405,18 @@ export class DeferredRenderer {
                 this.sphereMesh.setupVertexPositionsPointer(gl, s.getAttribLocation(gl, "a_pos"));
 
                 gl.enable(gl.DEPTH_TEST);
-                gl.enable(gl.BLEND)
-                gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-                gl.clear(gl.DEPTH_BUFFER_BIT)
+                gl.enable(gl.BLEND);
+                gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+                gl.clear(gl.DEPTH_BUFFER_BIT);
 
                 this.bindUniformTx(s, "u_posTexture", this.posTx, 0);
-                
+
                 scene.lights.forEach(light => {
                     const modelWorldMatrix = light.transform.getModelToWorld();
                     const modelViewMatrix = tmpMatrix();
 
                     mat4.multiply(modelViewMatrix, worldToCamera, modelWorldMatrix);
-    
+
                     gl.uniform3fv(s.getUniformLocation(gl, "u_color"), light.light.diffuse);
                     gl.uniform1f(s.getUniformLocation(gl, "u_intensity"), light.light.intensity);
                     gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelViewMatrix"), false, modelViewMatrix);
@@ -425,12 +425,13 @@ export class DeferredRenderer {
                     this.sphereMesh.draw(gl);
                     // gl.drawArrays(gl.TRIANGLES, 0, this.sphereMesh.getVertexCount());
                 })
-            }
+            };
             renderLights();
         }
 
     }
-    private getSunCamera(gl: WebGLRenderingContext, light: GameObject, camera: Camera) {
+
+    private static getSunCamera(gl: WebGLRenderingContext, light: GameObject, camera: Camera) {
         let lCamera = new Camera(gl);
         lCamera.fov = 90.;
         lCamera.near = 2.;
@@ -442,8 +443,8 @@ export class DeferredRenderer {
         // determine forward direction.
         // TODO: in this case the sun just looks at "0,0,0", and acts like a point light,
         // not orthogonal light.
-        vec3.scale(lCamera.forward, lCamera.position, -1)
-        vec3.normalize(lCamera.forward, lCamera.forward)
+        vec3.scale(lCamera.forward, lCamera.position, -1);
+        vec3.normalize(lCamera.forward, lCamera.forward);
 
         // determine up direction
         const worldUp = [0, 1., 0];
@@ -456,12 +457,12 @@ export class DeferredRenderer {
     generateLightData(lights: GameObject[]): Float32List {
         let result: number[] = [];
         lights.forEach(l => {
-            result.push(...l.transform.position)
-            result.push(...l.light.ambient)
-            result.push(...l.light.diffuse)
-            result.push(...l.light.specular)
+            result.push(...l.transform.position);
+            result.push(...l.light.ambient);
+            result.push(...l.light.diffuse);
+            result.push(...l.light.specular);
             result.push(...[l.light.intensity, l.light.radius, l.light.attenuation])
-        })
+        });
         // console.log(result);
         return new Float32Array(result);
     }
