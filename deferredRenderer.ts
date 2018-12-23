@@ -82,13 +82,8 @@ export class DeferredRenderer {
         this.fullScreenQuad = fullScreenQuad;
         this.sphereMesh = sphere;
 
-        // G-BUFFER
         this.setupGBuffer(gl);
-
-        // SHADOWMAP
         this.setupShadowMapBuffers(gl);
-
-        // SSAO
         this.setupSSAOBuffers(gl, ssaoParameters);
 
         this.recompileShaders();
@@ -395,6 +390,39 @@ export class DeferredRenderer {
             this.fullScreenQuad.drawArrays(gl);
         };
 
+        const renderLights = () => {
+            const s = this.visualizeLightsShader;
+            gl.useProgram(s.getProgram());
+
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, worldToCamera);
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix());
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.sphereMesh.getBuf());
+            this.sphereMesh.setupVertexPositionsPointer(gl, s.getAttribLocation(gl, "a_pos"));
+
+            gl.enable(gl.DEPTH_TEST);
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+            gl.clear(gl.DEPTH_BUFFER_BIT);
+
+            this.bindUniformTx(s, "u_posTexture", this.posTx, 0);
+
+            scene.lights.forEach(light => {
+                const modelWorldMatrix = light.transform.getModelToWorld();
+                const modelViewMatrix = tmpMatrix();
+
+                mat4.multiply(modelViewMatrix, worldToCamera, modelWorldMatrix);
+
+                gl.uniform3fv(s.getUniformLocation(gl, "u_color"), light.light.diffuse);
+                gl.uniform1f(s.getUniformLocation(gl, "u_intensity"), light.light.intensity);
+                gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelViewMatrix"), false, modelViewMatrix);
+                gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelWorldMatrix"), false, modelWorldMatrix);
+
+                this.sphereMesh.draw(gl);
+                // gl.drawArrays(gl.TRIANGLES, 0, this.sphereMesh.getVertexCount());
+            })
+        };
+
         renderGBuffer();
         if (this.ssaoEnabled()) {
             renderSSAO()
@@ -406,38 +434,6 @@ export class DeferredRenderer {
         renderLighting();
 
         if (this.config.showLayer === ShowLayer.Final) {
-            const renderLights = () => {
-                const s = this.visualizeLightsShader;
-                gl.useProgram(s.getProgram());
-
-                gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, worldToCamera);
-                gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix());
-
-                gl.bindBuffer(gl.ARRAY_BUFFER, this.sphereMesh.getBuf());
-                this.sphereMesh.setupVertexPositionsPointer(gl, s.getAttribLocation(gl, "a_pos"));
-
-                gl.enable(gl.DEPTH_TEST);
-                gl.enable(gl.BLEND);
-                gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-                gl.clear(gl.DEPTH_BUFFER_BIT);
-
-                this.bindUniformTx(s, "u_posTexture", this.posTx, 0);
-
-                scene.lights.forEach(light => {
-                    const modelWorldMatrix = light.transform.getModelToWorld();
-                    const modelViewMatrix = tmpMatrix();
-
-                    mat4.multiply(modelViewMatrix, worldToCamera, modelWorldMatrix);
-
-                    gl.uniform3fv(s.getUniformLocation(gl, "u_color"), light.light.diffuse);
-                    gl.uniform1f(s.getUniformLocation(gl, "u_intensity"), light.light.intensity);
-                    gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelViewMatrix"), false, modelViewMatrix);
-                    gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelWorldMatrix"), false, modelWorldMatrix);
-
-                    this.sphereMesh.draw(gl);
-                    // gl.drawArrays(gl.TRIANGLES, 0, this.sphereMesh.getVertexCount());
-                })
-            };
             renderLights();
         }
 
