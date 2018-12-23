@@ -11,7 +11,6 @@ import {DeferredRenderer, DeferredRendererConfig, ShowLayer} from "./deferredRen
 import {GLArrayBuffer} from "./glArrayBuffer.js";
 import * as ui from "./ui.js";
 import {SSAOConfig, SSAOState} from "./SSAOState.js";
-import {GLMeshFromObjParser} from "./mesh";
 
 
 const originZero = vec3.create();
@@ -35,8 +34,8 @@ function main() {
                 intensity: {label: 'Intensity', value: 1., min: 0, step: 0.1, onChange: ui.funcRef()},
             },
             'new': {
-                radius: {label: 'Radius', value: 3.5, min: 0, step: 0.1, onChange: ui.funcRef()},
-                posScale: {label: 'Position scale', value: 5., min: 0, step: 0.1, onChange: ui.funcRef()},
+                radius: {label: 'Radius', value: 1.5, min: 0, step: 0.1, onChange: ui.funcRef()},
+                posScale: {label: 'Position scale', value: 1.5, min: 0, step: 0.1, onChange: ui.funcRef()},
                 attenuation: {label: 'Attenuation', value: 0.15, min: 0, step: 0.1, onChange: ui.funcRef()},
                 intensity: {label: 'Intensity', value: 1., min: 0, step: 0.1, onChange: ui.funcRef()},
             }
@@ -44,7 +43,7 @@ function main() {
         ssao: {
             sampleCount: {value: 32, min: 1, step: 1, onChange: ui.funcRef()},
             noiseScale: {value: 4, min: 2, step: 1, onChange: ui.funcRef()},
-            radius: {value: 0.75, min: 0.001, step: 0.1, onChange: ui.funcRef(),},
+            radius: {value: 0.25, min: 0.001, step: 0.1, onChange: ui.funcRef(),},
             bias: {value: 0.02, step: 0.001, min: 0.001, onChange: ui.funcRef(),},
             strength: {value: 1.0, min: 0, step: 0.5, onChange: ui.funcRef(),},
             scalePower: {value: 2, min: 0, step: 0.5, onChange: ui.funcRef(),},
@@ -236,7 +235,7 @@ function main() {
         scene.addChild(corvette);
         corvette.addChild(aphrodite);
 
-        console.log({scene, aphrodite, corvette, plane})
+        // console.log({scene, aphrodite, corvette, plane});
 
         const tmpVec = vec3.create();
         let delta = 1000. / 60;
@@ -248,7 +247,7 @@ function main() {
             }
 
             pressedKeys.forEach((v, k) => {
-                const moveSpeed = delta * 0.003;
+                const moveSpeed = delta * 0.0015;
                 switch (k) {
                     case 'e':
                         vec3.scale(tmpVec, camera.up, moveSpeed);
