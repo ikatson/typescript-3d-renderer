@@ -1,11 +1,11 @@
 import {fetchObject} from "./objparser.js";
-import {clip, FullScreenQuad, glClearColorAndDepth, initGL, QuadArrayBufferData} from "./utils.js";
+import {clip, FullScreenQuad, glClearColorAndDepth, initGL, QuadArrayBufferData, tmpMatrix} from "./utils.js";
 import {ProgressBar, ProgressBarCommon} from "./progressbar.js";
 import {GLMeshFromObjParser} from "./mesh.js";
 import {GameObjectBuilder, LightComponent} from "./object.js";
 import {Camera} from "./camera.js";
 
-import {vec3} from "./gl-matrix.js";
+import {vec3, mat4} from "./gl-matrix.js";
 import {randomLight, Scene} from "./scene.js";
 import {DeferredRenderer, DeferredRendererConfig, ShowLayer} from "./deferredRenderer.js";
 import {GLArrayBuffer} from "./glArrayBuffer.js";
@@ -180,10 +180,13 @@ function main() {
         fetchObject('resources/sphere.obj', onHeaders).then(parser => {
             return GLMeshFromObjParser(gl, parser);
         }),
+        fetchObject('resources/cube.obj', onHeaders).then(parser => {
+            return GLMeshFromObjParser(gl, parser);
+        }),
         fetchObject('resources/plane.obj', onHeaders).then(parser => {
             return GLMeshFromObjParser(gl, parser);
         }),
-    ]).then(([aphrodite, corvette, sphereMesh, planeMesh]) => {
+    ]).then(([aphrodite, corvette, sphereMesh, cubeMesh, planeMesh]) => {
         const camera = new Camera(gl);
         camera.position = vec3.fromValues(0, 0, -3.);
 
