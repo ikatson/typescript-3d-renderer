@@ -14,5 +14,6 @@ uniform vec3 u_cameraPos;
 uniform mat4 u_modelViewMatrix;
 uniform mat4 u_modelWorldMatrix;
 uniform mat4 u_worldToCameraMatrix;
+uniform mat4 u_cameraToWorldMatrix;
 uniform mat4 u_perspectiveMatrix;
 `;

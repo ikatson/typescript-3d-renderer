@@ -30,7 +30,7 @@ out vec4 color;
 void main() {
     float alpha = 1.0;
     vec4 sceneTexel = texture(u_posTexture, tx_pos);
-    vec4 scenePos = u_worldToCameraMatrix * sceneTexel;
+    vec4 scenePos = sceneTexel;
     if (scenePos.z > v_pos.z && sceneTexel.a > 0.) {
         alpha = 0.;
     }

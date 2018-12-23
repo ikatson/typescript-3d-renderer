@@ -1,4 +1,4 @@
-import { vec3 } from "./gl-matrix.js";
+import { vec3, mat4 } from "./gl-matrix.js";
 import { VertexShader } from "./shaders.js";
 import { fetchObject, ObjParser } from "./objparser.js";
 import { GLArrayBufferData, GLArrayBufferDataParams, GLArrayBuffer } from "./glArrayBuffer.js";
@@ -105,3 +105,12 @@ export function makeObjLoader(name: string) {
 
 export const loadSphere = makeObjLoader('resources/sphere.obj');
 export const loadCube = makeObjLoader('resources/cube.obj');
+
+export const tmpMatrix = (function () {
+    const m = mat4.create();
+    return () => {
+        mat4.identity(m);
+        return m;
+    }
+})();
+

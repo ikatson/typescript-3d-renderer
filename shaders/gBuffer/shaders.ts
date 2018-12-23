@@ -15,10 +15,11 @@ out vec4 v_norm;
 out vec2 v_uv;
 
 void main() {
-    v_pos = u_modelWorldMatrix * a_pos;
+    mat4 modelToCamera = u_worldToCameraMatrix * u_modelWorldMatrix; 
+    v_pos = modelToCamera * a_pos;
     gl_Position = u_perspectiveMatrix * u_modelViewMatrix * a_pos;
 
-    v_norm = normalize(u_modelWorldMatrix * vec4(a_norm, 0.));
+    v_norm = normalize(modelToCamera * vec4(a_norm, 0.));
     v_uv = a_uv;
 }
 `
@@ -37,6 +38,7 @@ layout(location = 2) out vec4 gbuf_colmap;
 void main() {
     gbuf_position = vec4(v_pos.xyz, 1.0);
     gbuf_normal = vec4(v_norm.xyz, 1.0);
+    // TODO: replace with real materials
     gbuf_colmap = vec4(1., 0.87, 0.74, 1.);
 }
 `

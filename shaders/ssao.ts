@@ -15,15 +15,12 @@ uniform sampler2D u_ssaoNoise;
 uniform vec2 u_ssaoNoiseScale;
 uniform vec3[SSAO_SAMPLES] u_ssaoSamples;
 
-float ssao(vec4 normalWS, vec4 posWS, vec2 tx_pos) {
+float ssao(vec3 normalVS, vec4 posVS, vec2 tx_pos) {
     vec3 random = normalize(texture(u_ssaoNoise, tx_pos * u_ssaoNoiseScale).xyz);
-    // vec3 random = normalize(vec3(1., 1., 0.));
-    vec3 normalVS = (u_worldToCameraMatrix * vec4(normalWS.xyz, 0.)).xyz;
-
     vec3 tangent = normalize(random - normalVS * dot(normalVS, random));
     vec3 bitangent = cross(normalVS, tangent);
     
-    mat3 tangentToViewSpaceMatrix = mat3(tangent, bitangent, normalVS );
+    mat3 tangentToViewSpaceMatrix = mat3(tangent, bitangent, normalVS);
 
     // return vec4(normal, 1.);
     // return vec4(tangentToViewSpaceMatrix * normalVS, 1.);
@@ -39,7 +36,6 @@ float ssao(vec4 normalWS, vec4 posWS, vec2 tx_pos) {
         // vec4 randomVectorVS = vec4(tangentToViewSpaceMatrix * vec3(0., 0., 1.), 0.);
 
         // Sample in view space.
-        vec4 posVS = u_worldToCameraMatrix * posWS;
         vec4 sampleVS = posVS + randomVectorVS * radius;
 
         vec4 sampleSS = u_perspectiveMatrix * sampleVS;
@@ -56,8 +52,7 @@ float ssao(vec4 normalWS, vec4 posWS, vec2 tx_pos) {
             continue;
         }
 
-        vec4 storedPosWS = texture(gbuf_position, sampleSS.xy * 0.5 + 0.5);
-        vec4 storedPosVS = u_worldToCameraMatrix * storedPosWS;
+        vec4 storedPosVS = texture(gbuf_position, sampleSS.xy * 0.5 + 0.5);
         float storedDepthVS = storedPosVS.z;
 
         // float falloff = smoothstep(0.0, 1.0, radius / abs(storedDepthVS - sampleVS.z));
@@ -73,7 +68,7 @@ float ssao(vec4 normalWS, vec4 posWS, vec2 tx_pos) {
 }
 
 void main() {
-    vec4 normal = texture(gbuf_normal, tx_pos);
+    vec3 normal = texture(gbuf_normal, tx_pos).xyz;
     vec4 pos = texture(gbuf_position, tx_pos);
 
     float occlusion = ssao(normal, pos, tx_pos);
@@ -95,14 +90,12 @@ uniform float u_ssaoBlurPositionThreshold;
 uniform float u_ssaoBlurNormalThreshold;
 
 // This does position and normal-aware "smart-blur".
-float getSsaoBlurred(vec4 posWS, vec4 normalWS) {
+float getSsaoBlurred(vec4 posVS, vec3 normalVS) {
     vec2 texelSize = vec2(1. / float(SCREEN_WIDTH), 1. / float(SCREEN_HEIGHT));
     
-    if (posWS.a == 0.) {
+    if (posVS.a == 0.) {
         return 1.;
     }
-    
-    vec4 posVS = u_worldToCameraMatrix * posWS;
 
     int samples = 1;
     float occlusion = texture(u_ssaoFirstPassTx, tx_pos).r;
@@ -115,18 +108,17 @@ float getSsaoBlurred(vec4 posWS, vec4 normalWS) {
 
             vec2 offset = tx_pos + texelSize * vec2(float(i), float(j));
             
-            vec4 posWS_offset = texture(gbuf_position, offset);
-            if (posWS_offset.a == 0.) {
+            vec4 posVS_offset = texture(gbuf_position, offset);
+            if (posVS_offset.a == 0.) {
                 continue;
             }
             
-            vec4 posVS_offset = u_worldToCameraMatrix * posWS_offset;
             if (abs(posVS.z - posVS_offset.z) > u_ssaoBlurPositionThreshold) {
                 continue;
             }
             
-            vec4 normalWS_offset = vec4(texture(gbuf_normal, offset).xyz, 0.); 
-            if (abs(dot(normalWS_offset, normalWS)) < u_ssaoBlurNormalThreshold) {
+            vec3 normalVS_offset = texture(gbuf_normal, offset).xyz;
+            if (abs(dot(normalVS_offset, normalVS)) < u_ssaoBlurNormalThreshold) {
                 continue;
             }
             
@@ -141,9 +133,9 @@ float getSsaoBlurred(vec4 posWS, vec4 normalWS) {
 }
 
 void main() {
-    vec4 posWS = texture(gbuf_position, tx_pos);
-    vec4 normalWS = vec4(texture(gbuf_normal, tx_pos).xyz, 0.);
-    color = vec4(getSsaoBlurred(posWS, normalWS), 0., 0., 1.);
+    vec4 posVS = texture(gbuf_position, tx_pos);
+    vec3 normalVS = texture(gbuf_normal, tx_pos).xyz;
+    color = vec4(getSsaoBlurred(posVS, normalVS), 0., 0., 1.);
     // color = vec4(texture(u_ssaoFirstPassTx, tx_pos).xyz, 1.);
 }
 `);

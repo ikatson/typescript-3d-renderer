@@ -14,6 +14,7 @@ uniform sampler2D u_shadowmapTx;
 
 uniform mat4 u_lightWorldToCamera;
 uniform mat4 u_lightPerspectiveMatrix;
+uniform mat4 u_cameraToLightCamera;
 
 struct light {
     vec3 position;
@@ -33,7 +34,7 @@ float getSsaoBlurred() {
 
 light makeLight(int i) {
     light l;
-    l.position = u_lightData[i * 5];
+    l.position = (u_worldToCameraMatrix * vec4(u_lightData[i * 5], 1.)).xyz;
     l.ambient = u_lightData[i * 5 + 1];
     l.diffuse = u_lightData[i * 5 + 2];
     l.specular = u_lightData[i * 5 + 3];
@@ -81,7 +82,8 @@ void main() {
     float ssao = 1.0;
     #endif
 
-    vec3 eye = u_cameraPos;
+    // TODO: is this just 0?
+    vec3 eye = (u_worldToCameraMatrix * vec4(u_cameraPos, 1.)).xyz;
 
     vec3 c = vec3(0.);
 
@@ -105,8 +107,9 @@ void main() {
         // Only the first light casts shadows for now
         if (i == 0) {
             float bias = 0.04 + 0.2 * (1.0 - abs(dot(normal.xyz, normalize(l.position - pos.xyz))));
-            vec4 posVS = u_lightWorldToCamera * pos;
-            vec4 posLSS = u_lightPerspectiveMatrix * posVS;
+            // TODO: need to come up with this one.
+            vec4 posLVS = u_cameraToLightCamera * pos;
+            vec4 posLSS = u_lightPerspectiveMatrix * posLVS;
             posLSS.xyz /= posLSS.w;
 
             vec2 texmapscale = vec2(1. / SHADOW_MAP_WIDTH, 1. / SHADOW_MAP_HEIGHT);
@@ -119,7 +122,7 @@ void main() {
             for (y = -1.5; y <= 1.5; y += 1.0) {
                 for (x = -1.5; x <= 1.5; x += 1.0) {
                     shadowMapDepth = texture(u_shadowmapTx, base + vec2(x, y) * texmapscale).r;
-                    if (shadowMapDepth < posVS.z + bias)  {
+                    if (shadowMapDepth < posLVS.z + bias)  {
                         sum++;
                     }
                 }

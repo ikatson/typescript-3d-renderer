@@ -9,7 +9,7 @@ import {GBUFFER_SHADER_SOURCE} from "./shaders/gBuffer/shaders.js";
 import {SSAO_SHADER_SOURCE} from "./shaders/ssao.js";
 import {VISUALIZE_LIGHTS_SHADERS} from "./shaders/visualize-lights.js";
 import {SSAOConfig, SSAOState} from "./SSAOState.js";
-import {FullScreenQuad, glClearColorAndDepth} from "./utils.js";
+import {FullScreenQuad, glClearColorAndDepth, tmpMatrix} from "./utils.js";
 import {SHADOWMAP_SHADERS} from "./shaders/shadowMap.js";
 
 
@@ -28,14 +28,6 @@ export enum ShowLayer {
     ShadowMap
 }
 
-
-const tmpMatrix = (function () {
-    const m = mat4.create();
-    return () => {
-        mat4.identity(m);
-        return m;
-    }
-})();
 
 function bindUniformTx(gl: WebGLRenderingContext, shader: ShaderProgram, uniformName: string, tx: WebGLTexture, index: number) {
     gl.activeTexture(gl.TEXTURE0 + index);
@@ -83,7 +75,7 @@ export class GBuffer {
         this.compileShader(gl);
     }
 
-    render(gl: WebGLRenderingContext, camera: Camera, worldToCamera, projectionMatrix, scene: Scene) {
+    render(gl: WebGLRenderingContext, camera: Camera, scene: Scene) {
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.gFrameBuffer);
 
         glClearColorAndDepth(gl, 0, 0, 0, 0.);
@@ -95,14 +87,14 @@ export class GBuffer {
         gl.useProgram(program.getProgram());
 
         gl.uniform3fv(program.getUniformLocation(gl, "u_cameraPos"), camera.position);
-        gl.uniformMatrix4fv(program.getUniformLocation(gl, "u_worldToCameraMatrix"), false, worldToCamera);
-        gl.uniformMatrix4fv(program.getUniformLocation(gl, "u_perspectiveMatrix"), false, projectionMatrix);
+        gl.uniformMatrix4fv(program.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
+        gl.uniformMatrix4fv(program.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix());
 
         const renderObject = (o: GameObject) => {
             if (o.mesh != null) {
                 const modelWorldMatrix = o.transform.getModelToWorld();
                 const modelViewMatrix = tmpMatrix();
-                mat4.multiply(modelViewMatrix, worldToCamera, modelWorldMatrix);
+                mat4.multiply(modelViewMatrix, camera.getWorldToCamera(), modelWorldMatrix);
 
                 o.mesh.prepareMeshVertexAndShaderDataForRendering(gl, program);
 
@@ -205,7 +197,7 @@ export class SSAORenderer {
         );
     }
 
-    render(gl: WebGLRenderingContext, worldToCamera, projectionMatrix) {
+    render(gl: WebGLRenderingContext, camera: Camera) {
 
         const firstPass = () => {
             const s = this.firstPassShader;
@@ -222,8 +214,8 @@ export class SSAORenderer {
             bindUniformTx(gl, s, "u_ssaoNoise", this.ssaoState.noiseTexture, 2);
 
             // Common uniforms
-            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, worldToCamera);
-            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, projectionMatrix);
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix());
 
             // SSAOState
             gl.uniform1f(s.getUniformLocation(gl, "u_ssaoRadius"), this.ssaoConfig.radius);
@@ -255,8 +247,8 @@ export class SSAORenderer {
             bindUniformTx(gl, s, "u_ssaoFirstPassTx", this._ssaoFirstPassTx, 3);
 
             // Common uniforms
-            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, worldToCamera);
-            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, projectionMatrix);
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix());
 
             // SSAOState
             gl.uniform1f(s.getUniformLocation(gl, "u_ssaoStrength"), this.ssaoConfig.strength);
@@ -324,7 +316,7 @@ export class ShadowMapRenderer {
         return this._shadowMapHeight;
     }
 
-    render(gl: WebGLRenderingContext, lProjection, lWorldToCamera, scene: Scene) {
+    render(gl: WebGLRenderingContext, lightCamera: Camera, scene: Scene) {
         gl.enable(gl.DEPTH_TEST);
         gl.enable(gl.CULL_FACE);
 
@@ -336,14 +328,14 @@ export class ShadowMapRenderer {
 
         s.use(gl);
 
-        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, lProjection);
+        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, lightCamera.projectionMatrix());
 
         const drawObject = (o: GameObject) => {
             if (!o.mesh || !o.mesh.shadowCaster) {
                 return;
             }
             const modelViewMatrix = tmpMatrix();
-            mat4.multiply(modelViewMatrix, lWorldToCamera, o.transform.getModelToWorld());
+            mat4.multiply(modelViewMatrix, lightCamera.getWorldToCamera(), o.transform.getModelToWorld());
 
             gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelViewMatrix"), false, modelViewMatrix);
 
@@ -455,7 +447,7 @@ export class FinalLightingRenderer {
         this._recompileOnNextRun = false;
     }
 
-    render(gl: WebGLRenderingContext, scene: Scene, camera: Camera, worldToCamera, projectionMatrix, lWorldToCamera, lProjection) {
+    render(gl: WebGLRenderingContext, scene: Scene, camera: Camera, lightCamera: Camera) {
         const sceneLightCount = scene.lights.length;
         if (this.lightingShader == null || this._recompileOnNextRun || this.lastLightCount != sceneLightCount) {
             this.recompileShaders(gl, sceneLightCount);
@@ -478,27 +470,34 @@ export class FinalLightingRenderer {
         bindUniformTx(gl, s, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
         bindUniformTx(gl, s, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 3);
 
+        const cameraToLightCamera = tmpMatrix();
+        // mat4.multiply(cameraToLightCamera, camera.getCameraToWorld(), lightCamera.getWorldToCamera());
+
+        mat4.multiply(cameraToLightCamera, lightCamera.getWorldToCamera(), camera.getCameraToWorld());
+
         // Common uniforms
         gl.uniform3fv(s.getUniformLocation(gl, "u_lightData"), this.generateLightData(scene.lights));
         gl.uniform3fv(s.getUniformLocation(gl, "u_cameraPos"), camera.position);
-        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, worldToCamera);
-        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, projectionMatrix);
+        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
+        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix());
+        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_cameraToWorldMatrix"), false, camera.getCameraToWorld());
 
-        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_lightWorldToCamera"), false, lWorldToCamera);
-        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_lightPerspectiveMatrix"), false, lProjection);
+        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_lightWorldToCamera"), false, lightCamera.getWorldToCamera());
+        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_lightPerspectiveMatrix"), false, lightCamera.projectionMatrix());
+        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_cameraToLightCamera"), false, cameraToLightCamera);
 
         // Draw
         this.fullScreenQuad.drawArrays(gl);
         if (this.config.showLayer === ShowLayer.Final) {
-            this.renderLightVolumes(gl, worldToCamera, camera, scene);
+            this.renderLightVolumes(gl, camera, scene);
         }
     }
 
-    private renderLightVolumes(gl: WebGLRenderingContext, worldToCamera, camera: Camera, scene: Scene) {
+    private renderLightVolumes(gl: WebGLRenderingContext, camera: Camera, scene: Scene) {
         const s = this.visualizeLightsShader;
         gl.useProgram(s.getProgram());
 
-        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, worldToCamera);
+        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
         gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix());
 
         gl.bindBuffer(gl.ARRAY_BUFFER, this.sphereMesh.getBuf());
@@ -515,7 +514,7 @@ export class FinalLightingRenderer {
             const modelWorldMatrix = light.transform.getModelToWorld();
             const modelViewMatrix = tmpMatrix();
 
-            mat4.multiply(modelViewMatrix, worldToCamera, modelWorldMatrix);
+            mat4.multiply(modelViewMatrix, camera.getWorldToCamera(), modelWorldMatrix);
 
             gl.uniform3fv(s.getUniformLocation(gl, "u_color"), light.light.diffuse);
             gl.uniform1f(s.getUniformLocation(gl, "u_intensity"), light.light.intensity);
@@ -597,12 +596,7 @@ export class DeferredRenderer {
 
     render(scene: Scene, camera: Camera) {
         const gl: WebGLRenderingContext = this.gl;
-        const worldToCamera = camera.getWorldToCamera();
-        const projectionMatrix = camera.projectionMatrix();
-
         const lCamera: Camera = DeferredRenderer.getSunCamera(gl, scene.lights[0], camera);
-        const lProjection = lCamera.projectionMatrix();
-        const lWorldToCamera = lCamera.getWorldToCamera();
 
         if (this.recompileOnNextRun) {
             this.ssaoRenderer.recompileShaders(gl);
@@ -610,15 +604,15 @@ export class DeferredRenderer {
             this.recompileOnNextRun = false;
         }
 
-        this.gbuffer.render(gl, camera, worldToCamera, projectionMatrix, scene);
+        this.gbuffer.render(gl, camera, scene);
         if (this._config.ssao.isEnabled()) {
-            this.ssaoRenderer.render(gl, worldToCamera, projectionMatrix);
+            this.ssaoRenderer.render(gl, camera);
         }
         if (this._config.shadowMapEnabled) {
-            this.shadowMap.render(gl, lProjection, lWorldToCamera, scene);
+            this.shadowMap.render(gl, lCamera, scene);
         }
 
-        this.finalPass.render(gl, scene, camera, worldToCamera, projectionMatrix, lWorldToCamera, lProjection);
+        this.finalPass.render(gl, scene, camera, lCamera);
     }
 
 }

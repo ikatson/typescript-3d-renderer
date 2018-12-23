@@ -247,26 +247,32 @@ function main() {
                     case 'e':
                         vec3.scale(tmpVec, camera.up, moveSpeed);
                         vec3.add(camera.position, camera.position, tmpVec);
+                        camera.update();
                         break;
                     case 'z':
                         vec3.scale(tmpVec, camera.up, -moveSpeed);
                         vec3.add(camera.position, camera.position, tmpVec);
+                        camera.update();
                         break;
                     case 'w':
                         vec3.scale(tmpVec, camera.forward, moveSpeed);
                         vec3.add(camera.position, camera.position, tmpVec);
+                        camera.update();
                         break;
                     case 's':
                         vec3.scale(tmpVec, camera.forward, -moveSpeed);
                         vec3.add(camera.position, camera.position, tmpVec);
+                        camera.update();
                         break;
                     case 'a':
                         vec3.scale(tmpVec, camera.right(), -moveSpeed);
                         vec3.add(camera.position, camera.position, tmpVec);
+                        camera.update();
                         break;
                     case 'd':
                         vec3.scale(tmpVec, camera.right(), moveSpeed);
                         vec3.add(camera.position, camera.position, tmpVec);
+                        camera.update();
                         break;
                 }
             });
@@ -325,7 +331,6 @@ function main() {
                 vec3.rotateY(up, up, originZero, yaw);
                 camera.forward = forward;
                 camera.up = up;
-
             }
 
             event.preventDefault();
