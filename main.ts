@@ -216,7 +216,7 @@ function main() {
         const v3 = v => [v, v, v];
 
         const sun = new GameObjectBuilder().setLightComponent(new LightComponent()).build();
-        sun.transform.position = [5., 5., -5.];
+        sun.transform.position = [2., 2., -2.];
         sun.transform.update();
         sun.light.radius = 0;
         sun.light.intensity = state.lighting.sun.intensity.value;

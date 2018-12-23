@@ -589,7 +589,7 @@ export class DeferredRenderer {
 
     private static getSunCamera(gl: WebGLRenderingContext, light: GameObject, camera: Camera) {
         let lCamera = new Camera(gl);
-        lCamera.fov = 90.;
+        lCamera.fov = 45.;
         lCamera.near = 2.;
         lCamera.far = 50.;
         const tmp1 = vec3.create();
