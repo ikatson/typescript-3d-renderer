@@ -22,7 +22,7 @@ export class Camera {
         this._right = vec3.create();
         this.near = 0.03;
         this.far = 30.0;
-        this.fov = Math.PI * 45. / 180.0;
+        this.fov = 45.;
         this.aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
         this._projectionMatrix = mat4.create();
         this._worldToCamera = mat4.create();
@@ -92,7 +92,7 @@ export class Camera {
 
     projectionMatrix() {
         if (this._projectionMatrixNeedsUpdate) {
-            mat4.perspective(this._projectionMatrix, this.fov, this.aspect, this.near, this.far);
+            mat4.perspective(this._projectionMatrix, this.fov * Math.PI / 180.0, this.aspect, this.near, this.far);
             this._projectionMatrixNeedsUpdate = false;
         }
         return this._projectionMatrix;

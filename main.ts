@@ -299,8 +299,8 @@ function main() {
         var zoom = 1.0;
         var pitch = 0.;
         var yaw = 0.;
-        var sensitivityY = 0.01;
-        var sensitivityX = 0.01;
+        var sensitivityY = 0.0001;
+        var sensitivityX = 0.0001;
 
         const pressedKeys = new Map<String, Boolean>();
 
@@ -315,7 +315,7 @@ function main() {
 
         canvas.onwheel = ev => {
             if (ev.ctrlKey) {
-                zoom = clip(zoom + ev.deltaY * camera.fov * 0.01, 0.1, 1.90);
+                zoom = clip(zoom + ev.deltaY * camera.fov * 0.0001, 0.1, 1.90);
                 camera.fov = initialFov * zoom;
                 camera.update()
             } else if (ev.shiftKey) {
