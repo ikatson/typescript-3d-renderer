@@ -236,6 +236,7 @@ function main() {
 
         scene.addChild(plane);
         scene.addChild(corvette);
+        // scene.addChild(new GameObjectBuilder().setMesh(cubeMesh).build());
         corvette.addChild(aphrodite);
 
         // console.log({scene, aphrodite, corvette, plane});
