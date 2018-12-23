@@ -187,7 +187,7 @@ function main() {
             return GLMeshFromObjParser(gl, parser);
         }),
     ]).then(([aphrodite, corvette, sphereMesh, cubeMesh, planeMesh]) => {
-        const camera = new Camera(gl);
+        const camera = new Camera(gl.canvas.width / gl.canvas.height);
         camera.position = vec3.fromValues(0, 0, -3.);
 
         // const renderer = new ForwardRenderer(gl);

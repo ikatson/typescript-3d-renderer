@@ -15,7 +15,7 @@ export class Camera {
     private _cameraToWorld: mat4;
     private _projectionMatrixNeedsUpdate: boolean = true;
 
-    constructor(gl: WebGLRenderingContext) {
+    constructor(aspect: number) {
         this._position = vec3.fromValues(0, 0, -1);
         this._forward = vec3.fromValues(0, 0, 1);
         this._up = vec3.fromValues(0, 1, 0);
@@ -23,7 +23,7 @@ export class Camera {
         this.near = 0.03;
         this.far = 30.0;
         this.fov = 45.;
-        this.aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+        this.aspect = aspect;
         this._projectionMatrix = mat4.create();
         this._worldToCamera = mat4.create();
         this._cameraToWorld = mat4.create();

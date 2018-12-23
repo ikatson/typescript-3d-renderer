@@ -2,6 +2,7 @@ import { vec3, mat4 } from "./gl-matrix.js";
 import { VertexShader } from "./shaders.js";
 import { fetchObject, ObjParser } from "./objparser.js";
 import { GLArrayBufferData, GLArrayBufferDataParams, GLArrayBuffer } from "./glArrayBuffer.js";
+import {Camera} from "./camera.js";
 
 export const QuadVertices = new Float32Array([
     -1.0, 1.0,
@@ -115,4 +116,9 @@ export const tmpMatrix = (function () {
 })();
 
 
+export const makeCameraThatBoundsAnotherOne = (camera: Camera, position: number[], cubeVertices: GLArrayBufferData): Camera => {
+    const tmp = tmpMatrix();
+    mat4.invert(camera.projectionMatrix(), tmp);
 
+    const result = new Camera();
+};
