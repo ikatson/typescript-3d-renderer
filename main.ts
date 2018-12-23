@@ -1,19 +1,16 @@
-import { ShaderProgram, VertexShader, FragmentShader } from "./shaders.js";
-import { ObjParser, fetchObject } from "./objparser.js";
-import { FullScreenQuad, glClearColorAndDepth, initGL, clip, QuadArrayBufferData } from "./utils.js";
-import { ProgressBarCommon, ProgressBar } from "./progressbar.js";
-import { GLMesh, GLMeshFromObjParser } from "./mesh.js";
-import { Texture } from "./texture.js";
-import { GameObject, GameObjectBuilder, LightComponent } from "./object.js";
-import { Material } from "./material.js";
-import { Camera } from "./camera.js";
+import {fetchObject} from "./objparser.js";
+import {clip, FullScreenQuad, glClearColorAndDepth, initGL, QuadArrayBufferData} from "./utils.js";
+import {ProgressBar, ProgressBarCommon} from "./progressbar.js";
+import {GLMeshFromObjParser} from "./mesh.js";
+import {GameObjectBuilder, LightComponent} from "./object.js";
+import {Camera} from "./camera.js";
 
-import { mat4, vec3 } from "./gl-matrix.js";
-import { Scene, randomLights, randomLight } from "./scene.js";
-import { DeferredRenderer, ShowLayer } from "./deferredRenderer.js";
-import { GLArrayBuffer } from "./glArrayBuffer.js";
+import {vec3} from "./gl-matrix.js";
+import {randomLight, Scene} from "./scene.js";
+import {DeferredRenderer, ShowLayer} from "./deferredRenderer.js";
+import {GLArrayBuffer} from "./glArrayBuffer.js";
 import * as ui from "./ui.js";
-import { SSAO } from "./ssao.js";
+import {SSAO} from "./ssao.js";
 
 
 const originZero = vec3.create();
@@ -31,16 +28,16 @@ function main() {
                 onChange: ui.funcRef(),
             },
             sun: {
-                ambient: { label: 'Ambient', value: 0.2, min: 0, step: 0.1, onChange: ui.funcRef() },
-                diffuse: { label: 'Diffuse', value: 0.6, min: 0, step: 0.1, onChange: ui.funcRef() },
-                specular: { label: 'Specular', value: 0.2, min: 0, step: 0.1, onChange: ui.funcRef() },
-                intensity: { label: 'Intensity', value: 1., min: 0, step: 0.1, onChange: ui.funcRef() },
+                ambient: {label: 'Ambient', value: 0.2, min: 0, step: 0.1, onChange: ui.funcRef()},
+                diffuse: {label: 'Diffuse', value: 0.6, min: 0, step: 0.1, onChange: ui.funcRef()},
+                specular: {label: 'Specular', value: 0.2, min: 0, step: 0.1, onChange: ui.funcRef()},
+                intensity: {label: 'Intensity', value: 1., min: 0, step: 0.1, onChange: ui.funcRef()},
             },
             'new': {
-                radius: { label: 'Radius', value: 3.5, min: 0, step: 0.1, onChange: ui.funcRef() },
-                posScale: { label: 'Position scale', value: 5., min: 0, step: 0.1, onChange: ui.funcRef() },
-                attenuation: { label: 'Attenuation', value: 0.15, min: 0, step: 0.1, onChange: ui.funcRef() },
-                intensity: { label: 'Intensity', value: 1., min: 0, step: 0.1, onChange: ui.funcRef() },
+                radius: {label: 'Radius', value: 3.5, min: 0, step: 0.1, onChange: ui.funcRef()},
+                posScale: {label: 'Position scale', value: 5., min: 0, step: 0.1, onChange: ui.funcRef()},
+                attenuation: {label: 'Attenuation', value: 0.15, min: 0, step: 0.1, onChange: ui.funcRef()},
+                intensity: {label: 'Intensity', value: 1., min: 0, step: 0.1, onChange: ui.funcRef()},
             }
         },
         ssao: {
@@ -80,12 +77,12 @@ function main() {
             value: ShowLayer.SSAO,
             onChange: ui.funcRef(),
             options: [
-                { label: 'Final', value: ShowLayer.Final },
-                { label: 'Positions', value: ShowLayer.Positions },
-                { label: 'Normals', value: ShowLayer.Normals },
-                { label: 'SSAO', value: ShowLayer.SSAO },
-                { label: 'Color', value: ShowLayer.Color },
-                { label: 'Shadow Map', value: ShowLayer.ShadowMap },
+                {label: 'Final', value: ShowLayer.Final},
+                {label: 'Positions', value: ShowLayer.Positions},
+                {label: 'Normals', value: ShowLayer.Normals},
+                {label: 'SSAO', value: ShowLayer.SSAO},
+                {label: 'Color', value: ShowLayer.Color},
+                {label: 'Shadow Map', value: ShowLayer.ShadowMap},
             ]
         },
         shouldRotate: {
@@ -105,11 +102,11 @@ function main() {
             onChange: ui.funcRef(),
             checked: false,
         }
-    }
+    };
 
     const n = (label: string, props: any) => {
         return ui.NumberInput(label, props, props.onChange);
-    }
+    };
 
     document.getElementById('app').appendChild(
         ui.Form(
@@ -178,15 +175,15 @@ function main() {
 
     progressBar.prepare(gl);
 
-    const onHeaders = ({ headers, length }) => {
+    const onHeaders = ({headers, length}) => {
         if (headers) {
             contentLength = parseInt(headers.get("content-length"));
         } else {
-            downloaded += length
+            downloaded += length;
             const progress: number = downloaded / contentLength;
             progressBar.render(gl, progress);
         }
-    }
+    };
 
     Promise.all([
         fetchObject('resources/aphrodite/aphrodite.obj', onHeaders).then(parser => {
@@ -217,7 +214,7 @@ function main() {
         // const renderer = new ForwardRenderer(gl);
         const makeSSAO = () => {
             return new SSAO(gl, state.ssao.sampleCount.value, Math.pow(2, state.ssao.rotationPower.value));
-        }
+        };
         const renderer = new DeferredRenderer(gl, fb, sphereMesh, makeSSAO());
         renderer.config.showLayer = state.showLayer.value;
         renderer.config.shadowMapEnabled = state.shadowMapEnabled.checked;
@@ -238,7 +235,7 @@ function main() {
         sun.light.diffuse = v3(state.lighting.sun.diffuse.value);
         sun.light.specular = v3(state.lighting.sun.specular.value);
 
-        scene.lights = [sun]
+        scene.lights = [sun];
 
         const plane = new GameObjectBuilder().setMesh(planeMesh).build();
         plane.transform.position = [0, -2., 0];
@@ -284,7 +281,7 @@ function main() {
                         vec3.add(camera.position, camera.position, tmpVec);
                         break;
                 }
-            })
+            });
 
             if (state.shouldRotate.checked) {
                 aphrodite.transform.rotation[1] += 0.01;
@@ -306,10 +303,10 @@ function main() {
 
         window.onkeydown = ev => {
             pressedKeys.set(ev.key, true);
-        }
+        };
         window.onkeyup = ev => {
             pressedKeys.delete(ev.key);
-        }
+        };
 
         var initialFov = camera.fov;
 
@@ -344,40 +341,40 @@ function main() {
             }
 
             event.preventDefault();
-        }
+        };
 
         state.ssao.sampleCount.onChange.ref = v => {
             renderer.changeSSAOParameters(makeSSAO());
-        }
+        };
 
         state.ssao.rotationPower.onChange.ref = v => {
             renderer.changeSSAOParameters(makeSSAO());
-        }
+        };
 
         state.ssao.strength.onChange.ref = (v, prev) => {
             renderer.config.ssao.strength = v;
             if (v === 0 || prev === 0) {
                 renderer.recompileShaders();
             }
-        }
+        };
         state.ssao.bias.onChange.ref = v => {
             renderer.config.ssao.bias = v;
-        }
+        };
         state.ssao.radius.onChange.ref = v => {
             renderer.config.ssao.radius = v;
-        }
+        };
         state.lighting.sun.ambient.onChange.ref = v => {
             sun.light.ambient = [v, v, v];
-        }
+        };
         state.lighting.sun.specular.onChange.ref = v => {
             sun.light.specular = [v, v, v];
-        }
+        };
         state.lighting.sun.diffuse.onChange.ref = v => {
             sun.light.diffuse = [v, v, v];
-        }
+        };
         state.lighting.sun.intensity.onChange.ref = v => {
             sun.light.intensity = v;
-        }
+        };
         state.lighting.lightCount.onChange.ref = v => {
             v = clip(v, 1, 500);
             console.log(scene.lights.length);
@@ -395,7 +392,7 @@ function main() {
                 }
             }
             console.log('new light count ' + scene.lights.length);
-        }
+        };
         state.lighting.lightCount.onChange(state.lighting.lightCount.value);
 
         state.shadowMapEnabled.onChange.ref = v => {
@@ -415,13 +412,13 @@ function main() {
             console.log('setting show layer to ' + v);
             renderer.config.showLayer = parseInt(vstring);
             renderer.recompileShaders();
-        }
+        };
 
         state.pause.onChange.ref = isPaused => {
             if (!isPaused) {
                 requestAnimationFrame(processFrame);
             }
-        }
+        };
 
         processFrame()
 

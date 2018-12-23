@@ -1,4 +1,4 @@
-import { randFloat, lerp } from "./utils.js";
+import {randFloat, lerp} from "./utils.js";
 
 export class SSAO {
     sampleCount: number;

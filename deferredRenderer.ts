@@ -94,30 +94,6 @@ export class GBuffer {
         this.compileShader(gl);
     }
 
-    private compileShader(gl: WebGLRenderingContext) {
-        this.gBufferShader = new ShaderProgram(
-            gl,
-            new VertexShader(gl, GBUFFER_SHADER_SOURCE.vs),
-            new FragmentShader(gl, GBUFFER_SHADER_SOURCE.fs)
-        );
-    }
-
-    private setupGBuffer(gl: WebGLRenderingContext) {
-        this.colorTX = createAndBindBufferTexture(gl, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE);
-        this.normalTX = createAndBindBufferTexture(gl, gl.RGBA16F, gl.RGBA, gl.FLOAT);
-        this.posTx = createAndBindBufferTexture(gl, gl.RGBA16F, gl.RGBA, gl.FLOAT);
-        this.depthRB = gl.createRenderbuffer();
-        this.gFrameBuffer = gl.createFramebuffer();
-        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.gFrameBuffer);
-        gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthRB);
-        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, gl.canvas.width, gl.canvas.height);
-        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + 0, gl.TEXTURE_2D, this.posTx, 0);
-        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + 1, gl.TEXTURE_2D, this.normalTX, 0);
-        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + 2, gl.TEXTURE_2D, this.colorTX, 0);
-        gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthRB);
-        checkFrameBufferStatusOrThrow(gl);
-    }
-
     render(gl: WebGLRenderingContext, camera: Camera, worldToCamera, projectionMatrix, scene: Scene) {
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.gFrameBuffer);
 
@@ -154,16 +130,35 @@ export class GBuffer {
 
         scene.children.forEach(o => renderObject(o))
     }
+
+    private compileShader(gl: WebGLRenderingContext) {
+        this.gBufferShader = new ShaderProgram(
+            gl,
+            new VertexShader(gl, GBUFFER_SHADER_SOURCE.vs),
+            new FragmentShader(gl, GBUFFER_SHADER_SOURCE.fs)
+        );
+    }
+
+    private setupGBuffer(gl: WebGLRenderingContext) {
+        this.colorTX = createAndBindBufferTexture(gl, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE);
+        this.normalTX = createAndBindBufferTexture(gl, gl.RGBA16F, gl.RGBA, gl.FLOAT);
+        this.posTx = createAndBindBufferTexture(gl, gl.RGBA16F, gl.RGBA, gl.FLOAT);
+        this.depthRB = gl.createRenderbuffer();
+        this.gFrameBuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.gFrameBuffer);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthRB);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, gl.canvas.width, gl.canvas.height);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + 0, gl.TEXTURE_2D, this.posTx, 0);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + 1, gl.TEXTURE_2D, this.normalTX, 0);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + 2, gl.TEXTURE_2D, this.colorTX, 0);
+        gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthRB);
+        checkFrameBufferStatusOrThrow(gl);
+    }
 }
 
 export class SSAORenderer {
-    get ssaoTx(): WebGLTexture {
-        return this._ssaoTx;
-    }
     private ssaoFrameBuffer: WebGLFramebuffer;
     private ssaoParameters: SSAO;
-    private _ssaoTx: WebGLTexture;
-
     private gBuffer: GBuffer;
     private ssaoConfig: SSAORuntimeConfigurables;
     private fullScreenQuad: FullScreenQuad;
@@ -176,6 +171,12 @@ export class SSAORenderer {
         this.fullScreenQuad = fullScreenQuad;
 
         this.recompileShader(gl);
+    }
+
+    private _ssaoTx: WebGLTexture;
+
+    get ssaoTx(): WebGLTexture {
+        return this._ssaoTx;
     }
 
     changeSSAOParameters(gl: WebGLRenderingContext, ssao: SSAO) {
@@ -196,15 +197,6 @@ export class SSAORenderer {
                     .build()
             )
         );
-    }
-
-    private setupSSAOBuffers(gl: WebGLRenderingContext, ssaoParameters: SSAO) {
-        this.ssaoParameters = ssaoParameters || new SSAO(gl, 16, 4);
-        this.ssaoFrameBuffer = gl.createFramebuffer();
-        this._ssaoTx = createAndBindBufferTexture(gl, gl.R16F, gl.RED, gl.HALF_FLOAT);
-        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.ssaoFrameBuffer);
-        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._ssaoTx, 0);
-        checkFrameBufferStatusOrThrow(gl);
     }
 
     render(gl: WebGLRenderingContext, worldToCamera, projectionMatrix) {
@@ -242,23 +234,20 @@ export class SSAORenderer {
     getRotationPower() {
         return this.ssaoParameters.rotationPower;
     }
+
+    private setupSSAOBuffers(gl: WebGLRenderingContext, ssaoParameters: SSAO) {
+        this.ssaoParameters = ssaoParameters || new SSAO(gl, 16, 4);
+        this.ssaoFrameBuffer = gl.createFramebuffer();
+        this._ssaoTx = createAndBindBufferTexture(gl, gl.R16F, gl.RED, gl.HALF_FLOAT);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.ssaoFrameBuffer);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._ssaoTx, 0);
+        checkFrameBufferStatusOrThrow(gl);
+    }
 }
 
 export class ShadowMapRenderer {
-    get shadowMapTx(): WebGLTexture {
-        return this._shadowMapTx;
-    }
-    get shadowMapHeight(): number {
-        return this._shadowMapHeight;
-    }
-    get shadowMapWidth(): number {
-        return this._shadowMapWidth;
-    }
-    private _shadowMapTx: WebGLTexture;
     private shadowMapFB: WebGLFramebuffer;
     private shadowMapShader: ShaderProgram;
-    private _shadowMapWidth: number;
-    private _shadowMapHeight: number;
     private shadowMapRB: WebGLRenderbuffer;
 
     constructor(gl: WebGLRenderingContext) {
@@ -266,34 +255,22 @@ export class ShadowMapRenderer {
         this.recompileShaders(gl);
     }
 
-    private recompileShaders(gl: WebGLRenderingContext) {
-        this.shadowMapShader = new ShaderProgram(
-            gl,
-            new VertexShader(
-                gl,
-                SHADOWMAP_SHADERS.vs
-                    .build(),
-            ),
-            new FragmentShader(
-                gl,
-                SHADOWMAP_SHADERS.fs
-                    .build(),
-            )
-        );
+    private _shadowMapTx: WebGLTexture;
+
+    get shadowMapTx(): WebGLTexture {
+        return this._shadowMapTx;
     }
 
-    private setupShadowMapBuffers(gl: WebGLRenderingContext) {
-        this._shadowMapWidth = 2048;
-        this._shadowMapHeight = 2048;
-        this._shadowMapTx = createAndBindBufferTexture(gl, gl.R16F, gl.RED, gl.HALF_FLOAT, this._shadowMapWidth, this._shadowMapHeight, gl.LINEAR);
-        this.shadowMapFB = gl.createFramebuffer();
-        this.shadowMapRB = gl.createRenderbuffer();
-        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.shadowMapFB);
-        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._shadowMapTx, 0);
-        gl.bindRenderbuffer(gl.RENDERBUFFER, this.shadowMapRB);
-        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this._shadowMapWidth, this._shadowMapHeight);
-        gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.shadowMapRB);
-        checkFrameBufferStatusOrThrow(gl);
+    private _shadowMapWidth: number;
+
+    get shadowMapWidth(): number {
+        return this._shadowMapWidth;
+    }
+
+    private _shadowMapHeight: number;
+
+    get shadowMapHeight(): number {
+        return this._shadowMapHeight;
     }
 
     render(gl: WebGLRenderingContext, lProjection, lWorldToCamera, scene: Scene) {
@@ -327,6 +304,36 @@ export class ShadowMapRenderer {
         gl.viewport(0, 0, this._shadowMapWidth, this._shadowMapHeight);
         scene.children.forEach(drawObject);
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    }
+
+    private recompileShaders(gl: WebGLRenderingContext) {
+        this.shadowMapShader = new ShaderProgram(
+            gl,
+            new VertexShader(
+                gl,
+                SHADOWMAP_SHADERS.vs
+                    .build(),
+            ),
+            new FragmentShader(
+                gl,
+                SHADOWMAP_SHADERS.fs
+                    .build(),
+            )
+        );
+    }
+
+    private setupShadowMapBuffers(gl: WebGLRenderingContext) {
+        this._shadowMapWidth = 2048;
+        this._shadowMapHeight = 2048;
+        this._shadowMapTx = createAndBindBufferTexture(gl, gl.R16F, gl.RED, gl.HALF_FLOAT, this._shadowMapWidth, this._shadowMapHeight, gl.LINEAR);
+        this.shadowMapFB = gl.createFramebuffer();
+        this.shadowMapRB = gl.createRenderbuffer();
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.shadowMapFB);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._shadowMapTx, 0);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, this.shadowMapRB);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this._shadowMapWidth, this._shadowMapHeight);
+        gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.shadowMapRB);
+        checkFrameBufferStatusOrThrow(gl);
     }
 }
 
@@ -485,12 +492,7 @@ export class FinalLightingRenderer {
 
 export class DeferredRenderer {
     private finalPass: FinalLightingRenderer;
-    get config(): DeferredRendererRuntimeConfigurables {
-        return this._config;
-    }
     private gl: WebGLRenderingContext;
-    private _config = new DeferredRendererRuntimeConfigurables();
-
     private gbuffer: GBuffer;
     private ssao: SSAORenderer;
     private shadowMap: ShadowMapRenderer;
@@ -504,6 +506,35 @@ export class DeferredRenderer {
         this.finalPass = new FinalLightingRenderer(
             gl, this.config, fullScreenQuad, this.gbuffer, this.ssao, this.shadowMap, sphere
         );
+    }
+
+    private _config = new DeferredRendererRuntimeConfigurables();
+
+    get config(): DeferredRendererRuntimeConfigurables {
+        return this._config;
+    }
+
+    private static getSunCamera(gl: WebGLRenderingContext, light: GameObject, camera: Camera) {
+        let lCamera = new Camera(gl);
+        lCamera.fov = 90.;
+        lCamera.near = 2.;
+        lCamera.far = 50.;
+        const tmp1 = vec3.create();
+        const tmp2 = vec3.create();
+        lCamera.position = light.transform.position;
+
+        // determine forward direction.
+        // TODO: in this case the sun just looks at "0,0,0", and acts like a point light,
+        // not orthogonal light.
+        vec3.scale(lCamera.forward, lCamera.position, -1);
+        vec3.normalize(lCamera.forward, lCamera.forward);
+
+        // determine up direction
+        const worldUp = [0, 1., 0];
+        vec3.scale(tmp1, lCamera.forward, vec3.dot(worldUp, lCamera.forward));
+        vec3.sub(lCamera.up, worldUp, tmp1);
+        vec3.normalize(lCamera.up, lCamera.up);
+        return lCamera;
     }
 
     changeSSAOParameters(newParams: SSAO) {
@@ -539,29 +570,6 @@ export class DeferredRenderer {
         }
 
         this.finalPass.render(gl, scene, camera, worldToCamera, projectionMatrix, lWorldToCamera, lProjection);
-    }
-
-    private static getSunCamera(gl: WebGLRenderingContext, light: GameObject, camera: Camera) {
-        let lCamera = new Camera(gl);
-        lCamera.fov = 90.;
-        lCamera.near = 2.;
-        lCamera.far = 50.;
-        const tmp1 = vec3.create();
-        const tmp2 = vec3.create();
-        lCamera.position = light.transform.position;
-
-        // determine forward direction.
-        // TODO: in this case the sun just looks at "0,0,0", and acts like a point light,
-        // not orthogonal light.
-        vec3.scale(lCamera.forward, lCamera.position, -1);
-        vec3.normalize(lCamera.forward, lCamera.forward);
-
-        // determine up direction
-        const worldUp = [0, 1., 0];
-        vec3.scale(tmp1, lCamera.forward, vec3.dot(worldUp, lCamera.forward));
-        vec3.sub(lCamera.up, worldUp, tmp1);
-        vec3.normalize(lCamera.up, lCamera.up);
-        return lCamera;
     }
 
 }
