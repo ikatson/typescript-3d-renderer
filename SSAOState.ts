@@ -8,6 +8,8 @@ export class SSAOConfig {
     radius: number = 0.75;
     bias: number = 0.025;
     strength: number = 1.0;
+    blurPositionThreshold: number = 0.3;
+    blurNormalThreshold: number = 0.9;
 
     isEnabled() {
         return this.enabled && this.strength > 0;

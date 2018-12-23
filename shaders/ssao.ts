@@ -91,17 +91,46 @@ layout(location = 0) out vec4 color;
 
 uniform sampler2D u_ssaoFirstPassTx;
 uniform float u_ssaoStrength;
+uniform float u_ssaoBlurPositionThreshold;
+uniform float u_ssaoBlurNormalThreshold;
 
+// This does position and normal-aware "smart-blur".
 float getSsaoBlurred(vec4 posWS, vec4 normalWS) {
-    vec2 offset = vec2(1. / float(SCREEN_WIDTH), 1. / float(SCREEN_HEIGHT));
+    vec2 texelSize = vec2(1. / float(SCREEN_WIDTH), 1. / float(SCREEN_HEIGHT));
+    
+    if (posWS.a == 0.) {
+        return 1.;
+    }
+    
+    vec4 posVS = u_worldToCameraMatrix * posWS;
 
-    // return texture(gbuf_ssao, tx_pos).r;
-
-    int samples = 0;
-    float occlusion = 0.;
+    int samples = 1;
+    float occlusion = texture(u_ssaoFirstPassTx, tx_pos).r;
+    
     for (int i = -SSAO_NOISE_SCALE / 2; i < SSAO_NOISE_SCALE / 2; i++) {
         for (int j = -SSAO_NOISE_SCALE / 2; j < SSAO_NOISE_SCALE / 2; j++) {
-            occlusion += texture(u_ssaoFirstPassTx, tx_pos + offset * vec2(float(i), float(j))).r;
+            if (i == 0 && j == 0) {
+                continue;
+            }
+
+            vec2 offset = tx_pos + texelSize * vec2(float(i), float(j));
+            
+            vec4 posWS_offset = texture(gbuf_position, offset);
+            if (posWS_offset.a == 0.) {
+                continue;
+            }
+            
+            vec4 posVS_offset = u_worldToCameraMatrix * posWS_offset;
+            if (abs(posVS.z - posVS_offset.z) > u_ssaoBlurPositionThreshold) {
+                continue;
+            }
+            
+            vec4 normalWS_offset = vec4(texture(gbuf_normal, offset).xyz, 0.); 
+            if (abs(dot(normalWS_offset, normalWS)) < u_ssaoBlurNormalThreshold) {
+                continue;
+            }
+            
+            occlusion += texture(u_ssaoFirstPassTx, offset).r;
             samples += 1;
         }
     }
@@ -112,10 +141,10 @@ float getSsaoBlurred(vec4 posWS, vec4 normalWS) {
 }
 
 void main() {
-    vec4 normal = texture(gbuf_normal, tx_pos);
-    vec4 pos = texture(gbuf_position, tx_pos);
-
-    color = vec4(getSsaoBlurred(pos, normal), 0., 0., pos.a);
+    vec4 posWS = texture(gbuf_position, tx_pos);
+    vec4 normalWS = vec4(texture(gbuf_normal, tx_pos).xyz, 0.);
+    color = vec4(getSsaoBlurred(posWS, normalWS), 0., 0., 1.);
+    // color = vec4(texture(u_ssaoFirstPassTx, tx_pos).xyz, 1.);
 }
 `);
 

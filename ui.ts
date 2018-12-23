@@ -49,7 +49,7 @@ export const e = (name: string, props: Props, ...children: HTMLOrString[]) => {
             }
             const v = props[k];
             switch (k) {
-                case 'for': 
+                case 'for':
                     el.setAttribute('for', props.for);
                     break;
                 case 'onChange':
@@ -89,6 +89,9 @@ export const FormRow = (...children) => {
     return e('div', c('form-row'), ...children);
 }
 
+/**
+ * @deprecated
+ */
 export const InputGroup = (...children) => {
     // return e('div', c('input-group input-group-sm'), ...children);
     return children;

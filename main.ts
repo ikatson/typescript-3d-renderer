@@ -46,7 +46,9 @@ function main() {
             radius: {value: 0.75, min: 0.001, step: 0.1, onChange: ui.funcRef(),},
             bias: {value: 0.02, step: 0.001, min: 0.001, onChange: ui.funcRef(),},
             strength: {value: 1.0, min: 0, step: 0.5, onChange: ui.funcRef(),},
-            scalePower: {value: 2, min: 0, step: 0.5, onChange: ui.funcRef(),}
+            scalePower: {value: 2, min: 0, step: 0.5, onChange: ui.funcRef(),},
+            blurPositionThreshold: {value: 0.3, min: 0, step: 0.01, onChange: ui.funcRef()},
+            blurNormalThreshold: {value: 0.9, min: 0, step: 0.05, onChange: ui.funcRef()},
         },
         showLayer: {
             // value: ShowLayer.Final,
@@ -89,14 +91,16 @@ function main() {
             ui.FormRow(
                 ui.e('div', ui.c('col-lg'),
                     ui.FormGroup('SSAO',
-                        ui.InputGroup(
-                            n('Samples', state.ssao.sampleCount),
-                            n('Noise scale', state.ssao.noiseScale),
-                            n('Radius', state.ssao.radius),
-                            n('Bias', state.ssao.bias),
-                            n('Strength', state.ssao.strength),
-                            n('Scale power', state.ssao.scalePower),
-                        )
+                        n('Samples', state.ssao.sampleCount),
+                        n('Noise scale', state.ssao.noiseScale),
+                        n('Radius', state.ssao.radius),
+                        n('Bias', state.ssao.bias),
+                        n('Strength', state.ssao.strength),
+                        n('Scale power', state.ssao.scalePower),
+                    ),
+                    ui.FormGroup('SSAO Blur',
+                        n('Pos. threshold', state.ssao.blurPositionThreshold),
+                        n('Normal threshold', state.ssao.blurNormalThreshold),
                     ),
                     ui.FormGroup('Layer to show',
                         ui.RadioInput(state.showLayer.options, state.showLayer, state.showLayer.onChange)
@@ -110,25 +114,19 @@ function main() {
                 ),
                 ui.e('div', ui.c('col-lg'),
                     ui.FormGroup('Lighting',
-                        ui.InputGroup(
-                            n('Light count', state.lighting.lightCount),
-                        ),
+                        n('Light count', state.lighting.lightCount),
                     ),
                     ui.FormGroup('Sun',
-                        ui.InputGroup(
-                            n('Ambient', state.lighting.sun.ambient),
-                            n('Diffuse', state.lighting.sun.diffuse),
-                            n('Specular', state.lighting.sun.specular),
-                            n('Intensity', state.lighting.sun.intensity),
-                        )
+                        n('Ambient', state.lighting.sun.ambient),
+                        n('Diffuse', state.lighting.sun.diffuse),
+                        n('Specular', state.lighting.sun.specular),
+                        n('Intensity', state.lighting.sun.intensity),
                     ),
                     ui.FormGroup('New lights',
-                        ui.InputGroup(
-                            n('Radius', state.lighting.new.radius),
-                            n('Pos scale', state.lighting.new.posScale),
-                            n('Attenuation', state.lighting.new.attenuation),
-                            n('Intensity', state.lighting.new.intensity),
-                        )
+                        n('Radius', state.lighting.new.radius),
+                        n('Pos scale', state.lighting.new.posScale),
+                        n('Attenuation', state.lighting.new.attenuation),
+                        n('Intensity', state.lighting.new.intensity),
                     ),
                 ),
             ),
@@ -200,6 +198,8 @@ function main() {
             c.noiseScale = s.noiseScale.value;
             c.sampleCount = s.sampleCount.value;
             c.enabled = state.enableSsao.checked;
+            c.blurNormalThreshold = state.ssao.blurNormalThreshold.value;
+            c.blurPositionThreshold = state.ssao.blurPositionThreshold.value;
         };
         updateSSAOConfig();
 
@@ -347,12 +347,11 @@ function main() {
                 renderer.recompileShaders();
             }
         };
-        state.ssao.bias.onChange.ref = v => {
-            renderer.config.ssao.bias = v;
-        };
-        state.ssao.radius.onChange.ref = v => {
-            renderer.config.ssao.radius = v;
-        };
+        state.ssao.bias.onChange.ref = updateSSAOConfig;
+        state.ssao.radius.onChange.ref = updateSSAOConfig;
+        state.ssao.blurPositionThreshold.onChange.ref = updateSSAOConfig;
+        state.ssao.blurNormalThreshold.onChange.ref = updateSSAOConfig;
+
         state.lighting.sun.ambient.onChange.ref = v => {
             sun.light.ambient = [v, v, v];
         };
