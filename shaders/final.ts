@@ -8,12 +8,10 @@ in vec2 tx_pos;
 
 layout(location = 0) out vec4 color;
 
-uniform float u_ssaoStrength;
-
 uniform sampler2D gbuf_position;
 uniform sampler2D gbuf_normal;
 uniform sampler2D gbuf_colormap;
-uniform sampler2D gbuf_ssao;
+uniform sampler2D u_ssaoTx;
 uniform sampler2D gbuf_shadowmap;
 
 uniform vec3 u_cameraPos;
@@ -36,22 +34,7 @@ struct light {
 uniform vec3[LIGHT_COUNT * 5] u_lightData;
 
 float getSsaoBlurred() {
-    vec2 offset = vec2(1. / float(SCREEN_WIDTH), 1. / float(SCREEN_HEIGHT));
-
-    // return texture(gbuf_ssao, tx_pos).r;
-
-    int samples = 0;
-    float occlusion = 0.;
-    for (int i = -SSAO_NOISE_SCALE / 2; i < SSAO_NOISE_SCALE / 2; i++) {
-        for (int j = -SSAO_NOISE_SCALE / 2; j < SSAO_NOISE_SCALE / 2; j++) {
-            occlusion += texture(gbuf_ssao, tx_pos + offset * vec2(float(i), float(j))).r;
-            samples += 1;
-        }
-    }
-
-    occlusion /= float(samples);
-    
-    return pow(occlusion, u_ssaoStrength);
+    return texture(u_ssaoTx, tx_pos).r;
 }
 
 light makeLight(int i) {

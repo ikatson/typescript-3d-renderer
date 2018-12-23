@@ -146,12 +146,17 @@ export class GBuffer {
 }
 
 export class SSAORenderer {
-    private ssaoFrameBuffer: WebGLFramebuffer;
+    private firstPassFB: WebGLFramebuffer;
+    private blurPassFB: WebGLFramebuffer;
+
     private ssaoConfig: SSAOConfig;
     private ssaoState: SSAOState;
     private gBuffer: GBuffer;
     private fullScreenQuad: FullScreenQuad;
-    private ssaoShader: ShaderProgram;
+
+    private firstPassShader: ShaderProgram;
+    private _ssaoFirstPassTx: WebGLTexture;
+    private blurShader: ShaderProgram;
 
     constructor(gl: WebGLRenderingContext, ssaoParameters: SSAOState, ssaoConfig: SSAOConfig, gBuffer: GBuffer, fullScreenQuad: FullScreenQuad) {
         this.setupSSAOBuffers(gl, ssaoParameters);
@@ -159,71 +164,131 @@ export class SSAORenderer {
         this.gBuffer = gBuffer;
         this.fullScreenQuad = fullScreenQuad;
 
-        this.recompileShader(gl);
+        this.recompileShaders(gl);
     }
 
-    private _ssaoTx: WebGLTexture;
+    private _ssaoBlurTx: WebGLTexture;
 
     get ssaoTx(): WebGLTexture {
-        return this._ssaoTx;
+        return this._ssaoBlurTx;
     }
 
     onChangeSSAOState(gl: WebGLRenderingContext) {
-        this.recompileShader(gl);
+        this.recompileShaders(gl);
     }
 
-    recompileShader(gl: WebGLRenderingContext) {
-        if (this.ssaoShader) {
-            this.ssaoShader.deleteAll(gl);
-        }
-        this.ssaoShader = new ShaderProgram(
+    recompileShaders(gl: WebGLRenderingContext) {
+        [this.firstPassShader, this.blurShader].forEach(s => {
+            if (s) {
+                s.deleteAll(gl);
+            }
+        });
+
+        this.firstPassShader = new ShaderProgram(
             gl, this.fullScreenQuad.vertexShader, new FragmentShader(gl,
-                SSAO_SHADER_SOURCE.fs
+                SSAO_SHADER_SOURCE.first_pass_fs
                     .clone()
                     .define("SSAO_SAMPLES", this.ssaoConfig.sampleCount.toString())
+                    .build()
+            )
+        );
+
+        this.blurShader = new ShaderProgram(
+            gl, this.fullScreenQuad.vertexShader, new FragmentShader(gl,
+                SSAO_SHADER_SOURCE.blur_pass_fs
+                    .clone()
+                    .define("SSAO_NOISE_SCALE", this.ssaoConfig.noiseScale.toString())
+                    .define("SCREEN_WIDTH", gl.canvas.width.toString())
+                    .define("SCREEN_HEIGHT", gl.canvas.height.toString())
                     .build()
             )
         );
     }
 
     render(gl: WebGLRenderingContext, worldToCamera, projectionMatrix) {
-        const s = this.ssaoShader;
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.ssaoFrameBuffer);
+        const firstPass = () => {
+            const s = this.firstPassShader;
+            s.use(gl);
 
-        s.use(gl);
+            gl.bindFramebuffer(gl.FRAMEBUFFER, this.firstPassFB);
 
-        glClearColorAndDepth(gl, 0., 0, 0, 1.);
+            glClearColorAndDepth(gl, 0., 0, 0, 1.);
 
-        this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
+            this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
 
-        bindUniformTx(gl, s, "gbuf_position", this.gBuffer.posTx, 0);
-        bindUniformTx(gl, s, "gbuf_normal", this.gBuffer.normalTX, 1);
-        bindUniformTx(gl, s, "u_ssaoNoise", this.ssaoState.noiseTexture, 2);
+            bindUniformTx(gl, s, "gbuf_position", this.gBuffer.posTx, 0);
+            bindUniformTx(gl, s, "gbuf_normal", this.gBuffer.normalTX, 1);
+            bindUniformTx(gl, s, "u_ssaoNoise", this.ssaoState.noiseTexture, 2);
 
-        // Common uniforms
-        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, worldToCamera);
-        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, projectionMatrix);
+            // Common uniforms
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, worldToCamera);
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, projectionMatrix);
 
-        // SSAOState
-        gl.uniform1f(s.getUniformLocation(gl, "u_ssaoRadius"), this.ssaoConfig.radius);
-        gl.uniform1f(s.getUniformLocation(gl, "u_ssaoBias"), this.ssaoConfig.bias);
-        gl.uniform3fv(s.getUniformLocation(gl, "u_ssaoSamples"), this.ssaoState.tangentSpaceSamples);
-        gl.uniform2fv(
-            s.getUniformLocation(gl, "u_ssaoNoiseScale"),
-            [gl.canvas.width / this.ssaoConfig.noiseScale, gl.canvas.height / this.ssaoConfig.noiseScale]
-        );
+            // SSAOState
+            gl.uniform1f(s.getUniformLocation(gl, "u_ssaoRadius"), this.ssaoConfig.radius);
+            gl.uniform1f(s.getUniformLocation(gl, "u_ssaoBias"), this.ssaoConfig.bias);
+            gl.uniform3fv(s.getUniformLocation(gl, "u_ssaoSamples"), this.ssaoState.tangentSpaceSamples);
+            gl.uniform2fv(
+                s.getUniformLocation(gl, "u_ssaoNoiseScale"),
+                [gl.canvas.width / this.ssaoConfig.noiseScale, gl.canvas.height / this.ssaoConfig.noiseScale]
+            );
 
-        // Draw
-        this.fullScreenQuad.drawArrays(gl);
+            // Draw
+            this.fullScreenQuad.drawArrays(gl);
+        };
+
+        const blurPass = () => {
+            const s = this.blurShader;
+            s.use(gl);
+
+            gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurPassFB);
+
+            glClearColorAndDepth(gl, 0., 0, 0, 1.);
+
+            this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
+
+            bindUniformTx(gl, s, "gbuf_position", this.gBuffer.posTx, 0);
+            bindUniformTx(gl, s, "gbuf_normal", this.gBuffer.normalTX, 1);
+
+            bindUniformTx(gl, s, "u_ssaoNoise", this.ssaoState.noiseTexture, 2);
+            bindUniformTx(gl, s, "u_ssaoFirstPassTx", this._ssaoFirstPassTx, 3);
+
+            // Common uniforms
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, worldToCamera);
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, projectionMatrix);
+
+            // SSAOState
+            gl.uniform1f(s.getUniformLocation(gl, "u_ssaoStrength"), this.ssaoConfig.strength);
+            gl.uniform1f(s.getUniformLocation(gl, "u_ssaoBias"), this.ssaoConfig.bias);
+            gl.uniform3fv(s.getUniformLocation(gl, "u_ssaoSamples"), this.ssaoState.tangentSpaceSamples);
+            gl.uniform2fv(
+                s.getUniformLocation(gl, "u_ssaoNoiseScale"),
+                [gl.canvas.width / this.ssaoConfig.noiseScale, gl.canvas.height / this.ssaoConfig.noiseScale]
+            );
+
+            // Draw
+            this.fullScreenQuad.drawArrays(gl);
+        };
+
+        firstPass();
+
+        blurPass()
     }
 
     private setupSSAOBuffers(gl: WebGLRenderingContext, ssaoState: SSAOState) {
         this.ssaoState = ssaoState;
-        this.ssaoFrameBuffer = gl.createFramebuffer();
-        this._ssaoTx = createAndBindBufferTexture(gl, gl.R16F, gl.RED, gl.HALF_FLOAT);
-        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.ssaoFrameBuffer);
-        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._ssaoTx, 0);
+
+        this.firstPassFB = gl.createFramebuffer();
+        this._ssaoFirstPassTx = createAndBindBufferTexture(gl, gl.R16F, gl.RED, gl.HALF_FLOAT);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.firstPassFB);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._ssaoFirstPassTx, 0);
+        checkFrameBufferStatusOrThrow(gl);
+
+        this.blurPassFB = gl.createFramebuffer();
+        this._ssaoBlurTx = createAndBindBufferTexture(gl, gl.R16F, gl.RED, gl.HALF_FLOAT);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.blurPassFB);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._ssaoBlurTx, 0);
         checkFrameBufferStatusOrThrow(gl);
     }
 }
@@ -381,7 +446,6 @@ export class FinalLightingRenderer {
                     .defineIfTrue('SHOW_POSITIONS', this.config.showLayer === ShowLayer.Positions)
                     .defineIfTrue('SHOW_SHADOWMAP', this.config.showLayer === ShowLayer.ShadowMap)
                     .defineIfTrue('SHOW_NORMALS', this.config.showLayer === ShowLayer.Normals)
-                    .define('SSAO_NOISE_SCALE', this.config.ssao.noiseScale.toString())
                     .build()
             )
         );
@@ -407,12 +471,12 @@ export class FinalLightingRenderer {
         bindUniformTx(gl, s, "gbuf_position", this.gBuffer.posTx, 0);
         bindUniformTx(gl, s, "gbuf_normal", this.gBuffer.normalTX, 1);
         bindUniformTx(gl, s, "gbuf_colormap", this.gBuffer.colorTX, 2);
-        bindUniformTx(gl, s, "gbuf_ssao", this.ssaoRenderer.ssaoTx, 3);
         bindUniformTx(gl, s, "gbuf_shadowmap", this.shadowMapRenderer.shadowMapTx, 4);
+
+        bindUniformTx(gl, s, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 3);
 
         // Common uniforms
         gl.uniform3fv(s.getUniformLocation(gl, "u_lightData"), this.generateLightData(scene.lights));
-        gl.uniform1f(s.getUniformLocation(gl, "u_ssaoStrength"), this.config.ssao.strength);
         gl.uniform3fv(s.getUniformLocation(gl, "u_cameraPos"), camera.position);
         gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, worldToCamera);
         gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, projectionMatrix);
@@ -538,7 +602,7 @@ export class DeferredRenderer {
         const lWorldToCamera = lCamera.getWorldToCamera();
 
         if (this.recompileOnNextRun) {
-            this.ssaoRenderer.recompileShader(gl);
+            this.ssaoRenderer.recompileShaders(gl);
             this.finalPass.recompileOnNextRun();
             this.recompileOnNextRun = false;
         }

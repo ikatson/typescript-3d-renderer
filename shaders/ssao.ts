@@ -1,6 +1,6 @@
 import { ShaderSourceBuilder } from "../shaders.js";
 
-const SSAO_FS = new ShaderSourceBuilder().addChunk(`
+const SSAO_FIRST_PASS_FS = new ShaderSourceBuilder().addChunk(`
 precision lowp float;
 
 in vec2 v_pos;
@@ -88,6 +88,52 @@ void main() {
 }
 `);
 
+
+const SSAO_BLUR_FS = new ShaderSourceBuilder().addChunk(`
+precision highp float;
+
+in vec2 v_pos;
+in vec2 tx_pos;
+
+layout(location = 0) out vec4 color;
+
+uniform sampler2D gbuf_position;
+uniform sampler2D gbuf_normal;
+uniform sampler2D u_ssaoFirstPassTx;
+
+uniform float u_ssaoStrength;
+uniform vec3 u_cameraPos;
+uniform mat4 u_worldToCameraMatrix;
+uniform mat4 u_perspectiveMatrix;
+
+float getSsaoBlurred(vec4 posWS, vec4 normalWS) {
+    vec2 offset = vec2(1. / float(SCREEN_WIDTH), 1. / float(SCREEN_HEIGHT));
+
+    // return texture(gbuf_ssao, tx_pos).r;
+
+    int samples = 0;
+    float occlusion = 0.;
+    for (int i = -SSAO_NOISE_SCALE / 2; i < SSAO_NOISE_SCALE / 2; i++) {
+        for (int j = -SSAO_NOISE_SCALE / 2; j < SSAO_NOISE_SCALE / 2; j++) {
+            occlusion += texture(u_ssaoFirstPassTx, tx_pos + offset * vec2(float(i), float(j))).r;
+            samples += 1;
+        }
+    }
+
+    occlusion /= float(samples);
+    
+    return pow(occlusion, u_ssaoStrength);
+}
+
+void main() {
+    vec4 normal = texture(gbuf_normal, tx_pos);
+    vec4 pos = texture(gbuf_position, tx_pos);
+
+    color = vec4(getSsaoBlurred(pos, normal), 0., 0., pos.a);
+}
+`);
+
 export const SSAO_SHADER_SOURCE = {
-    fs: SSAO_FS
+    first_pass_fs: SSAO_FIRST_PASS_FS,
+    blur_pass_fs: SSAO_BLUR_FS
 };
