@@ -8,26 +8,15 @@ import {FINAL_SHADER_SOURCE} from "./shaders/final.js";
 import {GBUFFER_SHADER_SOURCE} from "./shaders/gBuffer/shaders.js";
 import {SSAO_SHADER_SOURCE} from "./shaders/ssao.js";
 import {VISUALIZE_LIGHTS_SHADERS} from "./shaders/visualize-lights.js";
-import {SSAO} from "./ssao.js";
+import {SSAOConfig, SSAOState} from "./SSAOState.js";
 import {FullScreenQuad, glClearColorAndDepth} from "./utils.js";
 import {SHADOWMAP_SHADERS} from "./shaders/shadowMap.js";
 
 
-export class DeferredRendererRuntimeConfigurables {
+export class DeferredRendererConfig {
     showLayer: ShowLayer = ShowLayer.Final;
-    ssao = new SSAORuntimeConfigurables();
+    ssao = new SSAOConfig();
     shadowMapEnabled: boolean = true;
-}
-
-export class SSAORuntimeConfigurables {
-    enabled: boolean = true;
-    radius: number = 0.1;
-    bias: number = 0.025;
-    strength: number = 1.0;
-
-    isEnabled() {
-        return this.enabled && this.strength > 0;
-    }
 }
 
 export enum ShowLayer {
@@ -158,13 +147,13 @@ export class GBuffer {
 
 export class SSAORenderer {
     private ssaoFrameBuffer: WebGLFramebuffer;
-    private ssaoParameters: SSAO;
+    private ssaoConfig: SSAOConfig;
+    private ssaoState: SSAOState;
     private gBuffer: GBuffer;
-    private ssaoConfig: SSAORuntimeConfigurables;
     private fullScreenQuad: FullScreenQuad;
     private ssaoShader: ShaderProgram;
 
-    constructor(gl: WebGLRenderingContext, ssaoParameters: SSAO, ssaoConfig: SSAORuntimeConfigurables, gBuffer: GBuffer, fullScreenQuad: FullScreenQuad) {
+    constructor(gl: WebGLRenderingContext, ssaoParameters: SSAOState, ssaoConfig: SSAOConfig, gBuffer: GBuffer, fullScreenQuad: FullScreenQuad) {
         this.setupSSAOBuffers(gl, ssaoParameters);
         this.ssaoConfig = ssaoConfig;
         this.gBuffer = gBuffer;
@@ -179,9 +168,7 @@ export class SSAORenderer {
         return this._ssaoTx;
     }
 
-    changeSSAOParameters(gl: WebGLRenderingContext, ssao: SSAO) {
-        this.ssaoParameters.delete(gl);
-        this.ssaoParameters = ssao;
+    onChangeSSAOState(gl: WebGLRenderingContext) {
         this.recompileShader(gl);
     }
 
@@ -193,7 +180,7 @@ export class SSAORenderer {
             gl, this.fullScreenQuad.vertexShader, new FragmentShader(gl,
                 SSAO_SHADER_SOURCE.fs
                     .clone()
-                    .define("SSAO_SAMPLES", this.ssaoParameters.sampleCount.toString())
+                    .define("SSAO_SAMPLES", this.ssaoConfig.sampleCount.toString())
                     .build()
             )
         );
@@ -212,31 +199,27 @@ export class SSAORenderer {
 
         bindUniformTx(gl, s, "gbuf_position", this.gBuffer.posTx, 0);
         bindUniformTx(gl, s, "gbuf_normal", this.gBuffer.normalTX, 1);
-        bindUniformTx(gl, s, "u_ssaoNoise", this.ssaoParameters.noiseTexture, 2);
+        bindUniformTx(gl, s, "u_ssaoNoise", this.ssaoState.noiseTexture, 2);
 
         // Common uniforms
         gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, worldToCamera);
         gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, projectionMatrix);
 
-        // SSAO
+        // SSAOState
         gl.uniform1f(s.getUniformLocation(gl, "u_ssaoRadius"), this.ssaoConfig.radius);
         gl.uniform1f(s.getUniformLocation(gl, "u_ssaoBias"), this.ssaoConfig.bias);
-        gl.uniform3fv(s.getUniformLocation(gl, "u_ssaoSamples"), this.ssaoParameters.tangentSpaceSamples);
+        gl.uniform3fv(s.getUniformLocation(gl, "u_ssaoSamples"), this.ssaoState.tangentSpaceSamples);
         gl.uniform2fv(
             s.getUniformLocation(gl, "u_ssaoNoiseScale"),
-            [gl.canvas.width / this.ssaoParameters.rotationPower, gl.canvas.height / this.ssaoParameters.rotationPower]
+            [gl.canvas.width / this.ssaoConfig.noiseScale, gl.canvas.height / this.ssaoConfig.noiseScale]
         );
 
         // Draw
         this.fullScreenQuad.drawArrays(gl);
     }
 
-    getRotationPower() {
-        return this.ssaoParameters.rotationPower;
-    }
-
-    private setupSSAOBuffers(gl: WebGLRenderingContext, ssaoParameters: SSAO) {
-        this.ssaoParameters = ssaoParameters || new SSAO(gl, 16, 4);
+    private setupSSAOBuffers(gl: WebGLRenderingContext, ssaoState: SSAOState) {
+        this.ssaoState = ssaoState;
         this.ssaoFrameBuffer = gl.createFramebuffer();
         this._ssaoTx = createAndBindBufferTexture(gl, gl.R16F, gl.RED, gl.HALF_FLOAT);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.ssaoFrameBuffer);
@@ -341,7 +324,7 @@ export class FinalLightingRenderer {
     private lightingShader: ShaderProgram = null;
     private fullScreenQuad: FullScreenQuad;
 
-    private config: DeferredRendererRuntimeConfigurables;
+    private config: DeferredRendererConfig;
     private gBuffer: GBuffer;
     private ssaoRenderer: SSAORenderer;
     private shadowMapRenderer: ShadowMapRenderer;
@@ -351,7 +334,7 @@ export class FinalLightingRenderer {
     private _recompileOnNextRun: boolean = true;
 
     constructor(gl: WebGLRenderingContext,
-                config: DeferredRendererRuntimeConfigurables,
+                config: DeferredRendererConfig,
                 fullScreenQuad: FullScreenQuad,
                 gBuffer: GBuffer,
                 ssaoRenderer: SSAORenderer,
@@ -398,7 +381,7 @@ export class FinalLightingRenderer {
                     .defineIfTrue('SHOW_POSITIONS', this.config.showLayer === ShowLayer.Positions)
                     .defineIfTrue('SHOW_SHADOWMAP', this.config.showLayer === ShowLayer.ShadowMap)
                     .defineIfTrue('SHOW_NORMALS', this.config.showLayer === ShowLayer.Normals)
-                    .define('SSAO_NOISE_SCALE', this.ssaoRenderer.getRotationPower().toString())
+                    .define('SSAO_NOISE_SCALE', this.config.ssao.noiseScale.toString())
                     .build()
             )
         );
@@ -494,23 +477,23 @@ export class DeferredRenderer {
     private finalPass: FinalLightingRenderer;
     private gl: WebGLRenderingContext;
     private gbuffer: GBuffer;
-    private ssao: SSAORenderer;
+    private ssaoRenderer: SSAORenderer;
     private shadowMap: ShadowMapRenderer;
     private recompileOnNextRun: boolean = false;
+    private _config: DeferredRendererConfig;
 
-    constructor(gl: WebGLRenderingContext, fullScreenQuad: FullScreenQuad, sphere: GLMesh, ssaoParameters?: SSAO) {
+    constructor(gl: WebGLRenderingContext, config: DeferredRendererConfig, fullScreenQuad: FullScreenQuad, sphere: GLMesh, ssaoState?: SSAOState) {
         this.gl = gl;
+        this._config = config;
         this.gbuffer = new GBuffer(gl);
-        this.ssao = new SSAORenderer(gl, ssaoParameters, this._config.ssao, this.gbuffer, fullScreenQuad);
+        this.ssaoRenderer = new SSAORenderer(gl, ssaoState, this._config.ssao, this.gbuffer, fullScreenQuad);
         this.shadowMap = new ShadowMapRenderer(gl);
         this.finalPass = new FinalLightingRenderer(
-            gl, this.config, fullScreenQuad, this.gbuffer, this.ssao, this.shadowMap, sphere
+            gl, this.config, fullScreenQuad, this.gbuffer, this.ssaoRenderer, this.shadowMap, sphere
         );
     }
 
-    private _config = new DeferredRendererRuntimeConfigurables();
-
-    get config(): DeferredRendererRuntimeConfigurables {
+    get config(): DeferredRendererConfig {
         return this._config;
     }
 
@@ -520,7 +503,6 @@ export class DeferredRenderer {
         lCamera.near = 2.;
         lCamera.far = 50.;
         const tmp1 = vec3.create();
-        const tmp2 = vec3.create();
         lCamera.position = light.transform.position;
 
         // determine forward direction.
@@ -537,8 +519,8 @@ export class DeferredRenderer {
         return lCamera;
     }
 
-    changeSSAOParameters(newParams: SSAO) {
-        this.ssao.changeSSAOParameters(this.gl, newParams);
+    onChangeSSAOState() {
+        this.ssaoRenderer.onChangeSSAOState(this.gl);
         this.finalPass.recompileOnNextRun();
     }
 
@@ -556,14 +538,14 @@ export class DeferredRenderer {
         const lWorldToCamera = lCamera.getWorldToCamera();
 
         if (this.recompileOnNextRun) {
-            this.ssao.recompileShader(gl);
+            this.ssaoRenderer.recompileShader(gl);
             this.finalPass.recompileOnNextRun();
             this.recompileOnNextRun = false;
         }
 
         this.gbuffer.render(gl, camera, worldToCamera, projectionMatrix, scene);
         if (this._config.ssao.isEnabled()) {
-            this.ssao.render(gl, worldToCamera, projectionMatrix);
+            this.ssaoRenderer.render(gl, worldToCamera, projectionMatrix);
         }
         if (this._config.shadowMapEnabled) {
             this.shadowMap.render(gl, lProjection, lWorldToCamera, scene);

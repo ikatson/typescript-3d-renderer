@@ -7,10 +7,10 @@ import {Camera} from "./camera.js";
 
 import {vec3} from "./gl-matrix.js";
 import {randomLight, Scene} from "./scene.js";
-import {DeferredRenderer, ShowLayer} from "./deferredRenderer.js";
+import {DeferredRenderer, DeferredRendererConfig, ShowLayer} from "./deferredRenderer.js";
 import {GLArrayBuffer} from "./glArrayBuffer.js";
 import * as ui from "./ui.js";
-import {SSAO} from "./ssao.js";
+import {SSAOState, SSAOConfig} from "./SSAOState.js";
 
 
 const originZero = vec3.create();
@@ -41,36 +41,12 @@ function main() {
             }
         },
         ssao: {
-            sampleCount: {
-                value: 32,
-                min: 1,
-                step: 1,
-                onChange: ui.funcRef()
-            },
-            rotationPower: {
-                value: 2,
-                min: 2,
-                step: 1,
-                onChange: ui.funcRef()
-            },
-            radius: {
-                value: 0.75,
-                min: 0.001,
-                step: 0.1,
-                onChange: ui.funcRef(),
-            },
-            bias: {
-                value: 0.02,
-                step: 0.001,
-                min: 0.001,
-                onChange: ui.funcRef(),
-            },
-            strength: {
-                value: 1.0,
-                min: 0,
-                step: 0.5,
-                onChange: ui.funcRef(),
-            }
+            sampleCount: {value: 32, min: 1, step: 1, onChange: ui.funcRef()},
+            noiseScale: {value: 4, min: 2, step: 1, onChange: ui.funcRef()},
+            radius: {value: 0.75, min: 0.001, step: 0.1, onChange: ui.funcRef(),},
+            bias: {value: 0.02, step: 0.001, min: 0.001, onChange: ui.funcRef(),},
+            strength: {value: 1.0, min: 0, step: 0.5, onChange: ui.funcRef(),},
+            scalePower: {value: 2, min: 0, step: 0.5, onChange: ui.funcRef(),}
         },
         showLayer: {
             // value: ShowLayer.Final,
@@ -115,10 +91,11 @@ function main() {
                     ui.FormGroup('SSAO',
                         ui.InputGroup(
                             n('Samples', state.ssao.sampleCount),
-                            n('Noise size', state.ssao.rotationPower),
+                            n('Noise scale', state.ssao.noiseScale),
                             n('Radius', state.ssao.radius),
                             n('Bias', state.ssao.bias),
                             n('Strength', state.ssao.strength),
+                            n('Scale power', state.ssao.scalePower),
                         )
                     ),
                     ui.FormGroup('Layer to show',
@@ -212,16 +189,27 @@ function main() {
         camera.position = vec3.fromValues(0, 0, -10.);
 
         // const renderer = new ForwardRenderer(gl);
-        const makeSSAO = () => {
-            return new SSAO(gl, state.ssao.sampleCount.value, Math.pow(2, state.ssao.rotationPower.value));
+        const ssaoConfig = new SSAOConfig();
+        const updateSSAOConfig = () => {
+            const c = ssaoConfig;
+            const s = state.ssao;
+            c.strength = s.strength.value;
+            c.scalePower = s.scalePower.value;
+            c.bias = s.bias.value;
+            c.radius = s.radius.value;
+            c.noiseScale = s.noiseScale.value;
+            c.sampleCount = s.sampleCount.value;
+            c.enabled = state.enableSsao.checked;
         };
-        const renderer = new DeferredRenderer(gl, fb, sphereMesh, makeSSAO());
-        renderer.config.showLayer = state.showLayer.value;
-        renderer.config.shadowMapEnabled = state.shadowMapEnabled.checked;
-        renderer.config.ssao.strength = state.ssao.strength.value;
-        renderer.config.ssao.bias = state.ssao.bias.value;
-        renderer.config.ssao.radius = state.ssao.radius.value;
+        updateSSAOConfig();
 
+        const ssaoState = new SSAOState(gl, ssaoConfig);
+        const rendererConfig = new DeferredRendererConfig();
+        rendererConfig.ssao = ssaoConfig;
+        rendererConfig.showLayer = state.showLayer.value;
+        rendererConfig.shadowMapEnabled = state.shadowMapEnabled.checked;
+
+        const renderer = new DeferredRenderer(gl, rendererConfig, fb, sphereMesh, ssaoState);
         const scene = new Scene();
 
         const v3 = v => [v, v, v];
@@ -343,13 +331,15 @@ function main() {
             event.preventDefault();
         };
 
-        state.ssao.sampleCount.onChange.ref = v => {
-            renderer.changeSSAOParameters(makeSSAO());
+        const onSSSAOStateParamsChange = () => {
+            updateSSAOConfig();
+            ssaoState.recalculate(gl, ssaoConfig);
+            renderer.onChangeSSAOState();
         };
 
-        state.ssao.rotationPower.onChange.ref = v => {
-            renderer.changeSSAOParameters(makeSSAO());
-        };
+        state.ssao.sampleCount.onChange.ref = onSSSAOStateParamsChange;
+        state.ssao.noiseScale.onChange.ref = onSSSAOStateParamsChange;
+        state.ssao.scalePower.onChange.ref = onSSSAOStateParamsChange;
 
         state.ssao.strength.onChange.ref = (v, prev) => {
             renderer.config.ssao.strength = v;
@@ -403,7 +393,7 @@ function main() {
 
         state.enableSsao.onChange.ref = v => {
             renderer.config.ssao.enabled = v;
-            console.log('SSAO enabled', renderer.config.ssao.enabled);
+            console.log('SSAOState enabled', renderer.config.ssao.enabled);
             renderer.recompileShaders();
         };
 
