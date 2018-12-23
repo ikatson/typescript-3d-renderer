@@ -55,11 +55,9 @@ float ssao(vec3 normalVS, vec4 posVS, vec2 tx_pos) {
         vec4 storedPosVS = texture(gbuf_position, sampleSS.xy * 0.5 + 0.5);
         float storedDepthVS = storedPosVS.z;
 
-        // float falloff = smoothstep(0.0, 1.0, radius / abs(storedDepthVS - sampleVS.z));
-        
-        // float falloff = 1.;
         if (storedDepthVS > sampleVS.z + bias) {
             float falloff = smoothstep(0.0, 1.0, radius / length(storedPosVS.xyz - posVS.xyz));
+            // float falloff = 1. - smoothstep(0.8, 1.2, length(storedPosVS.xyz - posVS.xyz) / radius);
             occlusion += falloff * weight;
         }
     }

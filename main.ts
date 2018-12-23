@@ -235,6 +235,8 @@ function main() {
         aphrodite.addChild(corvette);
 
         const tmpVec = vec3.create();
+        let delta = 1000. / 60;
+        let start = new Date().getTime();
 
         function processFrame() {
             if (state.pause.checked) {
@@ -242,7 +244,7 @@ function main() {
             }
 
             pressedKeys.forEach((v, k) => {
-                const moveSpeed = 0.05;
+                const moveSpeed = delta / 1000 * 4;
                 switch (k) {
                     case 'e':
                         vec3.scale(tmpVec, camera.up, moveSpeed);
@@ -278,11 +280,15 @@ function main() {
             });
 
             if (state.shouldRotate.checked) {
-                aphrodite.transform.rotation[1] += 0.01;
+                aphrodite.transform.rotation[1] += delta / 2000;
                 aphrodite.transform.update();
             }
 
             renderer.render(scene, camera);
+
+            const end = new Date().getTime();
+            delta = end - start;
+            start = end;
 
             requestAnimationFrame(processFrame);
         }
@@ -306,8 +312,9 @@ function main() {
 
         canvas.onwheel = ev => {
             if (ev.ctrlKey) {
-                zoom = clip(zoom + ev.deltaY * 0.005, 0.1, 1.90);
+                zoom = clip(zoom + ev.deltaY * camera.fov * 0.01, 0.1, 1.90);
                 camera.fov = initialFov * zoom;
+                camera.update()
             } else if (ev.shiftKey) {
                 const tmp = vec3.create();
                 vec3.scale(tmp, camera.up, -ev.deltaY * 0.01);
@@ -315,9 +322,10 @@ function main() {
 
                 vec3.scale(tmp, camera.right(), ev.deltaX * 0.01);
                 vec3.add(camera.position, camera.position, tmp);
+                camera.update()
             } else {
-                pitch += ev.deltaY * sensitivityY;
-                yaw -= ev.deltaX * sensitivityX;
+                pitch += ev.deltaY * sensitivityY * camera.fov;
+                yaw -= ev.deltaX * sensitivityX * camera.fov;
 
                 pitch = clip(pitch, -PI2, PI2);
 
@@ -331,6 +339,7 @@ function main() {
                 vec3.rotateY(up, up, originZero, yaw);
                 camera.forward = forward;
                 camera.up = up;
+                camera.update()
             }
 
             event.preventDefault();
