@@ -8,7 +8,7 @@ export function addLineNumbers(source: string) {
     let line = 1;
     let result = [];
     source.split('\n').forEach(l => {
-        result.push(`${line} ${l}`)
+        result.push(`${line} ${l}`);
         line += 1;
     });
     return result.join('\n');
@@ -22,7 +22,7 @@ class RawShader {
         source = '#version 300 es\n' + source;
         let shader = gl.createShader(type);
         gl.shaderSource(shader, source);
-        
+
         gl.compileShader(shader);
 
         let compiled = <Boolean>gl.getShaderParameter(shader, gl.COMPILE_STATUS);
@@ -107,14 +107,14 @@ export class ShaderProgram {
     }
 
     getUniformLocation(gl: WebGLRenderingContext, name: string): WebGLUniformLocation {
-        const existing = this._uniforms.get(name)
+        const existing = this._uniforms.get(name);
         if (existing !== undefined) {
             return existing;
         }
         const u = gl.getUniformLocation(this.program, name);
         this._uniforms.set(name, u);
         return u;
-    }    
+    }
 }
 
 export class FragmentShader extends RawShader {
@@ -134,6 +134,7 @@ export class ShaderSourceBuilder {
     private chunks: string[] = [];
     private defines: Map<string, string> = new Map();
     private redefines: Map<string, string> = new Map();
+    private precision = 'highp';
 
     clone(): ShaderSourceBuilder {
         const b = new ShaderSourceBuilder();
@@ -141,11 +142,17 @@ export class ShaderSourceBuilder {
         b.chunks = this.chunks.slice();
         this.defines.forEach((v, k) => {
             b.defines.set(k, v);
-        })
+        });
         this.redefines.forEach((v, k) => {
             b.redefines.set(k, v);
-        })
+        });
+        b.precision = this.precision;
         return b;
+    }
+
+    setPrecision(p: string): ShaderSourceBuilder {
+        this.precision = p;
+        return this;
     }
 
     defineIfTrue(name: string, value: boolean): ShaderSourceBuilder {
@@ -178,36 +185,38 @@ export class ShaderSourceBuilder {
     include(other: ShaderSourceBuilder): ShaderSourceBuilder {
         other.topChunks.forEach(tc => {
             this.topChunks.push(tc);
-        })
+        });
         other.chunks.forEach(c => {
             this.chunks.push(c);
-        })
+        });
         other.defines.forEach((v, k) => {
             this.defines.set(k, v);
-        })
+        });
         other.redefines.forEach((v, k) => {
             this.redefines.set(k, v);
-        })
+        });
         return this;
     }
 
     build(): string {
         const result: string[] = [];
+        result.push(`precision ${this.precision} float;`)
+
         this.defines.forEach((v, k) => {
             result.push(`#define ${k} ${v}`)
-        })
+        });
         this.topChunks.forEach(c => {
             this.redefines.forEach((v, k) => {
                 c = redefine(c, k, v);
-            })
+            });
             result.push(c);
-        })
+        });
         this.chunks.forEach(c => {
             this.redefines.forEach((v, k) => {
                 c = redefine(c, k, v);
-            })
+            });
             result.push(c);
-        })
+        });
         return result.join('\n');
     }
 }

@@ -1,26 +1,19 @@
 import { ShaderSourceBuilder } from "../shaders.js";
+import {GBUF_TEXTURES, QUAD_FRAGMENT_INPUTS, WORLD_AND_CAMERA_TRANSFORMS} from "./includes/common.js";
 
-const SSAO_FIRST_PASS_FS = new ShaderSourceBuilder().addChunk(`
-precision lowp float;
-
-in vec2 v_pos;
-in vec2 tx_pos;
-
+const SSAO_FIRST_PASS_FS = new ShaderSourceBuilder()
+    .setPrecision('lowp')
+    .addTopChunk(GBUF_TEXTURES)
+    .addTopChunk(WORLD_AND_CAMERA_TRANSFORMS)
+    .addTopChunk(QUAD_FRAGMENT_INPUTS)
+    .addChunk(`
 layout(location = 0) out vec4 color;
-
-uniform sampler2D gbuf_position;
-uniform sampler2D gbuf_normal;
-uniform sampler2D gbuf_colormap;
 
 uniform float u_ssaoRadius;
 uniform float u_ssaoBias;
 uniform sampler2D u_ssaoNoise;
 uniform vec2 u_ssaoNoiseScale;
 uniform vec3[SSAO_SAMPLES] u_ssaoSamples;
-
-uniform vec3 u_cameraPos;
-uniform mat4 u_worldToCameraMatrix;
-uniform mat4 u_perspectiveMatrix;
 
 float ssao(vec4 normalWS, vec4 posWS, vec2 tx_pos) {
     vec3 random = normalize(texture(u_ssaoNoise, tx_pos * u_ssaoNoiseScale).xyz);
@@ -89,22 +82,15 @@ void main() {
 `);
 
 
-const SSAO_BLUR_FS = new ShaderSourceBuilder().addChunk(`
-precision highp float;
-
-in vec2 v_pos;
-in vec2 tx_pos;
-
+const SSAO_BLUR_FS = new ShaderSourceBuilder()
+    .addTopChunk(GBUF_TEXTURES)
+    .addTopChunk(QUAD_FRAGMENT_INPUTS)
+    .addTopChunk(WORLD_AND_CAMERA_TRANSFORMS)
+    .addChunk(`
 layout(location = 0) out vec4 color;
 
-uniform sampler2D gbuf_position;
-uniform sampler2D gbuf_normal;
 uniform sampler2D u_ssaoFirstPassTx;
-
 uniform float u_ssaoStrength;
-uniform vec3 u_cameraPos;
-uniform mat4 u_worldToCameraMatrix;
-uniform mat4 u_perspectiveMatrix;
 
 float getSsaoBlurred(vec4 posWS, vec4 normalWS) {
     vec2 offset = vec2(1. / float(SCREEN_WIDTH), 1. / float(SCREEN_HEIGHT));

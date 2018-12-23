@@ -1,15 +1,10 @@
 import { ShaderSourceBuilder } from "../shaders.js";
+import {WORLD_AND_CAMERA_TRANSFORMS} from "./includes/common.js";
 
-const VS = `
-precision highp float;
-
+const VS = new ShaderSourceBuilder()
+    .addTopChunk(WORLD_AND_CAMERA_TRANSFORMS)
+    .addChunk(`
 in vec4 a_pos;
-
-uniform mat4 u_modelViewMatrix;
-uniform mat4 u_modelWorldMatrix;
-uniform mat4 u_worldToCameraMatrix;
-uniform mat4 u_perspectiveMatrix;
-
 out vec4 v_pos;
 out vec2 tx_pos;
 
@@ -18,18 +13,17 @@ void main() {
     gl_Position = u_perspectiveMatrix * v_pos;
     tx_pos = (gl_Position.xy / gl_Position.w) / 2. + 0.5;
 }
-`
+`)
 
-const FS = `
-precision highp float;
-
+const FS = new ShaderSourceBuilder()
+    .addTopChunk(WORLD_AND_CAMERA_TRANSFORMS)
+    .addChunk(`
 in vec4 v_pos;
 in vec2 tx_pos;
 
 uniform vec3 u_color;
 uniform float u_intensity;
 uniform sampler2D u_posTexture;
-uniform mat4 u_worldToCameraMatrix;
 
 out vec4 color;
 
@@ -42,9 +36,9 @@ void main() {
     }
     color = vec4(u_color * u_intensity, alpha);
 }
-`
+`);
 
 export const VISUALIZE_LIGHTS_SHADERS = {
-    vs: new ShaderSourceBuilder().addChunk(VS),
-    FS: new ShaderSourceBuilder().addChunk(FS),
+    vs: VS,
+    FS: FS,
 }

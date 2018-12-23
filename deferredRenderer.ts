@@ -471,8 +471,8 @@ export class FinalLightingRenderer {
         bindUniformTx(gl, s, "gbuf_position", this.gBuffer.posTx, 0);
         bindUniformTx(gl, s, "gbuf_normal", this.gBuffer.normalTX, 1);
         bindUniformTx(gl, s, "gbuf_colormap", this.gBuffer.colorTX, 2);
-        bindUniformTx(gl, s, "gbuf_shadowmap", this.shadowMapRenderer.shadowMapTx, 4);
 
+        bindUniformTx(gl, s, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
         bindUniformTx(gl, s, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 3);
 
         // Common uniforms
