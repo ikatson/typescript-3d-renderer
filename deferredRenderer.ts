@@ -60,6 +60,19 @@ function createAndBindBufferTexture(gl: WebGLRenderingContext, internalFormat: n
     return tx;
 }
 
+export function withViewport(gl: WebGLRenderingContext, x: number, y: number, callback: Function): any {
+    let needReverse = false;
+    if (gl.canvas.width != x || gl.canvas.height != y) {
+        gl.viewport(0, 0, x, y);
+        needReverse = true;
+    }
+    const result = callback();
+    if (needReverse) {
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    }
+    return result;
+}
+
 export class GBuffer {
     posTx: WebGLTexture;
     normalTX: WebGLTexture;
@@ -149,13 +162,21 @@ export class SSAORenderer {
     private firstPassShader: ShaderProgram;
     private _ssaoFirstPassTx: WebGLTexture;
     private blurShader: ShaderProgram;
+    private width: number;
+    private height: number;
 
     constructor(gl: WebGLRenderingContext, ssaoParameters: SSAOState, ssaoConfig: SSAOConfig, gBuffer: GBuffer, fullScreenQuad: FullScreenQuad) {
-        this.setupSSAOBuffers(gl, ssaoParameters);
         this.ssaoConfig = ssaoConfig;
         this.gBuffer = gBuffer;
         this.fullScreenQuad = fullScreenQuad;
 
+        // this.width = gl.canvas.width / 4.0;
+        // this.height = gl.canvas.height / 4.0;
+
+        this.width = gl.canvas.width;
+        this.height = gl.canvas.height;
+
+        this.setupSSAOBuffers(gl, ssaoParameters);
         this.recompileShaders(gl);
     }
 
@@ -190,8 +211,8 @@ export class SSAORenderer {
                 SSAO_SHADER_SOURCE.blur_pass_fs
                     .clone()
                     .define("SSAO_NOISE_SCALE", this.ssaoConfig.noiseScale.toString())
-                    .define("SCREEN_WIDTH", gl.canvas.width.toString())
-                    .define("SCREEN_HEIGHT", gl.canvas.height.toString())
+                    .define("SSAO_TEXEL_SIZE_X", this.width.toString())
+                    .define("SSAO_TEXEL_SIZE_Y", this.height.toString())
                     .build()
             )
         );
@@ -223,11 +244,13 @@ export class SSAORenderer {
             gl.uniform3fv(s.getUniformLocation(gl, "u_ssaoSamples"), this.ssaoState.tangentSpaceSamples);
             gl.uniform2fv(
                 s.getUniformLocation(gl, "u_ssaoNoiseScale"),
-                [gl.canvas.width / this.ssaoConfig.noiseScale, gl.canvas.height / this.ssaoConfig.noiseScale]
+                [this.width / this.ssaoConfig.noiseScale, this.height / this.ssaoConfig.noiseScale]
             );
 
             // Draw
-            this.fullScreenQuad.drawArrays(gl);
+            withViewport(gl, this.width, this.height, () => {
+                this.fullScreenQuad.drawArrays(gl);
+            })
         };
 
         const blurPass = () => {
@@ -263,19 +286,20 @@ export class SSAORenderer {
             );
 
             // Draw
-            this.fullScreenQuad.drawArrays(gl);
+            // withViewport(gl, this.width, this.height, () => {
+                this.fullScreenQuad.drawArrays(gl);
+            // })
         };
 
         firstPass();
-
-        blurPass()
+        blurPass();
     }
 
     private setupSSAOBuffers(gl: WebGLRenderingContext, ssaoState: SSAOState) {
         this.ssaoState = ssaoState;
 
         this.firstPassFB = gl.createFramebuffer();
-        this._ssaoFirstPassTx = createAndBindBufferTexture(gl, gl.R16F, gl.RED, gl.HALF_FLOAT);
+        this._ssaoFirstPassTx = createAndBindBufferTexture(gl, gl.R16F, gl.RED, gl.HALF_FLOAT, this.width, this.height);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.firstPassFB);
         gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._ssaoFirstPassTx, 0);
         checkFrameBufferStatusOrThrow(gl);
@@ -344,9 +368,9 @@ export class ShadowMapRenderer {
             o.children.forEach(drawObject);
         };
 
-        gl.viewport(0, 0, this._shadowMapWidth, this._shadowMapHeight);
-        scene.children.forEach(drawObject);
-        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+        withViewport(gl, this._shadowMapWidth, this._shadowMapHeight, () => {
+            scene.children.forEach(drawObject);
+        });
     }
 
     private recompileShaders(gl: WebGLRenderingContext) {

@@ -91,7 +91,7 @@ uniform float u_ssaoBlurNormalThreshold;
 
 // This does position and normal-aware "smart-blur".
 float getSsaoBlurred(vec4 posVS, vec3 normalVS) {
-    vec2 texelSize = vec2(1. / float(SCREEN_WIDTH), 1. / float(SCREEN_HEIGHT));
+    vec2 texelSize = vec2(1. / float(SSAO_TEXEL_SIZE_X), 1. / float(SSAO_TEXEL_SIZE_Y));
     
     if (posVS.a == 0.) {
         return 1.;
