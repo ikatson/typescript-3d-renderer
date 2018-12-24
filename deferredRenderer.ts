@@ -119,10 +119,9 @@ export class GBuffer {
                 o.mesh.mesh.draw(gl);
 
                 if (o.boundingBox && o.boundingBox.visible) {
-                    // debugger;
                     const buf = o.boundingBox.asArrayBuffer(gl);
                     buf.prepareMeshVertexAndShaderDataForRendering(gl, program);
-                    gl.drawArrays(gl.LINES, 0, buf.params.vertexCount)
+                    gl.drawArrays(gl.LINES, 0, buf.params.vertexCount);
                 }
             }
 

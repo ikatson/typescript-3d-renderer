@@ -5,22 +5,54 @@ export class Box {
     max: number[] | Float32Array;
 
     asBuffer(): GLArrayBufferData {
-        const params = new GLArrayBufferDataParams(false, false, 8);
+        const params = new GLArrayBufferDataParams(false, false, 24);
         params.elementSize = 3;
 
         const data = [];
-        const minmax = [this.min, this.max];
 
-        for (let xi = 0; xi < 2; xi++) {
-            for (let yi = 0; yi < 2; yi++) {
-                for (let zi = 0; zi < 2; zi++) {
-                    data.push(minmax[xi][0]);
-                    data.push(minmax[yi][1]);
-                    data.push(minmax[zi][2]);
-                }
-            }
-        }
+        const x = 0;
+        const y = 1;
+        const z = 2;
 
+        const dlf = [this.min[x], this.min[y], this.max[z]];
+        const dlb = [this.min[x], this.min[y], this.min[z]];
+
+        const drf = [this.max[x], this.min[y], this.max[z]];
+        const drb = [this.max[x], this.min[y], this.min[z]];
+
+        const urf = [this.max[x], this.max[y], this.max[z]];
+        const urb = [this.max[x], this.max[y], this.min[z]];
+
+        const ulf = [this.min[x], this.max[y], this.max[z]];
+        const ulb = [this.min[x], this.max[y], this.min[z]];
+
+        // front face edges
+        data.push(
+            ...dlf, ...drf,
+            ...drf, ...urf,
+            ...urf, ...ulf,
+            ...ulf, ...dlf
+        );
+
+        // back face edges
+        data.push(
+            ...dlb, ...drb,
+            ...drb, ...urb,
+            ...urb, ...ulb,
+            ...ulb, ...dlb
+        );
+
+        // top left edge
+        data.push(...ulf, ...ulb);
+
+        // top right edge
+        data.push(...urf, ...urb);
+
+        // bootom left edge
+        data.push(...dlf, ...dlb);
+
+        // bottom right edge
+        data.push(...drf, ...drb);
         return new GLArrayBufferData(new Float32Array(data), params);
     }
 }
