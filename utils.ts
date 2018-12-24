@@ -130,20 +130,13 @@ export const makeFrustum = (camera: Camera): GLArrayBufferData => {
 
     const data = [];
 
-    // debugger;
     cubeVertices.iterData((i: GLArrayBufferDataIterResult) => {
         const v = i.vertex;
-        const n = i.normal;
         vec4.transformMat4(v, v, tmp);
-        // vec4.transformMat4(n, n, tmp);
         vec4.scale(v, v, 1. / v[3]);
-
         vec4.transformMat4(v, v, camToWorld);
-        // vec4.transformMat4(n, n, camToWorld);
 
         data.push(...v);
-        data.push(...n);
-        data.push(...i.uv);
     });
 
     return new GLArrayBufferData(new Float32Array(data), cubeVertices.params);

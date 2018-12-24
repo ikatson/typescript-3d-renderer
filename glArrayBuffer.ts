@@ -1,5 +1,6 @@
 import { ShaderProgram } from "./shaders.js";
 import {Box} from "./box.js";
+import {mat4, vec4} from "./gl-matrix.js";
 
 const FLOAT_BYTES = 4;
 const VEC3 = 3;
@@ -49,6 +50,36 @@ export type GLArrayBufferDataIterResult = {
     uv: Float32Array,
 }
 
+type DataOrBoundingBox = GLArrayBufferData | Box;
+
+export const computeBoundingBox = (objects: DataOrBoundingBox[]): Box => {
+    const b = new Box();
+    const min = [Infinity, Infinity, Infinity];
+    const max = [-Infinity, -Infinity, -Infinity];
+    const compareAndSet = (out: number[] | Float32Array, inp: number[] | Float32Array, f: (v: number, v1: number) => (number)) => {
+        for (let i = 0; i < out.length; i++) {
+            out[i] = f(out[i], inp[i]);
+        }
+    };
+
+    objects.forEach(o => {
+        if (o instanceof GLArrayBufferData) {
+            o.iterData((v: GLArrayBufferDataIterResult) => {
+                compareAndSet(min, v.vertex, Math.min);
+                compareAndSet(max, v.vertex, Math.max);
+            });
+        } else if (o instanceof Box) {
+            compareAndSet(min, o.min, Math.min);
+            compareAndSet(min, o.max, Math.max);
+        }
+    });
+
+    b.min = min;
+    b.max = max;
+
+    return b;
+};
+
 export class GLArrayBufferData {
     buf: Float32Array;
     params: GLArrayBufferDataParams;
@@ -61,27 +92,31 @@ export class GLArrayBufferData {
         return new GLArrayBuffer(gl, this);
     }
 
-    computeBoundingBox(): Box {
-        const b = new Box();
-        const min = [Infinity, Infinity, Infinity];
-        const max = [-Infinity, -Infinity, -Infinity];
-
-        // TODO: how to write (number, number) => number???
-        const compareAndSet = (out: number[], inp: number[], f: (v: number, v1: number) => (number)) => {
-            for (let i = 0; i < out.length; i++) {
-                out[i] = f(out[i], inp[i]);
+    translate(matrix: mat4): GLArrayBufferData {
+        const result = [];
+        const tmp = vec4.create();
+        this.iterData((i: GLArrayBufferDataIterResult) => {
+            let v = i.vertex;
+            if (v.length != 4) {
+                tmp[0] = v[0];
+                tmp[1] = v[1];
+                tmp[2] = v[2];
+                tmp[3] = 1.;
+                v = tmp;
             }
-        };
+            vec4.transformMat4(tmp, v, matrix);
+            result.push(...tmp);
 
-        this.iterData((v: GLArrayBufferDataIterResult) => {
-            compareAndSet(min, v.vertex, Math.min);
-            compareAndSet(max, v.vertex, Math.max);
+            // TODO: translate normal
+            result.push(...i.normal);
+
+            result.push(...i.uv);
         });
+        return new GLArrayBufferData(new Float32Array(result), this.params);
+    }
 
-        b.min = min;
-        b.max = max;
-
-        return b;
+    computeBoundingBox(): Box {
+        return computeBoundingBox([this]);
     }
 
     iterData(callback: (GLArrayBufferDataIterResult) => void) {
@@ -95,7 +130,7 @@ export class GLArrayBufferData {
                 vertex: this.buf.slice(offset, offset + this.params.elementSize),
                 normal: this.buf.slice(noffset, this.params.hasNormals ? noffset + this.params.normalsSize : noffset),
                 uv: this.buf.slice(uvoffset, this.params.hasUVs ? uvoffset + this.params.uvSize : uvoffset),
-            })
+            });
         }
     };
 }

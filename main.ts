@@ -250,16 +250,14 @@ function main() {
         plane.transform.update();
 
 
-
         scene.addChild(plane);
         scene.addChild(corvette);
         corvette.addChild(aphrodite);
 
-        //
-        // const frustum = new GameObjectBuilder().setMesh(new GLMesh(gl,
-        //     new GLArrayBuffer(gl, new Box().asWireFrameBuffer())
-        // )).build();
-        // scene.addChild(frustum);
+        const frustum = new GameObjectBuilder().setMeshComponent(
+            new MeshComponent(new Box().asWireFrameBuffer().intoGLArrayBuffer(gl)).setRenderMode(gl.LINE_STRIP)
+        ).build();
+        scene.addChild(frustum);
 
         // console.log({scene, aphrodite, corvette, plane});
 
@@ -272,8 +270,8 @@ function main() {
                 return;
             }
 
-            // frustum.mesh.mesh.glArrayBuffer.delete(gl);
-            // frustum.mesh.mesh.glArrayBuffer = new GLArrayBuffer(gl, makeFrustum(camera));
+            frustum.mesh.arrayBuffer.delete(gl);
+            frustum.mesh.arrayBuffer = new GLArrayBuffer(gl, makeFrustum(camera));
 
             pressedKeys.forEach((v, k) => {
                 const moveSpeed = delta * 0.0015;
