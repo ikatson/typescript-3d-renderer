@@ -1,4 +1,3 @@
-import {GLMesh} from "./mesh.js";
 import {mat4, vec3} from "./gl-matrix.js"
 import {ShaderProgram} from "./shaders";
 import {Box} from "./box.js";
@@ -14,15 +13,15 @@ export abstract class Component {
 }
 
 export class MeshComponent extends Component {
-    mesh: GLMesh;
+    arrayBuffer: GLArrayBuffer;
     object: GameObject = null;
     shadowCaster: boolean = true;
     shadowReceiver: boolean = true;
     renderMode: GLenum = WebGLRenderingContext.TRIANGLES;
 
-    constructor(mesh: GLMesh) {
+    constructor(buf: GLArrayBuffer) {
         super();
-        this.mesh = mesh;
+        this.arrayBuffer = buf;
     }
 
     setRenderMode(m: GLenum): MeshComponent {
@@ -41,7 +40,7 @@ export class MeshComponent extends Component {
     }
 
     prepareMeshVertexAndShaderDataForRendering(gl: WebGLRenderingContext, program?: ShaderProgram, normals?: boolean, uv?: boolean) {
-        this.mesh.glArrayBuffer.prepareMeshVertexAndShaderDataForRendering(gl, program, normals, uv);
+        this.arrayBuffer.prepareMeshVertexAndShaderDataForRendering(gl, program, normals, uv);
     }
 }
 
@@ -155,8 +154,9 @@ export class GameObjectBuilder {
         this.o = new GameObject();
     }
 
-    setMesh(mesh: GLMesh): GameObjectBuilder {
-        this.o.mesh = new MeshComponent(mesh).setObject(this.o);
+    setMeshComponent(meshComponent: MeshComponent): GameObjectBuilder {
+        this.o.mesh = meshComponent;
+        meshComponent.setObject(this.o);
         return this;
     }
 

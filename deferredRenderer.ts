@@ -1,6 +1,5 @@
 import {Camera} from "./camera.js";
 import {mat4, vec3} from "./gl-matrix.js";
-import {GLMesh} from "./mesh.js";
 import {GameObject} from "./object.js";
 import {Scene} from "./scene.js";
 import {FragmentShader, ShaderProgram, VertexShader} from "./shaders.js";
@@ -11,6 +10,7 @@ import {VISUALIZE_LIGHTS_SHADERS} from "./shaders/visualize-lights.js";
 import {SSAOConfig, SSAOState} from "./SSAOState.js";
 import {FullScreenQuad, glClearColorAndDepth, tmpMatrix} from "./utils.js";
 import {SHADOWMAP_SHADERS} from "./shaders/shadowMap.js";
+import {GLArrayBuffer} from "./glArrayBuffer";
 
 
 export class DeferredRendererConfig {
@@ -116,7 +116,7 @@ export class GBuffer {
 
                 gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2]);
 
-                gl.drawArrays(o.mesh.renderMode,0, o.mesh.mesh.glArrayBuffer.params.vertexCount);
+                gl.drawArrays(o.mesh.renderMode,0, o.mesh.arrayBuffer.params.vertexCount);
 
                 if (o.boundingBox && o.boundingBox.visible) {
                     const buf = o.boundingBox.asArrayBuffer(gl);
@@ -370,7 +370,7 @@ export class ShadowMapRenderer {
             gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelViewMatrix"), false, modelViewMatrix);
 
             o.mesh.prepareMeshVertexAndShaderDataForRendering(gl, s, false, false);
-            o.mesh.mesh.draw(gl);
+            o.mesh.arrayBuffer.draw(gl);
             o.children.forEach(drawObject);
         };
 
@@ -419,7 +419,7 @@ export class FinalLightingRenderer {
     private ssaoRenderer: SSAORenderer;
     private shadowMapRenderer: ShadowMapRenderer;
     private visualizeLightsShader: ShaderProgram;
-    private sphereMesh: GLMesh;
+    private sphereMesh: GLArrayBuffer;
     private lastLightCount: number = 0;
     private _recompileOnNextRun: boolean = true;
 
@@ -429,7 +429,7 @@ export class FinalLightingRenderer {
                 gBuffer: GBuffer,
                 ssaoRenderer: SSAORenderer,
                 shadowMapRenderer: ShadowMapRenderer,
-                sphereMesh: GLMesh) {
+                sphereMesh: GLArrayBuffer) {
         this.fullScreenQuad = fullScreenQuad;
         this.gBuffer = gBuffer;
         this.ssaoRenderer = ssaoRenderer;
@@ -530,8 +530,7 @@ export class FinalLightingRenderer {
         gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
         gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix());
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.sphereMesh.getBuf());
-        this.sphereMesh.setupVertexPositionsPointer(gl, s.getAttribLocation(gl, "a_pos"));
+        this.sphereMesh.prepareMeshVertexAndShaderDataForRendering(gl, s);
 
         gl.enable(gl.DEPTH_TEST);
         gl.enable(gl.BLEND);
@@ -552,7 +551,6 @@ export class FinalLightingRenderer {
             gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelWorldMatrix"), false, modelWorldMatrix);
 
             this.sphereMesh.draw(gl);
-            // gl.drawArrays(gl.TRIANGLES, 0, this.sphereMesh.getVertexCount());
         })
     }
 
@@ -578,7 +576,7 @@ export class DeferredRenderer {
     private recompileOnNextRun: boolean = false;
     private _config: DeferredRendererConfig;
 
-    constructor(gl: WebGLRenderingContext, config: DeferredRendererConfig, fullScreenQuad: FullScreenQuad, sphere: GLMesh, ssaoState?: SSAOState) {
+    constructor(gl: WebGLRenderingContext, config: DeferredRendererConfig, fullScreenQuad: FullScreenQuad, sphere: GLArrayBuffer, ssaoState?: SSAOState) {
         this.gl = gl;
         this._config = config;
         this.gbuffer = new GBuffer(gl);

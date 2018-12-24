@@ -57,6 +57,10 @@ export class GLArrayBufferData {
         this.params = params;
     }
 
+    intoGLArrayBuffer(gl: WebGLRenderingContext): GLArrayBuffer {
+        return new GLArrayBuffer(gl, this);
+    }
+
     computeBoundingBox(): Box {
         const b = new Box();
         const min = [Infinity, Infinity, Infinity];
@@ -121,12 +125,18 @@ export class GLArrayBuffer {
         if (!this.params.hasNormals) {
             throw new Error("buf has no normals");
         }
+        if (attribLocation == -1) {
+            return;
+        }
         gl.enableVertexAttribArray(attribLocation);
         gl.vertexAttribPointer(attribLocation, this.params.normalsSize, gl.FLOAT, false, this.params.computeStrideInBytes(), this.params.computeNormalOffset());
     }
     setupVertexUVPointer(gl, attribLocation) {
         if (!this.params.hasUVs) {
             throw new Error("buf has no UVs");
+        }
+        if (attribLocation == -1) {
+            return;
         }
         gl.enableVertexAttribArray(attribLocation);
         gl.vertexAttribPointer(attribLocation, this.params.uvSize, gl.FLOAT, false, this.params.computeStrideInBytes(), this.params.computeUVOffset());

@@ -10,8 +10,7 @@ import {
     tmpMatrix
 } from "./utils.js";
 import {ProgressBar, ProgressBarCommon} from "./progressbar.js";
-import {GLMesh, GLMeshFromObjParser} from "./mesh.js";
-import {BoundingBoxComponent, GameObject, GameObjectBuilder, LightComponent} from "./object.js";
+import {BoundingBoxComponent, GameObject, GameObjectBuilder, LightComponent, MeshComponent} from "./object.js";
 import {Camera} from "./camera.js";
 
 import {vec3, mat4} from "./gl-matrix.js";
@@ -173,8 +172,9 @@ function main() {
     Promise.all([
         fetchObject('resources/aphrodite/aphrodite.obj', onHeaders).then(parser => {
             const arrayBuf = parser.getArrayBuffer();
-            const mesh = GLMeshFromObjParser(gl, parser);
-            const aphrodite = new GameObjectBuilder().setMesh(mesh).build();
+            const aphrodite = new GameObjectBuilder().setMeshComponent(
+                new MeshComponent(arrayBuf.intoGLArrayBuffer(gl))
+            ).build();
             aphrodite.boundingBox = new BoundingBoxComponent(arrayBuf.computeBoundingBox());
             aphrodite.boundingBox.visible = true;
             aphrodite.transform.scale = [1/3, 1/3, 1/3];
@@ -184,20 +184,21 @@ function main() {
             return aphrodite;
         }),
         fetchObject('resources/corvette/corvette.obj', onHeaders).then(parser => {
-            const mesh = GLMeshFromObjParser(gl, parser);
-            const corvette = new GameObjectBuilder().setMesh(mesh).build();
+            const corvette = new GameObjectBuilder().setMeshComponent(new MeshComponent(
+                parser.getArrayBuffer().intoGLArrayBuffer(gl),
+            )).build();
             corvette.transform.position = [0, -1., 0];
             corvette.transform.update();
             return corvette;
         }),
         fetchObject('resources/sphere.obj', onHeaders).then(parser => {
-            return GLMeshFromObjParser(gl, parser);
+            return parser.getArrayBuffer().intoGLArrayBuffer(gl);
         }),
         // fetchObject('resources/cube.obj', onHeaders, new ObjParser(true)).then(parser => {
         //     return parser;
         // }),
         fetchObject('resources/plane.obj', onHeaders).then(parser => {
-            return GLMeshFromObjParser(gl, parser);
+            return parser.getArrayBuffer().intoGLArrayBuffer(gl);
         }),
     ]).then(([aphrodite, corvette, sphereMesh, planeMesh]) => {
         const camera = new Camera(gl.canvas.width / gl.canvas.height);
@@ -242,7 +243,7 @@ function main() {
 
         scene.lights = [sun];
 
-        const plane = new GameObjectBuilder().setMesh(planeMesh).build();
+        const plane = new GameObjectBuilder().setMeshComponent(new MeshComponent(planeMesh)).build();
         plane.mesh.setShadowCaster(false);
         plane.transform.position = [0, -0.8, 0];
         plane.transform.scale = [5, 5, 5];
