@@ -10,8 +10,8 @@ import {
     tmpMatrix
 } from "./utils.js";
 import {ProgressBar, ProgressBarCommon} from "./progressbar.js";
-import {GLMeshFromObjParser} from "./mesh.js";
-import {BoundingBoxComponent, GameObjectBuilder, LightComponent} from "./object.js";
+import {GLMesh, GLMeshFromObjParser} from "./mesh.js";
+import {BoundingBoxComponent, GameObject, GameObjectBuilder, LightComponent} from "./object.js";
 import {Camera} from "./camera.js";
 
 import {vec3, mat4} from "./gl-matrix.js";
@@ -20,6 +20,7 @@ import {DeferredRenderer, DeferredRendererConfig, ShowLayer} from "./deferredRen
 import {GLArrayBuffer} from "./glArrayBuffer.js";
 import * as ui from "./ui.js";
 import {SSAOConfig, SSAOState} from "./SSAOState.js";
+import {Box} from "./box.js";
 
 
 const originZero = vec3.create();
@@ -174,7 +175,6 @@ function main() {
             const arrayBuf = parser.getArrayBuffer();
             const mesh = GLMeshFromObjParser(gl, parser);
             const aphrodite = new GameObjectBuilder().setMesh(mesh).build();
-            aphrodite.mesh.wireframe = true;
             aphrodite.boundingBox = new BoundingBoxComponent(arrayBuf.computeBoundingBox());
             aphrodite.boundingBox.visible = true;
             aphrodite.transform.scale = [1/3, 1/3, 1/3];
@@ -193,13 +193,13 @@ function main() {
         fetchObject('resources/sphere.obj', onHeaders).then(parser => {
             return GLMeshFromObjParser(gl, parser);
         }),
-        fetchObject('resources/cube.obj', onHeaders, new ObjParser(true)).then(parser => {
-            return parser;
-        }),
+        // fetchObject('resources/cube.obj', onHeaders, new ObjParser(true)).then(parser => {
+        //     return parser;
+        // }),
         fetchObject('resources/plane.obj', onHeaders).then(parser => {
             return GLMeshFromObjParser(gl, parser);
         }),
-    ]).then(([aphrodite, corvette, sphereMesh, cubeObjParser, planeMesh]) => {
+    ]).then(([aphrodite, corvette, sphereMesh, planeMesh]) => {
         const camera = new Camera(gl.canvas.width / gl.canvas.height);
         camera.position = vec3.fromValues(0, 0, -3.);
 
@@ -248,13 +248,17 @@ function main() {
         plane.transform.scale = [5, 5, 5];
         plane.transform.update();
 
-        const cubeData = cubeObjParser.getArrayBuffer();
-        const cube = new GameObjectBuilder().setMesh(GLMeshFromObjParser(gl, cubeObjParser)).build();
+
 
         scene.addChild(plane);
         scene.addChild(corvette);
-        // scene.addChild(cube);
         corvette.addChild(aphrodite);
+
+        //
+        // const frustum = new GameObjectBuilder().setMesh(new GLMesh(gl,
+        //     new GLArrayBuffer(gl, new Box().asWireFrameBuffer())
+        // )).build();
+        // scene.addChild(frustum);
 
         // console.log({scene, aphrodite, corvette, plane});
 
@@ -267,8 +271,8 @@ function main() {
                 return;
             }
 
-            cube.mesh.mesh.glArrayBuffer.delete(gl);
-            cube.mesh.mesh.glArrayBuffer = new GLArrayBuffer(gl, makeFrustum(camera, cubeData));
+            // frustum.mesh.mesh.glArrayBuffer.delete(gl);
+            // frustum.mesh.mesh.glArrayBuffer = new GLArrayBuffer(gl, makeFrustum(camera));
 
             pressedKeys.forEach((v, k) => {
                 const moveSpeed = delta * 0.0015;

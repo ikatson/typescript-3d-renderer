@@ -8,6 +8,7 @@ import {
     GLArrayBufferDataIterResult
 } from "./glArrayBuffer.js";
 import {Camera} from "./camera.js";
+import {Box} from "./box.js";
 
 export const QuadVertices = new Float32Array([
     -1.0, 1.0,
@@ -120,9 +121,10 @@ export const tmpMatrix = (function () {
     }
 })();
 
-export const makeFrustum = (camera: Camera, cubeVertices: GLArrayBufferData): GLArrayBufferData => {
+export const makeFrustum = (camera: Camera): GLArrayBufferData => {
     const tmp = tmpMatrix();
     const camToWorld = camera.getCameraToWorld();
+    const cubeVertices = new Box().asWireFrameBuffer();
 
     mat4.invert(tmp, camera.projectionMatrix());
 

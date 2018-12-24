@@ -26,7 +26,7 @@ export class Box {
         ]
     }
 
-    asBuffer(): GLArrayBufferData {
+    asWireFrameBuffer(): GLArrayBufferData {
         const params = new GLArrayBufferDataParams(false, false, 24);
         params.elementSize = 3;
 

@@ -18,11 +18,16 @@ export class MeshComponent extends Component {
     object: GameObject = null;
     shadowCaster: boolean = true;
     shadowReceiver: boolean = true;
-    renderAsPoints: boolean = false;
+    renderMode: GLenum = WebGLRenderingContext.TRIANGLES;
 
     constructor(mesh: GLMesh) {
         super();
         this.mesh = mesh;
+    }
+
+    setRenderMode(m: GLenum): MeshComponent {
+        this.renderMode = m;
+        return this;
     }
 
     setShadowCaster(v: boolean): MeshComponent {
@@ -51,7 +56,7 @@ export class BoundingBoxComponent extends Component {
 
     asArrayBuffer(gl: WebGLRenderingContext): GLArrayBuffer {
         if (!this.glArrayBuffer) {
-            this.glArrayBuffer = new GLArrayBuffer(gl, this.box.asBuffer());
+            this.glArrayBuffer = new GLArrayBuffer(gl, this.box.asWireFrameBuffer());
         }
         return this.glArrayBuffer;
     }
