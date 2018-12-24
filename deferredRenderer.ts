@@ -117,6 +117,13 @@ export class GBuffer {
                 gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2]);
 
                 o.mesh.mesh.draw(gl);
+
+                if (o.boundingBox && o.boundingBox.visible) {
+                    // debugger;
+                    const buf = o.boundingBox.asArrayBuffer(gl);
+                    buf.prepareMeshVertexAndShaderDataForRendering(gl, program);
+                    gl.drawArrays(gl.LINES, 0, buf.params.vertexCount)
+                }
             }
 
             o.children.forEach(o => renderObject(o))

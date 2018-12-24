@@ -11,7 +11,7 @@ import {
 } from "./utils.js";
 import {ProgressBar, ProgressBarCommon} from "./progressbar.js";
 import {GLMeshFromObjParser} from "./mesh.js";
-import {GameObjectBuilder, LightComponent} from "./object.js";
+import {BoundingBoxComponent, GameObjectBuilder, LightComponent} from "./object.js";
 import {Camera} from "./camera.js";
 
 import {vec3, mat4} from "./gl-matrix.js";
@@ -171,8 +171,11 @@ function main() {
 
     Promise.all([
         fetchObject('resources/aphrodite/aphrodite.obj', onHeaders).then(parser => {
+            const arrayBuf = parser.getArrayBuffer();
             const mesh = GLMeshFromObjParser(gl, parser);
             const aphrodite = new GameObjectBuilder().setMesh(mesh).build();
+            aphrodite.boundingBox = new BoundingBoxComponent(arrayBuf.computeBoundingBox());
+            aphrodite.boundingBox.visible = true;
             aphrodite.transform.scale = [1/3, 1/3, 1/3];
             aphrodite.transform.rotation = [0, -Math.PI / 2.0, 0];
             aphrodite.transform.position = [0, 1., 0];
@@ -239,6 +242,7 @@ function main() {
         scene.lights = [sun];
 
         const plane = new GameObjectBuilder().setMesh(planeMesh).build();
+        plane.mesh.setShadowCaster(false);
         plane.transform.position = [0, -0.8, 0];
         plane.transform.scale = [5, 5, 5];
         plane.transform.update();
@@ -248,7 +252,7 @@ function main() {
 
         scene.addChild(plane);
         scene.addChild(corvette);
-        scene.addChild(cube);
+        // scene.addChild(cube);
         corvette.addChild(aphrodite);
 
         // console.log({scene, aphrodite, corvette, plane});

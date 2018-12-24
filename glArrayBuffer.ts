@@ -1,4 +1,5 @@
 import { ShaderProgram } from "./shaders.js";
+import {Box} from "./box.js";
 
 const FLOAT_BYTES = 4;
 const VEC3 = 3;
@@ -54,6 +55,29 @@ export class GLArrayBufferData {
     constructor(buf: Float32Array, params: GLArrayBufferDataParams) {
         this.buf = buf;
         this.params = params;
+    }
+
+    computeBoundingBox(): Box {
+        const b = new Box();
+        const min = [Infinity, Infinity, Infinity];
+        const max = [-Infinity, -Infinity, -Infinity];
+
+        // TODO: how to write (number, number) => number???
+        const compareAndSet = (out: number[], inp: number[], f: (v: number, v1: number) => (number)) => {
+            for (let i = 0; i < out.length; i++) {
+                out[i] = f(out[i], inp[i]);
+            }
+        };
+
+        this.iterData((v: GLArrayBufferDataIterResult) => {
+            compareAndSet(min, v.vertex, Math.min);
+            compareAndSet(max, v.vertex, Math.max);
+        });
+
+        b.min = min;
+        b.max = max;
+
+        return b;
     }
 
     iterData(callback: (GLArrayBufferDataIterResult) => void) {

@@ -1,9 +1,16 @@
-import {GLMesh} from "./mesh";
+import {GLMesh} from "./mesh.js";
 import {mat4, vec3} from "./gl-matrix.js"
 import {ShaderProgram} from "./shaders";
+import {Box} from "./box.js";
+import {GLArrayBuffer} from "./glArrayBuffer.js";
 
 export abstract class Component {
     object: GameObject = null;
+
+    setObject(o: GameObject) {
+        this.object = o;
+        return this;
+    }
 }
 
 export class MeshComponent extends Component {
@@ -17,8 +24,35 @@ export class MeshComponent extends Component {
         this.mesh = mesh;
     }
 
+    setShadowCaster(v: boolean): MeshComponent {
+        this.shadowCaster = v;
+        return this;
+    }
+
+    setShadowReceiver(v: boolean): MeshComponent {
+        this.shadowReceiver = v;
+        return this;
+    }
+
     prepareMeshVertexAndShaderDataForRendering(gl: WebGLRenderingContext, program?: ShaderProgram, normals?: boolean, uv?: boolean) {
         this.mesh.glArrayBuffer.prepareMeshVertexAndShaderDataForRendering(gl, program, normals, uv);
+    }
+}
+
+export class BoundingBoxComponent extends Component {
+    box: Box;
+    visible: boolean = true;
+    private glArrayBuffer: GLArrayBuffer;
+    constructor(box: Box) {
+        super();
+        this.box = box;
+    }
+
+    asArrayBuffer(gl: WebGLRenderingContext): GLArrayBuffer {
+        if (!this.glArrayBuffer) {
+            this.glArrayBuffer = new GLArrayBuffer(gl, this.box.asBuffer());
+        }
+        return this.glArrayBuffer;
     }
 }
 
@@ -96,6 +130,7 @@ export class GameObject {
     transform: TransformComponent;
     mesh: MeshComponent = null;
     light: LightComponent = null;
+    boundingBox: BoundingBoxComponent = null;
 
     constructor() {
         this.transform = new TransformComponent(this);
@@ -115,14 +150,19 @@ export class GameObjectBuilder {
     }
 
     setMesh(mesh: GLMesh): GameObjectBuilder {
-        this.o.mesh = new MeshComponent(mesh);
-        this.o.mesh.object = this.o;
+        this.o.mesh = new MeshComponent(mesh).setObject(this.o);
         return this;
     }
 
     setLightComponent(light: LightComponent): GameObjectBuilder {
         this.o.light = light;
         light.object = this.o;
+        return this;
+    }
+
+    setBoundingBoxComponent(bbox: BoundingBoxComponent) {
+        this.o.boundingBox = bbox;
+        bbox.object = this.o;
         return this;
     }
 

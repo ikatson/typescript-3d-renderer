@@ -20,7 +20,7 @@ export class Camera {
         this._forward = vec3.fromValues(0, 0, 1);
         this._up = vec3.fromValues(0, 1, 0);
         this._right = vec3.create();
-        this.near = 0.03;
+        this.near = 0.1;
         this.far = 30.0;
         this.fov = 45.;
         this.aspect = aspect;
