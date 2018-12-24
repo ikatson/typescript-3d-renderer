@@ -361,7 +361,10 @@ export class ShadowMapRenderer {
         gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, lightCamera.projectionMatrix());
 
         const drawObject = (o: GameObject) => {
-            if (!o.mesh || !o.mesh.shadowCaster) {
+            if (!o.mesh) {
+                return;
+            }
+            if (!o.mesh.shadowCaster && !o.mesh.shadowReceiver) {
                 return;
             }
             const modelViewMatrix = tmpMatrix();
