@@ -21,6 +21,7 @@ void main() {
 
     v_norm = normalize(modelToCamera * vec4(a_norm, 0.));
     v_uv = a_uv;
+    gl_PointSize = 2.;    
 }
 `
 

@@ -174,6 +174,7 @@ function main() {
             const arrayBuf = parser.getArrayBuffer();
             const mesh = GLMeshFromObjParser(gl, parser);
             const aphrodite = new GameObjectBuilder().setMesh(mesh).build();
+            aphrodite.mesh.wireframe = true;
             aphrodite.boundingBox = new BoundingBoxComponent(arrayBuf.computeBoundingBox());
             aphrodite.boundingBox.visible = true;
             aphrodite.transform.scale = [1/3, 1/3, 1/3];

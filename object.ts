@@ -18,6 +18,7 @@ export class MeshComponent extends Component {
     object: GameObject = null;
     shadowCaster: boolean = true;
     shadowReceiver: boolean = true;
+    renderAsPoints: boolean = false;
 
     constructor(mesh: GLMesh) {
         super();

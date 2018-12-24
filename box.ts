@@ -1,15 +1,10 @@
 import {GLArrayBufferData, GLArrayBufferDataParams} from "./glArrayBuffer.js";
 
 export class Box {
-    min: number[] | Float32Array;
-    max: number[] | Float32Array;
+    min: number[] | Float32Array = new Float32Array([-1, -1, -1]);
+    max: number[] | Float32Array = new Float32Array([1, 1, 1]);
 
-    asBuffer(): GLArrayBufferData {
-        const params = new GLArrayBufferDataParams(false, false, 24);
-        params.elementSize = 3;
-
-        const data = [];
-
+    uniqueVertices(): Array<number[]> {
         const x = 0;
         const y = 1;
         const z = 2;
@@ -25,6 +20,18 @@ export class Box {
 
         const ulf = [this.min[x], this.max[y], this.max[z]];
         const ulb = [this.min[x], this.max[y], this.min[z]];
+
+        return [
+            dlf, dlb, drf, drb, urf, urb, ulf, ulb
+        ]
+    }
+
+    asBuffer(): GLArrayBufferData {
+        const params = new GLArrayBufferDataParams(false, false, 24);
+        params.elementSize = 3;
+
+        const data = [];
+        const [dlf, dlb, drf, drb, urf, urb, ulf, ulb] = this.uniqueVertices();
 
         // front face edges
         data.push(
