@@ -403,14 +403,15 @@ export class ShadowMapRenderer {
     private setupShadowMapBuffers(gl: WebGLRenderingContext) {
         this._shadowMapWidth = 2048;
         this._shadowMapHeight = 2048;
-        this._shadowMapTx = createAndBindBufferTexture(gl, gl.R16F, gl.RED, gl.HALF_FLOAT, this._shadowMapWidth, this._shadowMapHeight, gl.LINEAR);
+        this._shadowMapTx = createAndBindBufferTexture(gl, gl.DEPTH_COMPONENT16, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT, this._shadowMapWidth, this._shadowMapHeight, gl.NEAREST);
         this.shadowMapFB = gl.createFramebuffer();
-        this.shadowMapRB = gl.createRenderbuffer();
+        // this.shadowMapRB = gl.createRenderbuffer();
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.shadowMapFB);
-        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._shadowMapTx, 0);
-        gl.bindRenderbuffer(gl.RENDERBUFFER, this.shadowMapRB);
-        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this._shadowMapWidth, this._shadowMapHeight);
-        gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.shadowMapRB);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, this._shadowMapTx, 0);
+
+        // gl.bindRenderbuffer(gl.RENDERBUFFER, this.shadowMapRB);
+        // gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this._shadowMapWidth, this._shadowMapHeight);
+        // gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.shadowMapRB);
         checkFrameBufferStatusOrThrow(gl);
     }
 }

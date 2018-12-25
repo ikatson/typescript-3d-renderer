@@ -42,6 +42,12 @@ light makeLight(int i) {
     return l;
 }
 
+float eye_space_z(float depth, float near, float far) {
+    float eye_z = near * far / ((depth * (far - near)) - far);
+    float val = ( eye_z - (-near) ) / ( -far - (-near) );
+    return val;
+} 
+
 void main() {
     #ifdef SHOW_SSAO
     color = vec4(vec3(getSsaoBlurred()), 1.);
@@ -72,7 +78,7 @@ void main() {
 
     #ifdef SHADOWMAP_ENABLED
     #ifdef SHOW_SHADOWMAP
-    color = vec4(abs(texture(u_shadowmapTx, tx_pos).rrr), 1.);
+    color = vec4(vec3(eye_space_z(texture(u_shadowmapTx, tx_pos).r, 0.1, 10.)), 1.);
     return;
     #endif
     #endif
@@ -125,8 +131,8 @@ void main() {
             for (y = -1.5; y <= 1.5; y += 1.0) {
                 for (x = -1.5; x <= 1.5; x += 1.0) {
                     vec2 offset = base + vec2(x, y) * texmapscale;
-                    shadowMapDepth = texture(u_shadowmapTx, offset).r;
-                    if (abs(offset.x) < 1. && abs(offset.y) < 1. && abs(posLSS.z) < 1. && shadowMapDepth > posLSS.z - bias)  {
+                    shadowMapDepth = texture(u_shadowmapTx, offset).r * 2. - 1.;
+                    if (abs(offset.x) > 1. || abs(offset.y) > 1. || abs(posLSS.z) > 1. || shadowMapDepth > posLSS.z - bias)  {
                         sum++;
                     }
                 }

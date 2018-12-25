@@ -18,11 +18,7 @@ void main() {
 
 const FS = new ShaderSourceBuilder()
     .addChunk(`
-in vec4 v_pos;
-out vec4 depth;
-
 void main() {
-    depth = vec4(vec3(v_pos.z / v_pos.w), 1.);
 }
 `);
 
