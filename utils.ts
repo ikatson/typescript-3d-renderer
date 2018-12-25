@@ -209,7 +209,11 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: Ligh
                     .translate(o.transform.getModelToWorld())
                     .translate(worldToLightViewSpace)
                     .computeBoundingBox()
-            );
+
+            // lightViewSpaceBoundingBoxes.push(o.mesh.arrayBuffer.REMOVE_ME_DATA
+            //     .translate(o.transform.getModelToWorld())
+            //     .translate(worldToLightViewSpace)
+            //     .computeBoundingBox());
         };
 
         bboxForObjInLightScreenSpace(o);
@@ -235,43 +239,48 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: Ligh
     myOrtho(lightClipSpaceMatrix, left, right, bottom, top, near, far);
 
     // CHECK REMOVE ME
-    lightViewSpaceBoundingBoxes.forEach(b => {
-        b.uniqueVertices().forEach(vertex => {
-            vec3.transformMat4(tmpVec3, vertex, lightClipSpaceMatrix);
-            const check = (v) => {
-                if (Math.abs(v) > 1.01) {
-                    console.log({b: b, bb: bb, transformed: tmpVec3, vertex: vertex, matrix: lightClipSpaceMatrix});
-                    throw new Error('fuckup!');
-                    debugger;
-                }
-            };
-            tmpVec3.map(check);
-        })
-    });
+    // lightViewSpaceBoundingBoxes.forEach(b => {
+    //     b.uniqueVertices().forEach(vertex => {
+    //         vec3.transformMat4(tmpVec3, vertex, lightClipSpaceMatrix);
+    //         const check = (v) => {
+    //             if (Math.abs(v) > 1.01) {
+    //                 console.log({b: b, bb: bb, transformed: tmpVec3, vertex: vertex, matrix: lightClipSpaceMatrix});
+    //                 throw new Error('fuckup!');
+    //                 debugger;
+    //             }
+    //         };
+    //         tmpVec3.map(check);
+    //     })
+    // });
 
     mat4.multiply(result, lightClipSpaceMatrix, worldToLightViewSpace);
 
+    // // CHECK REMOVE ME
     // scene.children.forEach(o => {
     //     const f = (o: GameObject) => {
     //         if (!(o.mesh && o.mesh.shadowCaster)) {
     //             return;
     //         }
     //         o.mesh.arrayBuffer.REMOVE_ME_DATA.iterData(({vertex}) => {
-    //             vec3.copy(tmpVec3, vertex);
-    //             vec3.transformMat4(tmpVec3, tmpVec3, o.transform.getModelToWorld());
-    //             vec3.transformMat4(tmpVec3, tmpVec3, result);
+    //             const w = vec3.transformMat4(vec3.create(), vertex, o.transform.getModelToWorld());
+    //             const t = vec3.transformMat4(vec3.create(), w, result);
     //             const check = (v) => {
     //                 if (Math.abs(v) > 1.03) {
-    //                     console.log({o: o, transformed: tmpVec3, vertex: vertex, matrix: lightClipSpaceMatrix});
+    //                     console.log({o, w, t, vertex, result, lightViewSpaceBoundingBoxes, lightClipSpaceMatrix});
     //                     throw new Error('fuckup!');
     //                     debugger;
     //                 }
     //             };
-    //             tmpVec3.map(check);
-    //         })
+    //             t.map(check);
+    //         });
+    //         o.children.forEach(f);
     //     };
+    //
+    //     f(o);
     //     o.children.forEach(f);
     // });
+
+    console.log(result);
 
     return new ProjectionMatrix(near, far, result);
 };

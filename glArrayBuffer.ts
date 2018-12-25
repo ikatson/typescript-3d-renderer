@@ -1,6 +1,6 @@
 import {ShaderProgram} from "./shaders.js";
 import {AxisAlignedBox} from "./axisAlignedBox.js";
-import {mat4, vec4} from "./gl-matrix.js";
+import {mat4, vec3, vec4} from "./gl-matrix.js";
 
 const FLOAT_BYTES = 4;
 const VEC3 = 3;
@@ -112,15 +112,13 @@ export class GLArrayBufferData {
         const result = [];
         this.iterData((i: GLArrayBufferDataIterResult) => {
             let v = i.vertex;
-            if (v.length != 4) {
-                tmpVec4[0] = v[0];
-                tmpVec4[1] = v[1];
-                tmpVec4[2] = v[2];
-                tmpVec4[3] = 1.;
-                v = tmpVec4;
+            let l = v.length;
+            let transform = vec4.transformMat4;
+            if (l === 3) {
+                transform = vec3.transformMat4;
             }
-            vec4.transformMat4(tmpVec4, v, matrix);
-            result.push(...tmpVec4);
+            transform(tmpVec4, v, matrix);
+            result.push(...tmpVec4.slice(0, l));
 
             // TODO: translate normal
             result.push(...i.normal);

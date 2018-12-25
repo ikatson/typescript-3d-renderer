@@ -11,7 +11,7 @@ uniform mat4 u_lightCameraWorldToProjectionMatrix;
 
 void main() {
     v_pos = u_lightCameraWorldToProjectionMatrix * u_modelWorldMatrix * a_pos;
-    v_pos.xy /= 2.0;
+    // v_pos.xy /= 2.0;
     gl_Position = v_pos;
 }
 `);
@@ -24,10 +24,6 @@ in vec4 v_pos;
 void main() {
     vec4 v_pos_f = v_pos;
     
-    if (abs(v_pos.x) > 0.501 || abs(v_pos.y) > 0.501) {
-        v_pos_f.z = -0.999;
-    }
-
     gl_FragDepth = v_pos_f.z * 0.5 + 0.5;
 }
 `);

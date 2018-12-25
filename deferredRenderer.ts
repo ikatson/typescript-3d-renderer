@@ -12,7 +12,7 @@ import {
     computeDirectionalLightCameraWorldToProjectionMatrix,
     FullScreenQuad,
     glClearColorAndDepth,
-    tmpMat4,
+    tmpMat4, tmpVec3,
 } from "./utils.js";
 import {SHADOWMAP_SHADERS} from "./shaders/shadowMap.js";
 import {GLArrayBuffer} from "./glArrayBuffer";
@@ -378,6 +378,29 @@ export class ShadowMapRenderer {
             o.mesh.prepareMeshVertexAndShaderDataForRendering(gl, s, false, false);
             o.mesh.draw(gl);
 
+            // if (o.name != "plane") {
+            //     o.mesh.arrayBuffer.REMOVE_ME_DATA.iterData(({vertex}) => {
+            //         vec3.copy(tmpVec3, vertex);
+            //         const w = vec3.transformMat4(vec3.create(), vertex, o.transform.getModelToWorld());
+            //         const t = vec3.transformMat4(vec3.create(), w, lightCameraWorldToProjectionMatrix.matrix);
+            //         const check = (v) => {
+            //             if (Math.abs(v) > 1.03) {
+            //                 console.log({o: o, t: t, w: w, vertex: vertex, matrix: lightCameraWorldToProjectionMatrix});
+            //                 throw new Error('fuckup!');
+            //                 debugger;
+            //             }
+            //         };
+            //         tmpVec3.map(check);
+            //     });
+            // }
+
+            // scene.children.forEach(o => {
+            //     const f = (o: GameObject) => {
+            //
+            //     };
+            //     o.children.forEach(f);
+            // });
+
             o.children.forEach(drawObject);
         };
 
@@ -406,8 +429,8 @@ export class ShadowMapRenderer {
         this._shadowMapWidth = 2048;
         this._shadowMapHeight = 2048;
 
-        this._shadowMapWidth = 512;
-        this._shadowMapHeight = 512;
+        this._shadowMapWidth = 256;
+        this._shadowMapHeight = 256;
         this._shadowMapTx = createAndBindBufferTexture(gl, gl.DEPTH_COMPONENT16, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT, this._shadowMapWidth, this._shadowMapHeight, gl.NEAREST);
         this.shadowMapFB = gl.createFramebuffer();
 
