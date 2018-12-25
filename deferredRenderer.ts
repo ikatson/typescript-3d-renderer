@@ -8,7 +8,7 @@ import {GBUFFER_SHADER_SOURCE} from "./shaders/gBuffer/shaders.js";
 import {SSAO_SHADER_SOURCE} from "./shaders/ssao.js";
 import {VISUALIZE_LIGHTS_SHADERS} from "./shaders/visualize-lights.js";
 import {SSAOConfig, SSAOState} from "./SSAOState.js";
-import {FullScreenQuad, glClearColorAndDepth, tmpMatrix} from "./utils.js";
+import {FullScreenQuad, getLightCamera, glClearColorAndDepth, tmpMatrix} from "./utils.js";
 import {SHADOWMAP_SHADERS} from "./shaders/shadowMap.js";
 import {GLArrayBuffer} from "./glArrayBuffer";
 
@@ -592,28 +592,6 @@ export class DeferredRenderer {
         return this._config;
     }
 
-    static getLightCamera(light: GameObject) {
-        let lCamera = new Camera(1.);
-        lCamera.fov = 86.;
-        lCamera.near = 0.1;
-        lCamera.far = 10.;
-        const tmp1 = vec3.create();
-        lCamera.position = light.transform.position;
-
-        // determine forward direction.
-        // TODO: in this case the sun just looks at "0,0,0", and acts like a point light,
-        // not orthogonal light.
-        vec3.scale(lCamera.forward, lCamera.position, -1);
-        vec3.normalize(lCamera.forward, lCamera.forward);
-
-        // determine up direction
-        const worldUp = [0, 1., 0];
-        vec3.scale(tmp1, lCamera.forward, vec3.dot(worldUp, lCamera.forward));
-        vec3.sub(lCamera.up, worldUp, tmp1);
-        vec3.normalize(lCamera.up, lCamera.up);
-        return lCamera;
-    }
-
     onChangeSSAOState() {
         this.ssaoRenderer.onChangeSSAOState(this.gl);
         this.finalPass.recompileOnNextRun();
@@ -625,7 +603,7 @@ export class DeferredRenderer {
 
     render(scene: Scene, camera: Camera) {
         const gl: WebGLRenderingContext = this.gl;
-        const lCamera: Camera = DeferredRenderer.getLightCamera(scene.lights[0]);
+        const lCamera: Camera = getLightCamera(scene.lights[0]);
 
         if (this.recompileOnNextRun) {
             this.ssaoRenderer.recompileShaders(gl);

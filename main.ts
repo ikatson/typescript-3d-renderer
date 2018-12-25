@@ -256,7 +256,9 @@ function main() {
         scene.addChild(corvette);
         corvette.addChild(aphrodite);
 
-        const frustum = new GameObjectBuilder("frustum").setMeshComponent(new MeshComponent(null)).build();
+        const frustum = new GameObjectBuilder("frustum").setMeshComponent(
+            new MeshComponent(null).setShadowCaster(false).setShadowReceiver(false)
+        ).build();
         scene.addChild(frustum);
 
         // console.log({scene, aphrodite, corvette, plane});
