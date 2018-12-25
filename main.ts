@@ -256,10 +256,10 @@ function main() {
         scene.addChild(corvette);
         corvette.addChild(aphrodite);
 
-        const frustum = new GameObjectBuilder("frustum").setMeshComponent(
-            new MeshComponent(null).setShadowCaster(false).setShadowReceiver(false)
-        ).build();
-        scene.addChild(frustum);
+        // const frustum = new GameObjectBuilder("frustum").setMeshComponent(
+        //     new MeshComponent(null).setShadowCaster(false).setShadowReceiver(false)
+        // ).build();
+        // scene.addChild(frustum);
 
         // console.log({scene, aphrodite, corvette, plane});
 
@@ -271,7 +271,8 @@ function main() {
             if (state.pause.checked) {
                 return;
             }
-            frustum.mesh.replaceBuf(gl, new GLArrayBuffer(gl, makeFrustum(camera, false)));
+
+            // frustum.mesh.replaceBuf(gl, new GLArrayBuffer(gl, makeFrustum(camera, false)));
 
             makeShadowMapCamera(camera, scene, sun.light);
 
