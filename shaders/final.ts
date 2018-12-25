@@ -9,6 +9,8 @@ const LIGHTING_FS = new ShaderSourceBuilder()
     .addChunk(`
 layout(location = 0) out vec4 color;
 
+#define SHADOW_MAP_FLOAT_ERROR 0.9999
+
 uniform sampler2D u_ssaoTx;
 uniform sampler2D u_shadowmapTx;
 
@@ -129,7 +131,7 @@ void main() {
 
             vec2 texmapscale = vec2(1. / SHADOW_MAP_WIDTH, 1. / SHADOW_MAP_HEIGHT);
 
-            int sum = 0;
+            int notInShadowSamples = 0;
             float x, y;
             float shadowMapDepth;
             vec2 base = posLSS.xy * 0.5 + 0.5;
@@ -137,14 +139,30 @@ void main() {
             for (y = -1.5; y <= 1.5; y += 1.0) {
                 for (x = -1.5; x <= 1.5; x += 1.0) {
                     vec2 offset = base + vec2(x, y) * texmapscale;
+                    
                     // the depth buffer texture is clamped to 0, 1, so unclamp.
                     shadowMapDepth = texture(u_shadowmapTx, offset).r * 2. - 1.;
-                    if (abs(offset.x) > 1. || abs(offset.y) > 1. || abs(posLSS.z) > 1.01 || shadowMapDepth > posLSS.z - bias)  {
-                        sum++;
+                    
+                    // out of bounds by X or Y
+                    if (offset.x < 0. || offset.y < 0. || offset.x > 1. || offset.y > 1.) {
+                        notInShadowSamples++;
+                        continue;
+                    }
+                    
+                    // out of bounds by Z case
+                    if (abs(posLSS.z) > SHADOW_MAP_FLOAT_ERROR) {
+                        // if out of bounds by Z, then it's in shadow if there's anything else in view (i.e. there's depth)
+                        if (abs(shadowMapDepth) < SHADOW_MAP_FLOAT_ERROR) {
+                            continue;
+                        }
+                        notInShadowSamples++;
+                        continue;
+                    } else if (shadowMapDepth > posLSS.z - bias) {
+                        notInShadowSamples++;
                     }
                 }
             }
-            l.intensity *= float(sum) / 16.0;
+            l.intensity *= float(notInShadowSamples) / 16.0;
         }
         #endif
 

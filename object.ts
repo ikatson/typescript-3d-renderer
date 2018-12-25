@@ -57,7 +57,7 @@ export class MeshComponent extends Component {
 
 export class BoundingBoxComponent extends Component {
     box: AxisAlignedBox;
-    visible: boolean = true;
+    visible: boolean = false;
     private glArrayBuffer: GLArrayBuffer;
     constructor(box: AxisAlignedBox) {
         super();

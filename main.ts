@@ -55,8 +55,8 @@ function main() {
                 checked: true,
             },
             bias: {
-                fixed: {label: 'Fixed bias', value: 0.001, min: 0, step: 0.0001, onChange: ui.funcRef()},
-                normal: {label: 'Normal bias', value: 0.0001, min: 0, step: 0.0001, onChange: ui.funcRef()},
+                fixed: {label: 'Fixed bias', value: 0.01, min: 0, step: 0.0001, onChange: ui.funcRef()},
+                normal: {label: 'Normal bias', value: 0.01, min: 0, step: 0.0001, onChange: ui.funcRef()},
             }
         },
         ssao: {
@@ -186,7 +186,6 @@ function main() {
                 new MeshComponent(arrayBuf.intoGLArrayBuffer(gl))
             ).build();
             aphrodite.boundingBox = new BoundingBoxComponent(arrayBuf.computeBoundingBox());
-            aphrodite.boundingBox.visible = true;
             aphrodite.transform.scale = [1/3, 1/3, 1/3];
             aphrodite.transform.rotation = [0, -Math.PI / 2.0, 0];
             aphrodite.transform.position = [0, 1., 0];
