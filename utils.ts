@@ -5,10 +5,14 @@ import {
     GLArrayBufferData,
     GLArrayBufferDataParams,
     GLArrayBuffer,
-    GLArrayBufferDataIterResult
+    GLArrayBufferDataIterResult, computeBoundingBox
 } from "./glArrayBuffer.js";
 import {Camera} from "./camera.js";
 import {Box} from "./box.js";
+import {Scene} from "./scene.js";
+import {GameObject} from "./object.js";
+import {LightComponent} from "./object.js";
+import {debug} from "util";
 
 export const QuadVertices = new Float32Array([
     -1.0, 1.0,
@@ -124,14 +128,17 @@ export const tmpMatrix = (function () {
 export const makeFrustum = (camera: Camera): GLArrayBufferData => {
     const tmp = tmpMatrix();
     const camToWorld = camera.getCameraToWorld();
-    const cubeVertices = new Box().asWireFrameBuffer();
+    const cubeVertices = new Box().asVerticesBuffer();
 
     mat4.invert(tmp, camera.projectionMatrix());
 
     const data = [];
 
     cubeVertices.iterData((i: GLArrayBufferDataIterResult) => {
-        const v = i.vertex;
+        let v = i.vertex;
+        if (v.length != 4) {
+            v = [...v, 1.];
+        }
         vec4.transformMat4(v, v, tmp);
         vec4.scale(v, v, 1. / v[3]);
         vec4.transformMat4(v, v, camToWorld);
@@ -143,19 +150,50 @@ export const makeFrustum = (camera: Camera): GLArrayBufferData => {
 };
 
 
-export const makeCameraThatBoundsAnotherOne = (camera: Camera, position: number[], cubeVertices: GLArrayBufferData): Camera => {
-    const tmp = tmpMatrix();
-    mat4.invert(tmp, camera.projectionMatrix());
+export const makeShadowMapCamera = (camera: Camera, scene: Scene, light: LightComponent): Camera => {
+    const frustum = makeFrustum(camera);
 
-    // debugger;
-    cubeVertices.iterData((i: GLArrayBufferDataIterResult) => {
-        const v = i.vertex;
-        const n = i.normal;
-        vec4.transformMat4(v, v, tmp);
-        vec4.transformMat4(n, n, tmp);
-        vec4.scale(v, v, 1. / v[3]);
+    const forward = vec3.create();
+    const up = vec3.create();
+    const tmpv3 = vec3.create();
+
+    // determine forward direction.
+    // TODO: in this case the sun just looks at "0,0,0", and acts like a point light,
+    // TODO: CHANGE IT BY ADDITION "direction"
+    // not orthogonal light.
+    vec3.scale(forward, light.object.transform.position, -1);
+    vec3.normalize(forward, forward);
+
+    // determine up direction
+    const worldUp = [0, 1., 0];
+    vec3.scale(tmpv3, forward, vec3.dot(worldUp, forward));
+    vec3.sub(up, worldUp, tmpv3);
+    vec3.normalize(up, up);
+
+    const lCamera = new Camera(1);
+    lCamera.up = up;
+    lCamera.forward = forward;
+
+    const lWorldToCamera = lCamera.getWorldToCamera();
+
+    const objectsToBind = [frustum];
+
+    scene.children.forEach(o => {
+        const bboxForObj = (o: GameObject) => {
+            o.children.forEach(c => {
+                bboxForObj(c);
+            });
+
+            if (!(o.mesh && o.mesh.shadowCaster && o.boundingBox)) {
+                return;
+            }
+
+            objectsToBind.push(o.boundingBox.box.asVerticesBuffer().translate(o.transform.getModelToWorld()).translate(lWorldToCamera));
+        };
+
+        bboxForObj(o);
     });
 
-    const result = new Camera(1.);
-    return result;
+    const box = computeBoundingBox(objectsToBind);
+
 };

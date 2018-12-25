@@ -131,14 +131,15 @@ export class TransformComponent extends Component {
 export class GameObject {
     children: GameObject[] = [];
     parent: GameObject;
-
+    name: string;
     transform: TransformComponent;
     mesh: MeshComponent = null;
     light: LightComponent = null;
     boundingBox: BoundingBoxComponent = null;
 
-    constructor() {
+    constructor(name: string) {
         this.transform = new TransformComponent(this);
+        this.name = name;
     }
 
     addChild(o: GameObject) {
@@ -150,8 +151,8 @@ export class GameObject {
 export class GameObjectBuilder {
     o: GameObject;
 
-    constructor() {
-        this.o = new GameObject();
+    constructor(name: string) {
+        this.o = new GameObject(name);
     }
 
     setMeshComponent(meshComponent: MeshComponent): GameObjectBuilder {

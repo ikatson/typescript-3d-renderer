@@ -26,6 +26,16 @@ export class Box {
         ]
     }
 
+    asVerticesBuffer(): GLArrayBufferData {
+        const params = new GLArrayBufferDataParams(false, false, 8);
+        params.elementSize = 3;
+        const data = [];
+        this.uniqueVertices().forEach(v => {
+            data.push(...v);
+        });
+        return new GLArrayBufferData(new Float32Array(data), params);
+    }
+
     asWireFrameBuffer(): GLArrayBufferData {
         const params = new GLArrayBufferDataParams(false, false, 24);
         params.elementSize = 3;

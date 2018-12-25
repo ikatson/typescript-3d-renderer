@@ -7,7 +7,7 @@ import {
     makeFrustum,
     makeCameraThatBoundsAnotherOne,
     QuadArrayBufferData,
-    tmpMatrix
+    tmpMatrix, makeShadowMapCamera
 } from "./utils.js";
 import {ProgressBar, ProgressBarCommon} from "./progressbar.js";
 import {BoundingBoxComponent, GameObject, GameObjectBuilder, LightComponent, MeshComponent} from "./object.js";
@@ -20,6 +20,7 @@ import {GLArrayBuffer} from "./glArrayBuffer.js";
 import * as ui from "./ui.js";
 import {SSAOConfig, SSAOState} from "./SSAOState.js";
 import {Box} from "./box.js";
+import {array} from "prop-types";
 
 
 const originZero = vec3.create();
@@ -172,7 +173,7 @@ function main() {
     Promise.all([
         fetchObject('resources/aphrodite/aphrodite.obj', onHeaders).then(parser => {
             const arrayBuf = parser.getArrayBuffer();
-            const aphrodite = new GameObjectBuilder().setMeshComponent(
+            const aphrodite = new GameObjectBuilder("aphrodite.obj").setMeshComponent(
                 new MeshComponent(arrayBuf.intoGLArrayBuffer(gl))
             ).build();
             aphrodite.boundingBox = new BoundingBoxComponent(arrayBuf.computeBoundingBox());
@@ -184,9 +185,10 @@ function main() {
             return aphrodite;
         }),
         fetchObject('resources/corvette/corvette.obj', onHeaders).then(parser => {
-            const corvette = new GameObjectBuilder().setMeshComponent(new MeshComponent(
-                parser.getArrayBuffer().intoGLArrayBuffer(gl),
-            )).build();
+            const arrayBuffer = parser.getArrayBuffer();
+            const corvette = new GameObjectBuilder("corvette.obj").setMeshComponent(new MeshComponent(
+                arrayBuffer.intoGLArrayBuffer(gl),
+            )).setBoundingBoxComponent(new BoundingBoxComponent(arrayBuffer.computeBoundingBox())).build();
             corvette.transform.position = [0, -1., 0];
             corvette.transform.update();
             return corvette;
@@ -232,7 +234,7 @@ function main() {
 
         const v3 = v => [v, v, v];
 
-        const sun = new GameObjectBuilder().setLightComponent(new LightComponent()).build();
+        const sun = new GameObjectBuilder("sun").setLightComponent(new LightComponent()).build();
         sun.transform.position = [2., 2., -2.];
         sun.transform.update();
         sun.light.radius = 0;
@@ -243,7 +245,7 @@ function main() {
 
         scene.lights = [sun];
 
-        const plane = new GameObjectBuilder().setMeshComponent(new MeshComponent(planeMesh)).build();
+        const plane = new GameObjectBuilder("plane").setMeshComponent(new MeshComponent(planeMesh)).build();
         plane.mesh.setShadowCaster(false);
         plane.transform.position = [0, -0.8, 0];
         plane.transform.scale = [5, 5, 5];
@@ -254,7 +256,7 @@ function main() {
         scene.addChild(corvette);
         corvette.addChild(aphrodite);
 
-        const frustum = new GameObjectBuilder().setMeshComponent(
+        const frustum = new GameObjectBuilder("frustum").setMeshComponent(
             new MeshComponent(new Box().asWireFrameBuffer().intoGLArrayBuffer(gl)).setRenderMode(gl.LINE_STRIP)
         ).build();
         scene.addChild(frustum);
@@ -269,9 +271,11 @@ function main() {
             if (state.pause.checked) {
                 return;
             }
-
             frustum.mesh.arrayBuffer.delete(gl);
             frustum.mesh.arrayBuffer = new GLArrayBuffer(gl, makeFrustum(camera));
+
+            makeShadowMapCamera(camera, scene, sun.light);
+            return;
 
             pressedKeys.forEach((v, k) => {
                 const moveSpeed = delta * 0.0015;
