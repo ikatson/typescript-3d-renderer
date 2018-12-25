@@ -116,12 +116,12 @@ export class GBuffer {
 
                 gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2]);
 
-                gl.drawArrays(o.mesh.renderMode,0, o.mesh.arrayBuffer.params.vertexCount);
+                o.mesh.draw(gl);
 
                 if (o.boundingBox && o.boundingBox.visible) {
                     const buf = o.boundingBox.asArrayBuffer(gl);
                     buf.prepareMeshVertexAndShaderDataForRendering(gl, program);
-                    gl.drawArrays(gl.LINES, 0, buf.params.vertexCount);
+                    buf.draw(gl);
                 }
             }
 
@@ -255,7 +255,7 @@ export class SSAORenderer {
 
             // Draw
             withViewport(gl, this.width, this.height, () => {
-                this.fullScreenQuad.drawArrays(gl);
+                this.fullScreenQuad.draw(gl);
             })
         };
 
@@ -291,10 +291,7 @@ export class SSAORenderer {
                 [gl.canvas.width / this.ssaoConfig.noiseScale, gl.canvas.height / this.ssaoConfig.noiseScale]
             );
 
-            // Draw
-            // withViewport(gl, this.width, this.height, () => {
-                this.fullScreenQuad.drawArrays(gl);
-            // })
+            this.fullScreenQuad.draw(gl);
         };
 
         firstPass();
@@ -373,7 +370,8 @@ export class ShadowMapRenderer {
             gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelViewMatrix"), false, modelViewMatrix);
 
             o.mesh.prepareMeshVertexAndShaderDataForRendering(gl, s, false, false);
-            o.mesh.arrayBuffer.draw(gl);
+            o.mesh.draw(gl);
+
             o.children.forEach(drawObject);
         };
 
@@ -520,7 +518,7 @@ export class FinalLightingRenderer {
         gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_cameraToLightCamera"), false, cameraToLightCamera);
 
         // Draw
-        this.fullScreenQuad.drawArrays(gl);
+        this.fullScreenQuad.draw(gl);
         if (this.config.showLayer === ShowLayer.Final) {
             this.renderLightVolumes(gl, camera, scene);
         }

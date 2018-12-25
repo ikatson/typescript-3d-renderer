@@ -19,7 +19,7 @@ import {DeferredRenderer, DeferredRendererConfig, ShowLayer} from "./deferredRen
 import {GLArrayBuffer} from "./glArrayBuffer.js";
 import * as ui from "./ui.js";
 import {SSAOConfig, SSAOState} from "./SSAOState.js";
-import {Box} from "./box.js";
+import {AxisAlignedBox} from "./axisAlignedBox.js";
 import {array} from "prop-types";
 
 
@@ -257,7 +257,8 @@ function main() {
         corvette.addChild(aphrodite);
 
         const frustum = new GameObjectBuilder("frustum").setMeshComponent(
-            new MeshComponent(new Box().asWireFrameBuffer().intoGLArrayBuffer(gl)).setRenderMode(gl.LINE_STRIP)
+            // the "buf" will be set each frame
+            new MeshComponent(null)
         ).build();
         scene.addChild(frustum);
 
@@ -271,11 +272,9 @@ function main() {
             if (state.pause.checked) {
                 return;
             }
-            frustum.mesh.arrayBuffer.delete(gl);
-            frustum.mesh.arrayBuffer = new GLArrayBuffer(gl, makeFrustum(camera));
+            frustum.mesh.replaceBuf(gl, new GLArrayBuffer(gl, makeFrustum(camera, false)));
 
             makeShadowMapCamera(camera, scene, sun.light);
-            return;
 
             pressedKeys.forEach((v, k) => {
                 const moveSpeed = delta * 0.0015;

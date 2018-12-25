@@ -1,11 +1,24 @@
 import { ShaderProgram } from "./shaders.js";
-import {Box} from "./box.js";
+import {AxisAlignedBox} from "./axisAlignedBox.js";
 import {mat4, vec4} from "./gl-matrix.js";
 
 const FLOAT_BYTES = 4;
 const VEC3 = 3;
 const VEC4 = 4;
 const UV_SIZE = 2;
+
+
+export enum ArrayBufferDataType {
+    TRIANGLES = WebGLRenderingContext.TRIANGLES,
+    LINES = WebGLRenderingContext.LINES,
+    LINE_STRIP = WebGLRenderingContext.LINE_STRIP,
+    POINTS = WebGLRenderingContext.POINTS,
+    TRIANGLE_STRIP = WebGLRenderingContext.TRIANGLE_STRIP,
+}
+
+export function ArrayBufferDataTypeToGL(a: ArrayBufferDataType) {
+    return a;
+}
 
 export class GLArrayBufferDataParams {
     // how many floats per element
@@ -16,12 +29,14 @@ export class GLArrayBufferDataParams {
     hasNormals: boolean;
     hasUVs: boolean;
     vertexCount: number;
-    isStrip = false;
 
-    constructor(hasNormals: boolean, hasUVs: boolean, vertexCount: number) {
+    dataType: ArrayBufferDataType = ArrayBufferDataType.TRIANGLES;
+
+    constructor(hasNormals: boolean, hasUVs: boolean, vertexCount: number, dataType: ArrayBufferDataType) {
         this.hasNormals = hasNormals;
         this.hasUVs = hasUVs;
         this.vertexCount = vertexCount;
+        this.dataType = dataType || this.dataType;
     }
     computeStrideInElements() {
         return this.computeStrideInBytes() / FLOAT_BYTES;
@@ -50,10 +65,10 @@ export type GLArrayBufferDataIterResult = {
     uv: Float32Array,
 }
 
-type DataOrBoundingBox = GLArrayBufferData | Box;
+type DataOrBoundingBox = GLArrayBufferData | AxisAlignedBox;
 
-export const computeBoundingBox = (objects: DataOrBoundingBox[]): Box => {
-    const b = new Box();
+export const computeBoundingBox = (objects: DataOrBoundingBox[]): AxisAlignedBox => {
+    const b = new AxisAlignedBox();
     const min = [Infinity, Infinity, Infinity];
     const max = [-Infinity, -Infinity, -Infinity];
     const compareAndSet = (out: number[] | Float32Array, inp: number[] | Float32Array, f: (v: number, v1: number) => (number)) => {
@@ -68,7 +83,7 @@ export const computeBoundingBox = (objects: DataOrBoundingBox[]): Box => {
                 compareAndSet(min, v.vertex, Math.min);
                 compareAndSet(max, v.vertex, Math.max);
             });
-        } else if (o instanceof Box) {
+        } else if (o instanceof AxisAlignedBox) {
             compareAndSet(min, o.min, Math.min);
             compareAndSet(min, o.max, Math.max);
         }
@@ -115,7 +130,7 @@ export class GLArrayBufferData {
         return new GLArrayBufferData(new Float32Array(result), this.params);
     }
 
-    computeBoundingBox(): Box {
+    computeBoundingBox(): AxisAlignedBox {
         return computeBoundingBox([this]);
     }
 
@@ -138,12 +153,14 @@ export class GLArrayBufferData {
 export class GLArrayBuffer {
     buffer: WebGLBuffer;
     params: GLArrayBufferDataParams;
-    constructor(gl: WebGLRenderingContext, data: GLArrayBufferData, usage?: number) {
+
+    constructor(gl: WebGLRenderingContext, data: GLArrayBufferData, usage?: number, defaultRenderMode?: GLenum) {
         if (usage === undefined) {
             usage = gl.STATIC_DRAW;
         }
         this.buffer = gl.createBuffer();
         this.params = data.params;
+
         gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
         gl.bufferData(gl.ARRAY_BUFFER, data.buf, usage);
     }
@@ -177,8 +194,8 @@ export class GLArrayBuffer {
         gl.vertexAttribPointer(attribLocation, this.params.uvSize, gl.FLOAT, false, this.params.computeStrideInBytes(), this.params.computeUVOffset());
     }
 
-    draw(gl: WebGLRenderingContext) {
-        gl.drawArrays(this.params.isStrip ? gl.TRIANGLE_STRIP : gl.TRIANGLES, 0, this.params.vertexCount)
+    draw(gl: WebGLRenderingContext, renderMode?: number) {
+        gl.drawArrays(renderMode || ArrayBufferDataTypeToGL(this.params.dataType), 0, this.params.vertexCount)
     }
 
     delete(gl: WebGLRenderingContext) {

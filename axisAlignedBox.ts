@@ -1,6 +1,6 @@
-import {GLArrayBufferData, GLArrayBufferDataParams} from "./glArrayBuffer.js";
+import {ArrayBufferDataType, GLArrayBufferData, GLArrayBufferDataParams} from "./glArrayBuffer.js";
 
-export class Box {
+export class AxisAlignedBox {
     min: number[] | Float32Array = new Float32Array([-1, -1, -1]);
     max: number[] | Float32Array = new Float32Array([1, 1, 1]);
 
@@ -27,7 +27,7 @@ export class Box {
     }
 
     asVerticesBuffer(): GLArrayBufferData {
-        const params = new GLArrayBufferDataParams(false, false, 8);
+        const params = new GLArrayBufferDataParams(false, false, 8, ArrayBufferDataType.POINTS);
         params.elementSize = 3;
         const data = [];
         this.uniqueVertices().forEach(v => {
@@ -37,7 +37,7 @@ export class Box {
     }
 
     asWireFrameBuffer(): GLArrayBufferData {
-        const params = new GLArrayBufferDataParams(false, false, 24);
+        const params = new GLArrayBufferDataParams(false, false, 24, ArrayBufferDataType.LINES);
         params.elementSize = 3;
 
         const data = [];

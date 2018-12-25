@@ -37,7 +37,7 @@ export class ProgressBarCommon {
         }
         `)
         this.program = new ShaderProgram(gl, this.vs, this.fs);
-        
+
         this.posLoc = this.program.getAttribLocation(gl, "a_pos");
         this.percentLoc = this.program.getUniformLocation(gl, "percent")
     }
@@ -62,7 +62,7 @@ export class ProgressBar {
     }
     render(gl: WebGLRenderingContext, percent: number) {
         gl.uniform1f(this.common.percentLoc, percent);
-        this.common.fullScreenBuffer.drawArrays(gl);
+        this.common.fullScreenBuffer.draw(gl);
     }
     delete() {
 

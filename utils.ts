@@ -1,18 +1,18 @@
-import { vec3, mat4, vec4 } from "./gl-matrix.js";
-import { VertexShader } from "./shaders.js";
-import { fetchObject, ObjParser } from "./objparser.js";
+import {mat4, vec3, vec4} from "./gl-matrix.js";
+import {VertexShader} from "./shaders.js";
+import {fetchObject, ObjParser} from "./objparser.js";
 import {
-    GLArrayBufferData,
-    GLArrayBufferDataParams,
+    ArrayBufferDataType,
+    computeBoundingBox,
     GLArrayBuffer,
-    GLArrayBufferDataIterResult, computeBoundingBox
+    GLArrayBufferData,
+    GLArrayBufferDataIterResult,
+    GLArrayBufferDataParams
 } from "./glArrayBuffer.js";
 import {Camera} from "./camera.js";
-import {Box} from "./box.js";
+import {AxisAlignedBox} from "./axisAlignedBox.js";
 import {Scene} from "./scene.js";
-import {GameObject} from "./object.js";
-import {LightComponent} from "./object.js";
-import {debug} from "util";
+import {GameObject, LightComponent} from "./object.js";
 
 export const QuadVertices = new Float32Array([
     -1.0, 1.0,
@@ -23,9 +23,8 @@ export const QuadVertices = new Float32Array([
 
 export const QuadArrayBufferData = (() => {
     const params = new GLArrayBufferDataParams(
-        false, false, 4
+        false, false, 4, ArrayBufferDataType.TRIANGLE_STRIP
     );
-    params.isStrip = true;
     params.elementSize = 2;
     return new GLArrayBufferData(QuadVertices, params);
 })();
@@ -60,7 +59,7 @@ export class FullScreenQuad {
         this.glArrayBuffer.setupVertexPositionsPointer(gl, vertexPositionLocation);
     }
 
-    drawArrays(gl: WebGLRenderingContext) {
+    draw(gl: WebGLRenderingContext) {
         this.glArrayBuffer.draw(gl);
     }
 }
@@ -125,10 +124,15 @@ export const tmpMatrix = (function () {
     }
 })();
 
-export const makeFrustum = (camera: Camera): GLArrayBufferData => {
+export const makeFrustum = (camera: Camera, pointsOnly: boolean = false): GLArrayBufferData => {
     const tmp = tmpMatrix();
     const camToWorld = camera.getCameraToWorld();
-    const cubeVertices = new Box().asVerticesBuffer();
+    let cubeVertices: GLArrayBufferData;
+    if (pointsOnly){
+        cubeVertices = new AxisAlignedBox().asVerticesBuffer();
+    } else {
+        cubeVertices = new AxisAlignedBox().asWireFrameBuffer();
+    }
 
     mat4.invert(tmp, camera.projectionMatrix());
 
@@ -143,7 +147,7 @@ export const makeFrustum = (camera: Camera): GLArrayBufferData => {
         vec4.scale(v, v, 1. / v[3]);
         vec4.transformMat4(v, v, camToWorld);
 
-        data.push(...v);
+        data.push(...v.slice(0, cubeVertices.params.elementSize));
     });
 
     return new GLArrayBufferData(new Float32Array(data), cubeVertices.params);

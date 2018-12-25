@@ -1,6 +1,8 @@
 import {mat4, vec3} from "./gl-matrix.js";
 import {tmpMatrix} from "./utils.js";
 
+const tmpVec3: vec3 = vec3.create();
+
 export class Camera {
     near: number;
     far: number;
@@ -9,7 +11,7 @@ export class Camera {
     private _right: Float32Array = vec3.create();
     private _projectionMatrix: any;
     private _worldToCamera: any;
-    private _lookAt: any;
+
     private _camToWorldNeedsUpdate: boolean = true;
     private _worldToCamNeedsUpdate: boolean = true;
     private _cameraToWorld: mat4;
@@ -27,7 +29,6 @@ export class Camera {
         this._projectionMatrix = mat4.create();
         this._worldToCamera = mat4.create();
         this._cameraToWorld = mat4.create();
-        this._lookAt = vec3.create();
     }
 
     private _position: Float32Array | number[] | vec3;
@@ -107,8 +108,8 @@ export class Camera {
             r[2], this.up[2], -this.forward[2],0,
             0, 0, 0, 1,
         );
-        vec3.scale(this._lookAt, this.position, -1);
-        mat4.translate(m, m, this._lookAt);
+        vec3.scale(tmpVec3, this.position, -1);
+        mat4.translate(m, m, tmpVec3);
         return m;
     }
 

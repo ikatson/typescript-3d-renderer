@@ -1,4 +1,4 @@
-import { GLArrayBufferData, GLArrayBufferDataParams } from "./glArrayBuffer.js";
+import {ArrayBufferDataType, GLArrayBufferData, GLArrayBufferDataParams} from "./glArrayBuffer.js";
 
 // Parses one object from an object file only.
 
@@ -19,7 +19,7 @@ export class ObjParser {
     }
 
     getArrayBuffer(): GLArrayBufferData {
-        const params = new GLArrayBufferDataParams(this.hasNormals, this.hasUVs, this.getTriangleCount() * 3);
+        const params = new GLArrayBufferDataParams(this.hasNormals, this.hasUVs, this.getTriangleCount() * 3, ArrayBufferDataType.TRIANGLES);
         params.elementSize = 3 + (this.addHomogenous ? 1 : 0);
         params.normalsSize = 3 + (this.addHomogenous ? 1 : 0);
         return new GLArrayBufferData(

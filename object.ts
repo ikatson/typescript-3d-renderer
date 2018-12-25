@@ -1,7 +1,7 @@
 import {mat4, vec3} from "./gl-matrix.js"
 import {ShaderProgram} from "./shaders";
-import {Box} from "./box.js";
-import {GLArrayBuffer} from "./glArrayBuffer.js";
+import {AxisAlignedBox} from "./axisAlignedBox.js";
+import {ArrayBufferDataTypeToGL, GLArrayBuffer} from "./glArrayBuffer.js";
 
 export abstract class Component {
     object: GameObject = null;
@@ -17,15 +17,22 @@ export class MeshComponent extends Component {
     object: GameObject = null;
     shadowCaster: boolean = true;
     shadowReceiver: boolean = true;
-    renderMode: GLenum = WebGLRenderingContext.TRIANGLES;
+    private forceRenderMode: GLenum = undefined;
 
     constructor(buf: GLArrayBuffer) {
         super();
         this.arrayBuffer = buf;
     }
 
+    replaceBuf(gl: WebGLRenderingContext, newBuf: GLArrayBuffer) {
+        if (this.arrayBuffer) {
+            this.arrayBuffer.delete(gl);
+        }
+        this.arrayBuffer = newBuf;
+    }
+
     setRenderMode(m: GLenum): MeshComponent {
-        this.renderMode = m;
+        this.forceRenderMode = m;
         return this;
     }
 
@@ -42,13 +49,17 @@ export class MeshComponent extends Component {
     prepareMeshVertexAndShaderDataForRendering(gl: WebGLRenderingContext, program?: ShaderProgram, normals?: boolean, uv?: boolean) {
         this.arrayBuffer.prepareMeshVertexAndShaderDataForRendering(gl, program, normals, uv);
     }
+
+    draw(gl: WebGLRenderingContext) {
+        this.arrayBuffer.draw(gl, this.forceRenderMode);
+    }
 }
 
 export class BoundingBoxComponent extends Component {
-    box: Box;
+    box: AxisAlignedBox;
     visible: boolean = true;
     private glArrayBuffer: GLArrayBuffer;
-    constructor(box: Box) {
+    constructor(box: AxisAlignedBox) {
         super();
         this.box = box;
     }
