@@ -15,7 +15,7 @@ import {Camera} from "./camera.js";
 
 import {vec3, mat4} from "./gl-matrix.js";
 import {randomLight, Scene} from "./scene.js";
-import {DeferredRenderer, DeferredRendererConfig, ShowLayer} from "./deferredRenderer.js";
+import {DeferredRenderer, DeferredRendererConfig, ShadowMapConfig, ShowLayer} from "./deferredRenderer.js";
 import {GLArrayBuffer} from "./glArrayBuffer.js";
 import * as ui from "./ui.js";
 import {SSAOConfig, SSAOState} from "./SSAOState.js";
@@ -50,7 +50,21 @@ function main() {
                 intensity: {label: 'Intensity', value: 1., min: 0, step: 0.1, onChange: ui.funcRef()},
             }
         },
+        shadowMap: {
+            enable: {
+                onChange: ui.funcRef(),
+                checked: true,
+            },
+            bias: {
+                fixed: {label: 'Fixed bias', value: 0.001, min: 0, step: 0.0001, onChange: ui.funcRef()},
+                normal: {label: 'Normal bias', value: 0.0001, min: 0, step: 0.0001, onChange: ui.funcRef()},
+            }
+        },
         ssao: {
+            enable: {
+                onChange: ui.funcRef(),
+                checked: true,
+            },
             sampleCount: {value: 32, min: 1, step: 1, onChange: ui.funcRef()},
             noiseScale: {value: 4, min: 2, step: 1, onChange: ui.funcRef()},
             radius: {value: 0.25, min: 0.001, step: 0.1, onChange: ui.funcRef(),},
@@ -62,7 +76,7 @@ function main() {
         },
         showLayer: {
             // value: ShowLayer.Final,
-            value: ShowLayer.SSAO,
+            value: ShowLayer.Final,
             onChange: ui.funcRef(),
             options: [
                 {label: 'Final', value: ShowLayer.Final},
@@ -76,15 +90,6 @@ function main() {
         shouldRotate: {
             onChange: ui.funcRef(),
             checked: true
-        },
-        shadowMapEnabled: {
-            onChange: ui.funcRef(),
-            // checked: true
-            checked: false,
-        },
-        enableSsao: {
-            onChange: ui.funcRef(),
-            checked: true,
         },
         pause: {
             onChange: ui.funcRef(),
@@ -101,6 +106,7 @@ function main() {
             ui.FormRow(
                 ui.e('div', ui.c('col-lg'),
                     ui.FormGroup('SSAO',
+                        ui.CheckBoxInput('Enable', state.ssao.enable, state.ssao.enable.onChange),
                         n('Samples', state.ssao.sampleCount),
                         n('Noise scale', state.ssao.noiseScale),
                         n('Radius', state.ssao.radius),
@@ -117,12 +123,16 @@ function main() {
                     ),
                     ui.FormGroup('Other',
                         ui.CheckBoxInput('Should rotate', state.shouldRotate, state.shouldRotate.onChange),
-                        ui.CheckBoxInput('Enable SSAO', state.enableSsao, state.enableSsao.onChange),
-                        ui.CheckBoxInput('Enable Shadowmap', state.shadowMapEnabled, state.shadowMapEnabled.onChange),
+
                         ui.CheckBoxInput('Pause', state.pause, state.pause.onChange),
                     ),
                 ),
                 ui.e('div', ui.c('col-lg'),
+                    ui.FormGroup('Shadow Map',
+                        ui.CheckBoxInput('Enable', state.shadowMap.enable, state.shadowMap.enable.onChange),
+                        n('Fixed bias', state.shadowMap.bias.fixed),
+                        n('Normal bias', state.shadowMap.bias.normal),
+                    ),
                     ui.FormGroup('Lighting',
                         n('Light count', state.lighting.lightCount),
                     ),
@@ -208,6 +218,8 @@ function main() {
 
         // const renderer = new ForwardRenderer(gl);
         const ssaoConfig = new SSAOConfig();
+        const shadowMapConfig = new ShadowMapConfig();
+
         const updateSSAOConfig = () => {
             const c = ssaoConfig;
             const s = state.ssao;
@@ -217,17 +229,26 @@ function main() {
             c.radius = s.radius.value;
             c.noiseScale = s.noiseScale.value;
             c.sampleCount = s.sampleCount.value;
-            c.enabled = state.enableSsao.checked;
+            c.enabled = state.ssao.enable.checked;
             c.blurNormalThreshold = state.ssao.blurNormalThreshold.value;
             c.blurPositionThreshold = state.ssao.blurPositionThreshold.value;
         };
         updateSSAOConfig();
 
+        const updateShadowMapConfig = () => {
+            const c = shadowMapConfig;
+            const s = state.shadowMap;
+            c.enabled = s.enable.checked;
+            c.normalBias = s.bias.normal.value;
+            c.fixedBias = s.bias.fixed.value;
+        };
+        updateShadowMapConfig();
+
         const ssaoState = new SSAOState(gl, ssaoConfig);
         const rendererConfig = new DeferredRendererConfig();
         rendererConfig.ssao = ssaoConfig;
+        rendererConfig.shadowMap = shadowMapConfig;
         rendererConfig.showLayer = state.showLayer.value;
-        rendererConfig.shadowMapEnabled = state.shadowMapEnabled.checked;
 
         const renderer = new DeferredRenderer(gl, rendererConfig, fb, sphereMesh, ssaoState);
         const scene = new Scene();
@@ -387,7 +408,6 @@ function main() {
         state.ssao.sampleCount.onChange.ref = onSSSAOStateParamsChange;
         state.ssao.noiseScale.onChange.ref = onSSSAOStateParamsChange;
         state.ssao.scalePower.onChange.ref = onSSSAOStateParamsChange;
-
         state.ssao.strength.onChange.ref = (v, prev) => {
             renderer.config.ssao.strength = v;
             if (v === 0 || prev === 0) {
@@ -398,6 +418,19 @@ function main() {
         state.ssao.radius.onChange.ref = updateSSAOConfig;
         state.ssao.blurPositionThreshold.onChange.ref = updateSSAOConfig;
         state.ssao.blurNormalThreshold.onChange.ref = updateSSAOConfig;
+        state.ssao.enable.onChange.ref = v => {
+            renderer.config.ssao.enabled = v;
+            console.log('SSAOState enabled', renderer.config.ssao.enabled);
+            renderer.recompileShaders();
+        };
+
+        state.shadowMap.bias.fixed.onChange.ref = updateShadowMapConfig;
+        state.shadowMap.bias.normal.onChange.ref = updateShadowMapConfig;
+        state.shadowMap.enable.onChange.ref = v => {
+            renderer.config.shadowMap.enabled = v;
+            console.log('shadowmap enabled', renderer.config.shadowMap.enabled);
+            renderer.recompileShaders();
+        };
 
         state.lighting.sun.ambient.onChange.ref = v => {
             sun.light.ambient = [v, v, v];
@@ -431,17 +464,7 @@ function main() {
         };
         state.lighting.lightCount.onChange(state.lighting.lightCount.value);
 
-        state.shadowMapEnabled.onChange.ref = v => {
-            renderer.config.shadowMapEnabled = v;
-            console.log('shadowmap enabled', renderer.config.shadowMapEnabled);
-            renderer.recompileShaders();
-        };
 
-        state.enableSsao.onChange.ref = v => {
-            renderer.config.ssao.enabled = v;
-            console.log('SSAOState enabled', renderer.config.ssao.enabled);
-            renderer.recompileShaders();
-        };
 
         state.showLayer.onChange.ref = vstring => {
             const v = ShowLayer[vstring];

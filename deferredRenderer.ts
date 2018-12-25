@@ -18,11 +18,16 @@ import {
 import {SHADOWMAP_SHADERS} from "./shaders/shadowMap.js";
 import {GLArrayBuffer} from "./glArrayBuffer";
 
+export class ShadowMapConfig {
+    enabled: boolean;
+    fixedBias: number = 0.001;
+    normalBias: number = 0.001;
+}
 
 export class DeferredRendererConfig {
     showLayer: ShowLayer = ShowLayer.Final;
     ssao = new SSAOConfig();
-    shadowMapEnabled: boolean = true;
+    shadowMap = new ShadowMapConfig();
 }
 
 export enum ShowLayer {
@@ -87,7 +92,6 @@ export class GBuffer {
     gFrameBuffer: WebGLFramebuffer;
     gBufferShader: ShaderProgram;
     depthRB: WebGLRenderbuffer;
-    shadowMapEnabled: boolean = true;
 
     constructor(gl: WebGLRenderingContext) {
         this.setupGBuffer(gl);
@@ -471,7 +475,7 @@ export class FinalLightingRenderer {
                     .define('SHADOW_MAP_WIDTH', `${this.shadowMapRenderer.shadowMapWidth}.`)
                     .define('SHADOW_MAP_HEIGHT', `${this.shadowMapRenderer.shadowMapHeight}.`)
                     .defineIfTrue('SSAO_ENABLED', this.config.ssao.isEnabled())
-                    .defineIfTrue('SHADOWMAP_ENABLED', this.config.shadowMapEnabled)
+                    .defineIfTrue('SHADOWMAP_ENABLED', this.config.shadowMap.enabled)
                     .defineIfTrue('SHOW_SSAO', this.config.showLayer === ShowLayer.SSAO)
                     .defineIfTrue('SHOW_COLORS', this.config.showLayer === ShowLayer.Color)
                     .defineIfTrue('SHOW_POSITIONS', this.config.showLayer === ShowLayer.Positions)
@@ -504,6 +508,8 @@ export class FinalLightingRenderer {
         bindUniformTx(gl, s, "gbuf_colormap", this.gBuffer.colorTX, 2);
 
         bindUniformTx(gl, s, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
+        gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapFixedBias"), this.config.shadowMap.fixedBias);
+        gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapNormalBias"), this.config.shadowMap.normalBias);
         bindUniformTx(gl, s, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 3);
 
         const cameraViewSpaceToLightCamera = tmpMatrix();
@@ -616,7 +622,7 @@ export class DeferredRenderer {
         if (this._config.ssao.isEnabled()) {
             this.ssaoRenderer.render(gl, camera);
         }
-        if (this._config.shadowMapEnabled) {
+        if (this._config.shadowMap.enabled) {
             this.shadowMap.render(gl, lightCameraWorldToProjectionMatrix, scene);
         }
 

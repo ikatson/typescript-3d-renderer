@@ -14,6 +14,9 @@ uniform sampler2D u_shadowmapTx;
 
 uniform mat4 u_cameraViewSpaceToLightCamera;
 
+uniform float u_shadowMapFixedBias;
+uniform float u_shadowMapNormalBias;
+
 struct light {
     vec3 position;
     vec3 ambient;
@@ -113,7 +116,7 @@ void main() {
         // SHADOW MAP sample
         // Only the first light casts shadows for now
         if (i == 0) {
-            float bias = 0.001 + 0.002 * (1.0 - abs(dot(normal.xyz, normalize(l.position - pos.xyz))));
+            float bias = u_shadowMapFixedBias + u_shadowMapNormalBias * (1.0 - abs(dot(normal.xyz, normalize(l.position - pos.xyz))));
 
             vec4 posLSS = u_cameraViewSpaceToLightCamera * pos;
             posLSS.xyz /= posLSS.w;
@@ -131,6 +134,7 @@ void main() {
             for (y = -1.5; y <= 1.5; y += 1.0) {
                 for (x = -1.5; x <= 1.5; x += 1.0) {
                     vec2 offset = base + vec2(x, y) * texmapscale;
+                    // the depth buffer texture is clamped to 0, 1, so unclamp.
                     shadowMapDepth = texture(u_shadowmapTx, offset).r * 2. - 1.;
                     if (abs(offset.x) > 1. || abs(offset.y) > 1. || abs(posLSS.z) > 1. || shadowMapDepth > posLSS.z - bias)  {
                         sum++;
