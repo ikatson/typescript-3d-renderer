@@ -1,5 +1,5 @@
 import {mat4, vec3} from "./gl-matrix.js";
-import {tmpMatrix} from "./utils.js";
+import {tmpIdentityMatrix} from "./utils.js";
 
 const tmpVec3: vec3 = vec3.create();
 
@@ -152,7 +152,7 @@ export class Camera {
         mat4.fromTranslation(m, this.position);
 
         const r = this.right();
-        const mr = tmpMatrix();
+        const mr = tmpIdentityMatrix();
         mat4.set(mr,
             r[0], r[1], r[2], 0,
             this.up[0], this.up[1], this.up[2], 0,

@@ -1,4 +1,4 @@
-import { ShaderProgram } from "./shaders.js";
+import {ShaderProgram} from "./shaders.js";
 import {AxisAlignedBox} from "./axisAlignedBox.js";
 import {mat4, vec4} from "./gl-matrix.js";
 
@@ -7,6 +7,7 @@ const VEC3 = 3;
 const VEC4 = 4;
 const UV_SIZE = 2;
 
+const tmpVec4 = vec4.create();
 
 export enum ArrayBufferDataType {
     TRIANGLES = WebGLRenderingContext.TRIANGLES,
@@ -109,18 +110,17 @@ export class GLArrayBufferData {
 
     translate(matrix: mat4): GLArrayBufferData {
         const result = [];
-        const tmp = vec4.create();
         this.iterData((i: GLArrayBufferDataIterResult) => {
             let v = i.vertex;
             if (v.length != 4) {
-                tmp[0] = v[0];
-                tmp[1] = v[1];
-                tmp[2] = v[2];
-                tmp[3] = 1.;
-                v = tmp;
+                tmpVec4[0] = v[0];
+                tmpVec4[1] = v[1];
+                tmpVec4[2] = v[2];
+                tmpVec4[3] = 1.;
+                v = tmpVec4;
             }
-            vec4.transformMat4(tmp, v, matrix);
-            result.push(...tmp);
+            vec4.transformMat4(tmpVec4, v, matrix);
+            result.push(...tmpVec4);
 
             // TODO: translate normal
             result.push(...i.normal);

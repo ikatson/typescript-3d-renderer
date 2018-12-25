@@ -116,7 +116,10 @@ export function makeObjLoader(name: string) {
 export const loadSphere = makeObjLoader('resources/sphere.obj');
 export const loadCube = makeObjLoader('resources/cube.obj');
 
-export const tmpMatrix = (function () {
+export const tmpMat4 = mat4.create();
+export const tmpVec3 = vec3.create();
+export const tmpVec4 = vec4.create();
+export const tmpIdentityMatrix = (function () {
     const m = mat4.create();
     return () => {
         mat4.identity(m);
@@ -124,10 +127,8 @@ export const tmpMatrix = (function () {
     }
 })();
 
-export const tmpVec3 = vec3.create();
 
 export const makeWorldSpaceCameraFrustum = (camera: Camera, pointsOnly: boolean = false): GLArrayBufferData => {
-    const tmp = tmpMatrix();
     const camToWorld = camera.getCameraToWorld();
     let cubeVertices: GLArrayBufferData;
     if (pointsOnly){
@@ -136,7 +137,7 @@ export const makeWorldSpaceCameraFrustum = (camera: Camera, pointsOnly: boolean 
         cubeVertices = new AxisAlignedBox().asWireFrameBuffer();
     }
 
-    mat4.invert(tmp, camera.projectionMatrix().matrix);
+    mat4.invert(tmpMat4, camera.projectionMatrix().matrix);
 
     const data = [];
 
@@ -145,7 +146,7 @@ export const makeWorldSpaceCameraFrustum = (camera: Camera, pointsOnly: boolean 
         if (v.length != 4) {
             v = [...v, 1.];
         }
-        vec4.transformMat4(v, v, tmp);
+        vec4.transformMat4(v, v, tmpMat4);
         vec4.scale(v, v, 1. / v[3]);
         vec4.transformMat4(v, v, camToWorld);
 
@@ -187,6 +188,7 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: Ligh
 
     // TODO: we ONLY need to render objects that are intersecting the camera frustum
     // leaving that for another day.
+    // Also we need to LIMIT the resulting bounding box to camera frustum.
     // makeWorldSpaceCameraFrustum(cameraClone, true)
 
     const lightViewSpaceBoundingBoxes: AxisAlignedBox[] = [];
@@ -232,17 +234,16 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: Ligh
 
     // CHECK REMOVE ME
     lightViewSpaceBoundingBoxes.forEach(b => {
-        const tmp = vec3.create();
         b.uniqueVertices().forEach(vertex => {
-            vec3.transformMat4(tmp, vertex, lightClipSpaceMatrix);
+            vec3.transformMat4(tmpVec3, vertex, lightClipSpaceMatrix);
             const check = (v) => {
-                if (Math.abs(v) > 1.1) {
-                    console.log({b: b, bb: bb, transformed: tmp, vertex: vertex, matrix: lightClipSpaceMatrix});
-                    console.error('fuckup!');
+                if (Math.abs(v) > 1.01) {
+                    console.log({b: b, bb: bb, transformed: tmpVec3, vertex: vertex, matrix: lightClipSpaceMatrix});
+                    throw new Error('fuckup!');
                     debugger;
                 }
             };
-            tmp.map(check);
+            tmpVec3.map(check);
         })
     });
 

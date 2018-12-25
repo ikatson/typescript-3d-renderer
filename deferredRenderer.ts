@@ -11,9 +11,8 @@ import {SSAOConfig, SSAOState} from "./SSAOState.js";
 import {
     computeDirectionalLightCameraWorldToProjectionMatrix,
     FullScreenQuad,
-    getLightCameraWorldToProjectionMatrix,
-    glClearColorAndDepth, makeWorldSpaceCameraFrustum,
-    tmpMatrix
+    glClearColorAndDepth,
+    tmpMat4,
 } from "./utils.js";
 import {SHADOWMAP_SHADERS} from "./shaders/shadowMap.js";
 import {GLArrayBuffer} from "./glArrayBuffer";
@@ -116,7 +115,7 @@ export class GBuffer {
         const renderObject = (o: GameObject) => {
             if (o.mesh != null) {
                 const modelWorldMatrix = o.transform.getModelToWorld();
-                const modelViewMatrix = tmpMatrix();
+                const modelViewMatrix = tmpMat4;
                 mat4.multiply(modelViewMatrix, camera.getWorldToCamera(), modelWorldMatrix);
 
                 o.mesh.prepareMeshVertexAndShaderDataForRendering(gl, program);
@@ -509,7 +508,7 @@ export class FinalLightingRenderer {
         gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapFixedBias"), this.config.shadowMap.fixedBias);
         gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapNormalBias"), this.config.shadowMap.normalBias);
         bindUniformTx(gl, s, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 3);
-        const cameraViewSpaceToLightCamera = tmpMatrix();
+        const cameraViewSpaceToLightCamera = tmpMat4;
         mat4.multiply(cameraViewSpaceToLightCamera, lightCameraWorldToProjectionMatrix.matrix, camera.getCameraToWorld());
         gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_cameraViewSpaceToLightCamera"), false, cameraViewSpaceToLightCamera);
         gl.uniform1f(s.getUniformLocation(gl, "u_lightNear"), lightCameraWorldToProjectionMatrix.near);
@@ -549,7 +548,7 @@ export class FinalLightingRenderer {
 
         scene.lights.forEach(light => {
             const modelWorldMatrix = light.transform.getModelToWorld();
-            const modelViewMatrix = tmpMatrix();
+            const modelViewMatrix = tmpMat4;
 
             mat4.multiply(modelViewMatrix, camera.getWorldToCamera(), modelWorldMatrix);
 

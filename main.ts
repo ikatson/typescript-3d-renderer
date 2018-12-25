@@ -1,26 +1,25 @@
-import {fetchObject, ObjParser} from "./objparser.js";
+import {fetchObject} from "./objparser.js";
 import {
     clip,
     FullScreenQuad,
     glClearColorAndDepth,
     initGL,
-    makeWorldSpaceCameraFrustum,
     makeCameraThatBoundsAnotherOne,
+    makeShadowMapCamera,
     QuadArrayBufferData,
-    tmpMatrix, makeShadowMapCamera
+    tmpVec3
 } from "./utils.js";
 import {ProgressBar, ProgressBarCommon} from "./progressbar.js";
-import {BoundingBoxComponent, GameObject, GameObjectBuilder, LightComponent, MeshComponent} from "./object.js";
+import {BoundingBoxComponent, GameObjectBuilder, LightComponent, MeshComponent} from "./object.js";
 import {Camera} from "./camera.js";
 
-import {vec3, mat4} from "./gl-matrix.js";
+import {vec3} from "./gl-matrix.js";
 import {randomLight, Scene} from "./scene.js";
 import {DeferredRenderer, DeferredRendererConfig, ShadowMapConfig, ShowLayer} from "./deferredRenderer.js";
 import {GLArrayBuffer} from "./glArrayBuffer.js";
 import * as ui from "./ui.js";
 import {SSAOConfig, SSAOState} from "./SSAOState.js";
-import {AxisAlignedBox} from "./axisAlignedBox.js";
-import {array} from "prop-types";
+import {tmpVec3} from "./utils.js";
 
 
 const originZero = vec3.create();
@@ -277,14 +276,6 @@ function main() {
         scene.addChild(corvette);
         corvette.addChild(aphrodite);
 
-        // const frustum = new GameObjectBuilder("frustum").setMeshComponent(
-        //     new MeshComponent(null).setShadowCaster(false).setShadowReceiver(false)
-        // ).build();
-        // scene.addChild(frustum);
-
-        // console.log({scene, aphrodite, corvette, plane});
-
-        const tmpVec = vec3.create();
         let delta = 1000. / 60;
         let start = new Date().getTime();
 
@@ -295,41 +286,37 @@ function main() {
                 return;
             }
 
-            // frustum.mesh.replaceBuf(gl, new GLArrayBuffer(gl, makeFrustum(camera, false)));
-
-            // makeShadowMapCamera(camera, scene, sun.light);
-
             pressedKeys.forEach((v, k) => {
                 const moveSpeed = delta * 0.0015;
                 switch (k) {
                     case 'e':
-                        vec3.scale(tmpVec, camera.up, moveSpeed);
-                        vec3.add(camera.position, camera.position, tmpVec);
+                        vec3.scale(tmpVec3, camera.up, moveSpeed);
+                        vec3.add(camera.position, camera.position, tmpVec3);
                         camera.update();
                         break;
                     case 'z':
-                        vec3.scale(tmpVec, camera.up, -moveSpeed);
-                        vec3.add(camera.position, camera.position, tmpVec);
+                        vec3.scale(tmpVec3, camera.up, -moveSpeed);
+                        vec3.add(camera.position, camera.position, tmpVec3);
                         camera.update();
                         break;
                     case 'w':
-                        vec3.scale(tmpVec, camera.forward, moveSpeed);
-                        vec3.add(camera.position, camera.position, tmpVec);
+                        vec3.scale(tmpVec3, camera.forward, moveSpeed);
+                        vec3.add(camera.position, camera.position, tmpVec3);
                         camera.update();
                         break;
                     case 's':
-                        vec3.scale(tmpVec, camera.forward, -moveSpeed);
-                        vec3.add(camera.position, camera.position, tmpVec);
+                        vec3.scale(tmpVec3, camera.forward, -moveSpeed);
+                        vec3.add(camera.position, camera.position, tmpVec3);
                         camera.update();
                         break;
                     case 'a':
-                        vec3.scale(tmpVec, camera.right(), -moveSpeed);
-                        vec3.add(camera.position, camera.position, tmpVec);
+                        vec3.scale(tmpVec3, camera.right(), -moveSpeed);
+                        vec3.add(camera.position, camera.position, tmpVec3);
                         camera.update();
                         break;
                     case 'd':
-                        vec3.scale(tmpVec, camera.right(), moveSpeed);
-                        vec3.add(camera.position, camera.position, tmpVec);
+                        vec3.scale(tmpVec3, camera.right(), moveSpeed);
+                        vec3.add(camera.position, camera.position, tmpVec3);
                         camera.update();
                         break;
                 }
@@ -372,12 +359,11 @@ function main() {
                 camera.fov = initialFov * zoom;
                 camera.update()
             } else if (ev.shiftKey) {
-                const tmp = vec3.create();
-                vec3.scale(tmp, camera.up, -ev.deltaY * 0.01);
-                vec3.add(camera.position, camera.position, tmp);
+                vec3.scale(tmpVec3, camera.up, -ev.deltaY * 0.01);
+                vec3.add(camera.position, camera.position, tmpVec3);
 
-                vec3.scale(tmp, camera.right(), ev.deltaX * 0.01);
-                vec3.add(camera.position, camera.position, tmp);
+                vec3.scale(tmpVec3, camera.right(), ev.deltaX * 0.01);
+                vec3.add(camera.position, camera.position, tmpVec3);
                 camera.update()
             } else {
                 pitch += ev.deltaY * sensitivityY * camera.fov;
