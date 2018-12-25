@@ -85,7 +85,7 @@ export const computeBoundingBox = (objects: DataOrBoundingBox[]): AxisAlignedBox
             });
         } else if (o instanceof AxisAlignedBox) {
             compareAndSet(min, o.min, Math.min);
-            compareAndSet(min, o.max, Math.max);
+            compareAndSet(max, o.max, Math.max);
         }
     });
 

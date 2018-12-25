@@ -126,7 +126,7 @@ export const tmpMatrix = (function () {
 
 export const tmpVec3 = vec3.create();
 
-export const makeFrustum = (camera: Camera, pointsOnly: boolean = false): GLArrayBufferData => {
+export const makeWorldSpaceCameraFrustum = (camera: Camera, pointsOnly: boolean = false): GLArrayBufferData => {
     const tmp = tmpMatrix();
     const camToWorld = camera.getCameraToWorld();
     let cubeVertices: GLArrayBufferData;
@@ -155,58 +155,31 @@ export const makeFrustum = (camera: Camera, pointsOnly: boolean = false): GLArra
     return new GLArrayBufferData(new Float32Array(data), cubeVertices.params);
 };
 
-export const getLightCameraWorldToProjectionMatrix = (light: GameObject): ProjectionMatrix => {
-    let lCamera = new Camera(1.);
-    lCamera.fov = 86.;
-    lCamera.near = 0.1;
-    lCamera.far = 10.;
-    lCamera.position = light.transform.position;
-
-    // determine forward direction.
-    // TODO: in this case the sun just looks at "0,0,0", and acts like a point light,
-    // not orthogonal light.
-    vec3.scale(lCamera.forward, lCamera.position, -1);
-    vec3.normalize(lCamera.forward, lCamera.forward);
-
-    // determine up direction
-    const worldUp = [0, 1., 0];
-    vec3.scale(tmpVec3, lCamera.forward, vec3.dot(worldUp, lCamera.forward));
-    vec3.sub(lCamera.up, worldUp, tmpVec3);
-    vec3.normalize(lCamera.up, lCamera.up);
-
-    const wtc = lCamera.getWorldToCamera();
-    const proj = lCamera.projectionMatrix().matrix;
-
-    mat4.multiply(wtc, proj, wtc);
-    return new ProjectionMatrix(lCamera.near, lCamera.far, wtc);
+export const makeDirectionalLightWorldToCameraMatrix = (direction: number[]): any => {
+    // A new "camera" IS NOT needed here, but we only need the world to camera matrix from it.
+    let tempCamera = new Camera(1.);
+    tempCamera.forward = direction;
+    tempCamera.calculateUpFromWorldUp();
+    tempCamera.update();
+    return tempCamera.getWorldToCamera();
 };
 
+export const getLightDirection = (outVec: any, l: LightComponent): any => {
+    vec3.scale(outVec, l.object.transform.position, -1);
+    vec3.normalize(outVec, outVec);
+    return outVec;
+};
 
-export const makeShadowMapCamera = (camera: Camera, scene: Scene, light: LightComponent): Camera => {
-    const frustum = makeFrustum(camera);
+export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: LightComponent, camera: Camera, scene: Scene): ProjectionMatrix => {
+    const wtc = makeDirectionalLightWorldToCameraMatrix(getLightDirection(tmpVec3, light));
+    const cameraClone = camera.clone();
+    // cameraClone.far /= 5.;
 
-    const forward = vec3.create();
-    const up = vec3.create();
-    // determine forward direction.
-    // TODO: in this case the sun just looks at "0,0,0", and acts like a point light,
-    // TODO: CHANGE IT BY ADDITION "direction"
-    // not orthogonal light.
-    vec3.scale(forward, light.object.transform.position, -1);
-    vec3.normalize(forward, forward);
-
-    // determine up direction
-    const worldUp = [0, 1., 0];
-    vec3.scale(tmpVec3, forward, vec3.dot(worldUp, forward));
-    vec3.sub(up, worldUp, tmpVec3);
-    vec3.normalize(up, up);
-
-    const lCamera = new Camera(1);
-    lCamera.up = up;
-    lCamera.forward = forward;
-
-    const lWorldToCamera = lCamera.getWorldToCamera();
-
-    const objectsToBind = [frustum];
+    const worldSpaceBoundingBoxes = [
+        makeWorldSpaceCameraFrustum(cameraClone, true)
+            .translate(wtc)
+            .computeBoundingBox()
+    ];
 
     scene.children.forEach(o => {
         const bboxForObj = (o: GameObject) => {
@@ -218,12 +191,37 @@ export const makeShadowMapCamera = (camera: Camera, scene: Scene, light: LightCo
                 return;
             }
 
-            objectsToBind.push(o.boundingBox.box.asVerticesBuffer().translate(o.transform.getModelToWorld()).translate(lWorldToCamera));
+            worldSpaceBoundingBoxes.push(
+                o.boundingBox.box.asVerticesBuffer()
+                    .translate(o.transform.getModelToWorld())
+                    .translate(wtc)
+                    .computeBoundingBox()
+            );
         };
 
         bboxForObj(o);
     });
 
-    const box = computeBoundingBox(objectsToBind);
+    debugger;
 
+    const bb = computeBoundingBox(worldSpaceBoundingBoxes);
+    const resultMatrix = mat4.create();
+
+    let left, right, bottom, top, near, far: number;
+    const [x, y, z] = [0, 1, 2];
+
+    left = bb.min[x];
+    right = bb.max[x];
+
+    bottom = bb.min[y];
+    top = bb.max[y];
+
+    near = bb.min[z];
+    far = bb.max[z];
+
+    mat4.ortho(resultMatrix, left, right, bottom, top, near, far);
+
+    mat4.multiply(resultMatrix, resultMatrix, wtc);
+
+    return new ProjectionMatrix(near, far, resultMatrix);
 };

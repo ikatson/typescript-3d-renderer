@@ -4,7 +4,7 @@ import {
     FullScreenQuad,
     glClearColorAndDepth,
     initGL,
-    makeFrustum,
+    makeWorldSpaceCameraFrustum,
     makeCameraThatBoundsAnotherOne,
     QuadArrayBufferData,
     tmpMatrix, makeShadowMapCamera
@@ -295,7 +295,7 @@ function main() {
 
             // frustum.mesh.replaceBuf(gl, new GLArrayBuffer(gl, makeFrustum(camera, false)));
 
-            makeShadowMapCamera(camera, scene, sun.light);
+            // makeShadowMapCamera(camera, scene, sun.light);
 
             pressedKeys.forEach((v, k) => {
                 const moveSpeed = delta * 0.0015;

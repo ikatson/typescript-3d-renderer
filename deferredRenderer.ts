@@ -9,9 +9,10 @@ import {SSAO_SHADER_SOURCE} from "./shaders/ssao.js";
 import {VISUALIZE_LIGHTS_SHADERS} from "./shaders/visualize-lights.js";
 import {SSAOConfig, SSAOState} from "./SSAOState.js";
 import {
+    computeDirectionalLightCameraWorldToProjectionMatrix,
     FullScreenQuad,
     getLightCameraWorldToProjectionMatrix,
-    glClearColorAndDepth,
+    glClearColorAndDepth, makeWorldSpaceCameraFrustum,
     tmpMatrix
 } from "./utils.js";
 import {SHADOWMAP_SHADERS} from "./shaders/shadowMap.js";
@@ -369,9 +370,9 @@ export class ShadowMapRenderer {
             if (!o.mesh) {
                 return;
             }
-            if (!o.mesh.shadowCaster && !o.mesh.shadowReceiver) {
-                return;
-            }
+            // if (!o.mesh.shadowCaster && !o.mesh.shadowReceiver) {
+            //     return;
+            // }
 
             gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelWorldMatrix"), false, o.transform.getModelToWorld());
 
@@ -609,7 +610,10 @@ export class DeferredRenderer {
 
     render(scene: Scene, camera: Camera) {
         const gl: WebGLRenderingContext = this.gl;
-        const lightCameraWorldToProjectionMatrix = getLightCameraWorldToProjectionMatrix(scene.lights[0]);
+        const shadowDirectionalLight = scene.lights[0];
+        const lightCameraWorldToProjectionMatrix = computeDirectionalLightCameraWorldToProjectionMatrix(
+            shadowDirectionalLight.light, camera, scene
+        );
 
         if (this.recompileOnNextRun) {
             this.ssaoRenderer.recompileShaders(gl);

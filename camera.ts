@@ -29,13 +29,13 @@ export class Camera {
     private _cameraToWorld: mat4;
     private _projectionMatrixNeedsUpdate: boolean = true;
 
-    constructor(aspect: number) {
+    constructor(aspect: number = 1) {
         this._position = vec3.fromValues(0, 0, -1);
         this._forward = vec3.fromValues(0, 0, 1);
         this._up = vec3.fromValues(0, 1, 0);
         this._right = vec3.create();
         this.near = 0.1;
-        this.far = 30.0;
+        this.far = 15.0;
         this.fov = 45.;
         this.aspect = aspect;
         this._projectionMatrix = mat4.create();
@@ -109,6 +109,26 @@ export class Camera {
             this._projectionMatrixNeedsUpdate = false;
         }
         return new ProjectionMatrix(this.near, this.far, this._projectionMatrix);
+    }
+
+    calculateUpFromWorldUp() {
+        // determine up direction
+        const worldUp = [0, 1., 0];
+        vec3.scale(tmpVec3, this.forward, vec3.dot(worldUp, this.forward));
+        vec3.sub(this.up, worldUp, tmpVec3);
+        vec3.normalize(this.up, this.up);
+        this.update();
+    }
+
+    clone() {
+        const c = new Camera();
+        vec3.copy(c.position, this.position);
+        vec3.copy(c.forward, this.forward);
+        vec3.copy(c.up, this.up);
+        c.near = this.near;
+        c.far = this.far;
+        c.aspect = this.aspect;
+        return c;
     }
 
     private computeWorldToCamera() {
