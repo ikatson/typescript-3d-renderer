@@ -139,7 +139,7 @@ void main() {
                     vec2 offset = base + vec2(x, y) * texmapscale;
                     // the depth buffer texture is clamped to 0, 1, so unclamp.
                     shadowMapDepth = texture(u_shadowmapTx, offset).r * 2. - 1.;
-                    if (abs(offset.x) > 1. || abs(offset.y) > 1. || abs(posLSS.z) > 1. || shadowMapDepth > posLSS.z - bias)  {
+                    if (abs(offset.x) > 1. || abs(offset.y) > 1. || abs(posLSS.z) > 1.01 || shadowMapDepth > posLSS.z - bias)  {
                         sum++;
                     }
                 }

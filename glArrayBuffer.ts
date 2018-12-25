@@ -122,7 +122,6 @@ export class GLArrayBufferData {
 
             // TODO: translate normal
             result.push(...i.normal);
-
             result.push(...i.uv);
         });
         return new GLArrayBufferData(new Float32Array(result), this.params);
