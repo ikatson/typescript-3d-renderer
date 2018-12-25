@@ -13,6 +13,7 @@ import {Camera, ProjectionMatrix} from "./camera.js";
 import {AxisAlignedBox} from "./axisAlignedBox.js";
 import {Scene} from "./scene.js";
 import {GameObject, LightComponent} from "./object.js";
+import {object} from "prop-types";
 
 export const QuadVertices = new Float32Array([
     -1.0, 1.0,
@@ -215,7 +216,8 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: Ligh
     });
 
     const bb = computeBoundingBox(lightViewSpaceBoundingBoxes);
-    const lightClipSpaceMatrix = mat4.create();
+    const lightClipSpaceMatrix = tmpMat4;
+    const result = mat4.create();
 
     let left, right, bottom, top, near, far: number;
     const [x, y, z] = [0, 1, 2];
@@ -247,7 +249,29 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: Ligh
         })
     });
 
-    mat4.multiply(lightClipSpaceMatrix, lightClipSpaceMatrix, worldToLightViewSpace);
+    mat4.multiply(result, lightClipSpaceMatrix, worldToLightViewSpace);
 
-    return new ProjectionMatrix(near, far, lightClipSpaceMatrix);
+    // scene.children.forEach(o => {
+    //     const f = (o: GameObject) => {
+    //         if (!(o.mesh && o.mesh.shadowCaster)) {
+    //             return;
+    //         }
+    //         o.mesh.arrayBuffer.REMOVE_ME_DATA.iterData(({vertex}) => {
+    //             vec3.copy(tmpVec3, vertex);
+    //             vec3.transformMat4(tmpVec3, tmpVec3, o.transform.getModelToWorld());
+    //             vec3.transformMat4(tmpVec3, tmpVec3, result);
+    //             const check = (v) => {
+    //                 if (Math.abs(v) > 1.03) {
+    //                     console.log({o: o, transformed: tmpVec3, vertex: vertex, matrix: lightClipSpaceMatrix});
+    //                     throw new Error('fuckup!');
+    //                     debugger;
+    //                 }
+    //             };
+    //             tmpVec3.map(check);
+    //         })
+    //     };
+    //     o.children.forEach(f);
+    // });
+
+    return new ProjectionMatrix(near, far, result);
 };

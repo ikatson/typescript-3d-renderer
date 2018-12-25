@@ -405,6 +405,9 @@ export class ShadowMapRenderer {
     private setupShadowMapBuffers(gl: WebGLRenderingContext) {
         this._shadowMapWidth = 2048;
         this._shadowMapHeight = 2048;
+
+        this._shadowMapWidth = 512;
+        this._shadowMapHeight = 512;
         this._shadowMapTx = createAndBindBufferTexture(gl, gl.DEPTH_COMPONENT16, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT, this._shadowMapWidth, this._shadowMapHeight, gl.NEAREST);
         this.shadowMapFB = gl.createFramebuffer();
 
