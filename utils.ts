@@ -155,7 +155,7 @@ export const makeFrustum = (camera: Camera, pointsOnly: boolean = false): GLArra
     return new GLArrayBufferData(new Float32Array(data), cubeVertices.params);
 };
 
-export const getLightCamera = (light: GameObject) => {
+export const getLightCameraWorldToProjectionMatrix = (light: GameObject) => {
     let lCamera = new Camera(1.);
     lCamera.fov = 86.;
     lCamera.near = 0.1;
@@ -173,7 +173,13 @@ export const getLightCamera = (light: GameObject) => {
     vec3.scale(tmpVec3, lCamera.forward, vec3.dot(worldUp, lCamera.forward));
     vec3.sub(lCamera.up, worldUp, tmpVec3);
     vec3.normalize(lCamera.up, lCamera.up);
-    return lCamera;
+
+    const wtc = lCamera.getWorldToCamera();
+    const proj = lCamera.projectionMatrix();
+
+    mat4.multiply(wtc, proj, wtc);
+    // console.log({wtc, vec3, mat4});
+    return wtc;
 };
 
 

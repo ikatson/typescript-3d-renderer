@@ -12,9 +12,7 @@ layout(location = 0) out vec4 color;
 uniform sampler2D u_ssaoTx;
 uniform sampler2D u_shadowmapTx;
 
-uniform mat4 u_lightWorldToCamera;
-uniform mat4 u_lightPerspectiveMatrix;
-uniform mat4 u_cameraToLightCamera;
+uniform mat4 u_cameraViewSpaceToLightCamera;
 
 struct light {
     vec3 position;
@@ -60,6 +58,9 @@ void main() {
     #endif
 
     #ifdef SHOW_POSITIONS
+    // vec4 lpos = u_cameraViewSpaceToLightCamera * pos;
+    // lpos /= lpos.w;
+    // color = vec4(vec3(lpos.z * 0.5 + 0.5), 1.);
     color = pos;
     return;
     #endif
@@ -71,7 +72,7 @@ void main() {
 
     #ifdef SHADOWMAP_ENABLED
     #ifdef SHOW_SHADOWMAP
-    color = vec4(abs(texture(u_shadowmapTx, tx_pos).rrr) / 15.0, 1.);
+    color = vec4(abs(texture(u_shadowmapTx, tx_pos).rrr), 1.);
     return;
     #endif
     #endif
@@ -82,9 +83,9 @@ void main() {
     float ssao = 1.0;
     #endif
 
-    // TODO: is this just 0?
-    vec3 eye = (u_worldToCameraMatrix * vec4(u_cameraPos, 1.)).xyz;
+    vec3 eye = vec3(0.);
 
+    // final color.
     vec3 c = vec3(0.);
 
     for (int i = 0; i < LIGHT_COUNT; i++) {
@@ -106,11 +107,13 @@ void main() {
         // SHADOW MAP sample
         // Only the first light casts shadows for now
         if (i == 0) {
-            float bias = 0.04 + 0.2 * (1.0 - abs(dot(normal.xyz, normalize(l.position - pos.xyz))));
-            // TODO: need to come up with this one.
-            vec4 posLVS = u_cameraToLightCamera * pos;
-            vec4 posLSS = u_lightPerspectiveMatrix * posLVS;
+            float bias = 0.001 + 0.002 * (1.0 - abs(dot(normal.xyz, normalize(l.position - pos.xyz))));
+
+            vec4 posLSS = u_cameraViewSpaceToLightCamera * pos;
             posLSS.xyz /= posLSS.w;
+            
+            // color = posLSS;
+            // return;
 
             vec2 texmapscale = vec2(1. / SHADOW_MAP_WIDTH, 1. / SHADOW_MAP_HEIGHT);
 
@@ -121,8 +124,9 @@ void main() {
 
             for (y = -1.5; y <= 1.5; y += 1.0) {
                 for (x = -1.5; x <= 1.5; x += 1.0) {
-                    shadowMapDepth = texture(u_shadowmapTx, base + vec2(x, y) * texmapscale).r;
-                    if (shadowMapDepth < posLVS.z + bias)  {
+                    vec2 offset = base + vec2(x, y) * texmapscale;
+                    shadowMapDepth = texture(u_shadowmapTx, offset).r;
+                    if (abs(offset.x) < 1. && abs(offset.y) < 1. && abs(posLSS.z) < 1. && shadowMapDepth > posLSS.z - bias)  {
                         sum++;
                     }
                 }

@@ -248,7 +248,7 @@ function main() {
         const plane = new GameObjectBuilder("plane").setMeshComponent(new MeshComponent(planeMesh)).build();
         plane.mesh.setShadowCaster(false);
         plane.transform.position = [0, -0.8, 0];
-        plane.transform.scale = [5, 5, 5];
+        plane.transform.scale = [50, 50, 50];
         plane.transform.update();
 
 
