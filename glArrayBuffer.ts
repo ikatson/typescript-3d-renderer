@@ -67,7 +67,7 @@ export type GLArrayBufferDataIterResult = {
 
 type DataOrBoundingBox = GLArrayBufferData | AxisAlignedBox;
 
-export const computeBoundingBox = (objects: DataOrBoundingBox[]): AxisAlignedBox => {
+export const computeBoundingBox = (objects: DataOrBoundingBox[], invertZ: boolean = false): AxisAlignedBox => {
     const b = new AxisAlignedBox();
     const min = [Infinity, Infinity, Infinity];
     const max = [-Infinity, -Infinity, -Infinity];

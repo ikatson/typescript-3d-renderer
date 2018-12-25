@@ -370,9 +370,9 @@ export class ShadowMapRenderer {
             if (!o.mesh) {
                 return;
             }
-            // if (!o.mesh.shadowCaster && !o.mesh.shadowReceiver) {
-            //     return;
-            // }
+            if (!o.mesh.shadowCaster && !o.mesh.shadowReceiver) {
+                return;
+            }
 
             gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelWorldMatrix"), false, o.transform.getModelToWorld());
 

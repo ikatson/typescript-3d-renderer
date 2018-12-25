@@ -289,6 +289,8 @@ function main() {
         let start = new Date().getTime();
 
         function processFrame() {
+            // console.log({mat4, vec3})
+            // debugger;
             if (state.pause.checked) {
                 return;
             }

@@ -83,7 +83,8 @@ void main() {
 
     #ifdef SHADOWMAP_ENABLED
     #ifdef SHOW_SHADOWMAP
-    color = vec4(vec3(eye_space_z(texture(u_shadowmapTx, tx_pos).r, u_lightNear, u_lightFar)), 1.);
+    // color = vec4(vec3(eye_space_z(texture(u_shadowmapTx, tx_pos).r, u_lightNear, u_lightFar)), 1.);
+    color = vec4(vec3(texture(u_shadowmapTx, tx_pos).r), 1.);
     return;
     #endif
     #endif

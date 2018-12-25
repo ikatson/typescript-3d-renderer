@@ -170,42 +170,50 @@ export const getLightDirection = (outVec: any, l: LightComponent): any => {
     return outVec;
 };
 
-export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: LightComponent, camera: Camera, scene: Scene): ProjectionMatrix => {
-    const wtc = makeDirectionalLightWorldToCameraMatrix(getLightDirection(tmpVec3, light));
-    const cameraClone = camera.clone();
-    // cameraClone.far /= 5.;
+export const myOrtho = (out, left, right, bottom, top, near, far) => {
+    const fn = 1. / (far - near);
+    const tb = 1. / (top - bottom);
+    const rl = 1. / (right - left);
+    mat4.set(out,
+        2* rl, 0, 0, 0,
+        0, 2 * tb, 0, 0,
+        0, 0, -2 * fn, 0,
+        -(right + left) * rl, -(bottom + top) * tb, (far + near) * fn, 1,
+    );
+};
 
-    const worldSpaceBoundingBoxes = [
-        makeWorldSpaceCameraFrustum(cameraClone, true)
-            .translate(wtc)
-            .computeBoundingBox()
-    ];
+export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: LightComponent, camera: Camera, scene: Scene): ProjectionMatrix => {
+    const worldToLightViewSpace = makeDirectionalLightWorldToCameraMatrix(getLightDirection(tmpVec3, light));
+
+    // TODO: we ONLY need to render objects that are intersecting the camera frustum
+    // leaving that for another day.
+    // makeWorldSpaceCameraFrustum(cameraClone, true)
+
+    const lightViewSpaceBoundingBoxes: AxisAlignedBox[] = [];
 
     scene.children.forEach(o => {
-        const bboxForObj = (o: GameObject) => {
+        const bboxForObjInLightScreenSpace = (o: GameObject) => {
             o.children.forEach(c => {
-                bboxForObj(c);
+                bboxForObjInLightScreenSpace(c);
             });
 
             if (!(o.mesh && o.mesh.shadowCaster && o.boundingBox)) {
                 return;
             }
 
-            worldSpaceBoundingBoxes.push(
+            lightViewSpaceBoundingBoxes.push(
                 o.boundingBox.box.asVerticesBuffer()
                     .translate(o.transform.getModelToWorld())
-                    .translate(wtc)
+                    .translate(worldToLightViewSpace)
                     .computeBoundingBox()
             );
         };
 
-        bboxForObj(o);
+        bboxForObjInLightScreenSpace(o);
     });
 
-    debugger;
-
-    const bb = computeBoundingBox(worldSpaceBoundingBoxes);
-    const resultMatrix = mat4.create();
+    const bb = computeBoundingBox(lightViewSpaceBoundingBoxes);
+    const lightClipSpaceMatrix = mat4.create();
 
     let left, right, bottom, top, near, far: number;
     const [x, y, z] = [0, 1, 2];
@@ -216,12 +224,29 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: Ligh
     bottom = bb.min[y];
     top = bb.max[y];
 
+    // note Z is reversed here
     near = bb.min[z];
     far = bb.max[z];
 
-    mat4.ortho(resultMatrix, left, right, bottom, top, near, far);
+    myOrtho(lightClipSpaceMatrix, left, right, bottom, top, near, far);
 
-    mat4.multiply(resultMatrix, resultMatrix, wtc);
+    // CHECK REMOVE ME
+    lightViewSpaceBoundingBoxes.forEach(b => {
+        const tmp = vec3.create();
+        b.uniqueVertices().forEach(vertex => {
+            vec3.transformMat4(tmp, vertex, lightClipSpaceMatrix);
+            const check = (v) => {
+                if (Math.abs(v) > 1.1) {
+                    console.log({b: b, bb: bb, transformed: tmp, vertex: vertex, matrix: lightClipSpaceMatrix});
+                    console.error('fuckup!');
+                    debugger;
+                }
+            };
+            tmp.map(check);
+        })
+    });
 
-    return new ProjectionMatrix(near, far, resultMatrix);
+    mat4.multiply(lightClipSpaceMatrix, lightClipSpaceMatrix, worldToLightViewSpace);
+
+    return new ProjectionMatrix(near, far, lightClipSpaceMatrix);
 };
