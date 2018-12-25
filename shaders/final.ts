@@ -16,6 +16,8 @@ uniform mat4 u_cameraViewSpaceToLightCamera;
 
 uniform float u_shadowMapFixedBias;
 uniform float u_shadowMapNormalBias;
+uniform float u_lightNear;
+uniform float u_lightFar;
 
 struct light {
     vec3 position;
@@ -81,7 +83,7 @@ void main() {
 
     #ifdef SHADOWMAP_ENABLED
     #ifdef SHOW_SHADOWMAP
-    color = vec4(vec3(eye_space_z(texture(u_shadowmapTx, tx_pos).r, 0.1, 10.)), 1.);
+    color = vec4(vec3(eye_space_z(texture(u_shadowmapTx, tx_pos).r, u_lightNear, u_lightFar)), 1.);
     return;
     #endif
     #endif

@@ -9,7 +9,7 @@ import {
     GLArrayBufferDataIterResult,
     GLArrayBufferDataParams
 } from "./glArrayBuffer.js";
-import {Camera} from "./camera.js";
+import {Camera, ProjectionMatrix} from "./camera.js";
 import {AxisAlignedBox} from "./axisAlignedBox.js";
 import {Scene} from "./scene.js";
 import {GameObject, LightComponent} from "./object.js";
@@ -136,7 +136,7 @@ export const makeFrustum = (camera: Camera, pointsOnly: boolean = false): GLArra
         cubeVertices = new AxisAlignedBox().asWireFrameBuffer();
     }
 
-    mat4.invert(tmp, camera.projectionMatrix());
+    mat4.invert(tmp, camera.projectionMatrix().matrix);
 
     const data = [];
 
@@ -155,7 +155,7 @@ export const makeFrustum = (camera: Camera, pointsOnly: boolean = false): GLArra
     return new GLArrayBufferData(new Float32Array(data), cubeVertices.params);
 };
 
-export const getLightCameraWorldToProjectionMatrix = (light: GameObject) => {
+export const getLightCameraWorldToProjectionMatrix = (light: GameObject): ProjectionMatrix => {
     let lCamera = new Camera(1.);
     lCamera.fov = 86.;
     lCamera.near = 0.1;
@@ -175,11 +175,10 @@ export const getLightCameraWorldToProjectionMatrix = (light: GameObject) => {
     vec3.normalize(lCamera.up, lCamera.up);
 
     const wtc = lCamera.getWorldToCamera();
-    const proj = lCamera.projectionMatrix();
+    const proj = lCamera.projectionMatrix().matrix;
 
     mat4.multiply(wtc, proj, wtc);
-    // console.log({wtc, vec3, mat4});
-    return wtc;
+    return new ProjectionMatrix(lCamera.near, lCamera.far, wtc);
 };
 
 

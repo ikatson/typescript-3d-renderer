@@ -3,6 +3,18 @@ import {tmpMatrix} from "./utils.js";
 
 const tmpVec3: vec3 = vec3.create();
 
+export class ProjectionMatrix {
+    near: number;
+    far: number;
+    matrix: any;
+
+    constructor(near: number, far: number, matrix: any) {
+        this.near = near;
+        this.far = far;
+        this.matrix = matrix;
+    }
+}
+
 export class Camera {
     near: number;
     far: number;
@@ -91,12 +103,12 @@ export class Camera {
         return this._right;
     }
 
-    projectionMatrix() {
+    projectionMatrix(): ProjectionMatrix {
         if (this._projectionMatrixNeedsUpdate) {
             mat4.perspective(this._projectionMatrix, this.fov * Math.PI / 180.0, this.aspect, this.near, this.far);
             this._projectionMatrixNeedsUpdate = false;
         }
-        return this._projectionMatrix;
+        return new ProjectionMatrix(this.near, this.far, this._projectionMatrix);
     }
 
     private computeWorldToCamera() {
