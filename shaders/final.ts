@@ -2,7 +2,6 @@ import { ShaderSourceBuilder } from "../shaders.js";
 import {GBUF_TEXTURES, QUAD_FRAGMENT_INPUTS, WORLD_AND_CAMERA_TRANSFORMS} from "./includes/common.js";
 
 const LIGHTING_FS = new ShaderSourceBuilder()
-    .setPrecision('highp')
     .addTopChunk(QUAD_FRAGMENT_INPUTS)
     .addTopChunk(WORLD_AND_CAMERA_TRANSFORMS)
     .addTopChunk(GBUF_TEXTURES)
@@ -61,16 +60,15 @@ void main() {
     return;
     #endif
 
-    vec4 normal = texture(gbuf_normal, tx_pos);
-    vec4 pos = texture(gbuf_position, tx_pos);
-    vec4 tcolor = texture(gbuf_colormap, tx_pos);
+    vec4 normal = GBUFFER_NORMAL(tx_pos);
+    vec4 pos = GBUFFER_POSITION(tx_pos);
+    vec4 tcolor = GBUFFER_ALBEDO(tx_pos);
 
     #ifdef SHOW_NORMALS
-    color = vec4(normal.xyz, normal.a);
+    // color = vec4(normal.xyz * .5 + .5, normal.a);
+    color = normal;
     return;
     #endif
-    
-    normal = normal * 2. - 1.;
 
     #ifdef SHOW_POSITIONS
     // vec4 lpos = u_cameraViewSpaceToLightCamera * pos;
