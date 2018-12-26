@@ -52,7 +52,7 @@ function main() {
             },
             bias: {
                 fixed: {value: 0.01, min: 0, step: 0.0001, onChange: ui.funcRef()},
-                normal: {value: 0.005, min: 0, step: 0.0001, onChange: ui.funcRef()},
+                normal: {value: 0.02, min: 0, step: 0.0001, onChange: ui.funcRef()},
             }
         },
         ssao: {
