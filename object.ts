@@ -1,7 +1,8 @@
 import {mat4, vec3} from "./gl-matrix.js"
-import {ShaderProgram} from "./shaders";
+import {ShaderProgram} from "./shaders.js";
 import {AxisAlignedBox} from "./axisAlignedBox.js";
 import {ArrayBufferDataTypeToGL, GLArrayBuffer} from "./glArrayBuffer.js";
+import {Material} from "./material.js";
 
 export abstract class Component {
     object: GameObject = null;
@@ -139,6 +140,10 @@ export class TransformComponent extends Component {
 
 }
 
+export class MaterialComponent extends Component{
+    material: Material;
+}
+
 export class GameObject {
     children: GameObject[] = [];
     parent: GameObject;
@@ -147,6 +152,7 @@ export class GameObject {
     mesh: MeshComponent = null;
     light: LightComponent = null;
     boundingBox: BoundingBoxComponent = null;
+    material: MaterialComponent;
 
     constructor(name: string) {
         this.transform = new TransformComponent(this);
@@ -181,6 +187,12 @@ export class GameObjectBuilder {
     setBoundingBoxComponent(bbox: BoundingBoxComponent) {
         this.o.boundingBox = bbox;
         bbox.object = this.o;
+        return this;
+    }
+
+    setMaterialComponent(c: MaterialComponent): GameObjectBuilder {
+        this.o.material = c;
+        c.object = this.o;
         return this;
     }
 

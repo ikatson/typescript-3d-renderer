@@ -15,7 +15,8 @@ import {
     tmpMat4, tmpVec3,
 } from "./utils.js";
 import {SHADOWMAP_SHADERS} from "./shaders/shadowMap.js";
-import {GLArrayBuffer} from "./glArrayBuffer";
+import {GLArrayBuffer} from "./glArrayBuffer.js";
+import {Material} from "./material.js";
 
 export class ShadowMapConfig {
     enabled: boolean;
@@ -87,10 +88,18 @@ export class GBuffer {
     posTx: WebGLTexture;
     normalTX: WebGLTexture;
     colorTX: WebGLTexture;
+    specularTX: WebGLTexture;
 
     gFrameBuffer: WebGLFramebuffer;
     gBufferShader: ShaderProgram;
     depthRB: WebGLRenderbuffer;
+
+    defaultMaterial: Material = new Material();
+
+    ATTACHMENT_POSITION = WebGLRenderingContext.COLOR_ATTACHMENT0;
+    ATTACHMENT_NORMAL = WebGLRenderingContext.COLOR_ATTACHMENT0 + 1;
+    ATTACHMENT_ALBEDO = WebGLRenderingContext.COLOR_ATTACHMENT0 + 2;
+    ATTACHMENT_SPECULAR = WebGLRenderingContext.COLOR_ATTACHMENT0 + 3;
 
     constructor(gl: WebGLRenderingContext) {
         this.setupGBuffer(gl);
@@ -116,6 +125,8 @@ export class GBuffer {
             if (o.mesh != null) {
                 const modelWorldMatrix = o.transform.getModelToWorld();
                 const modelViewMatrix = tmpMat4;
+                const material = o.material ? o.material.material : this.defaultMaterial;
+
                 mat4.multiply(modelViewMatrix, camera.getWorldToCamera(), modelWorldMatrix);
 
                 o.mesh.prepareMeshVertexAndShaderDataForRendering(gl, program);
@@ -123,7 +134,12 @@ export class GBuffer {
                 gl.uniformMatrix4fv(program.getUniformLocation(gl, "u_modelViewMatrix"), false, modelViewMatrix);
                 gl.uniformMatrix4fv(program.getUniformLocation(gl, "u_modelWorldMatrix"), false, modelWorldMatrix);
 
-                gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2]);
+                gl.drawBuffers([
+                    this.ATTACHMENT_POSITION,
+                    this.ATTACHMENT_NORMAL,
+                    this.ATTACHMENT_ALBEDO,
+                    this.ATTACHMENT_SPECULAR
+                ]);
 
                 o.mesh.draw(gl);
 
@@ -150,6 +166,7 @@ export class GBuffer {
 
     private setupGBuffer(gl: WebGLRenderingContext) {
         this.colorTX = createAndBindBufferTexture(gl, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE);
+        this.specularTX = createAndBindBufferTexture(gl, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE);
         this.normalTX = createAndBindBufferTexture(gl, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE);
         this.posTx = createAndBindBufferTexture(gl, gl.RGBA16F, gl.RGBA, gl.FLOAT);
         this.depthRB = gl.createRenderbuffer();
@@ -157,9 +174,10 @@ export class GBuffer {
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.gFrameBuffer);
         gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthRB);
         gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, gl.canvas.width, gl.canvas.height);
-        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + 0, gl.TEXTURE_2D, this.posTx, 0);
-        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + 1, gl.TEXTURE_2D, this.normalTX, 0);
-        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + 2, gl.TEXTURE_2D, this.colorTX, 0);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, this.ATTACHMENT_POSITION, gl.TEXTURE_2D, this.posTx, 0);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, this.ATTACHMENT_NORMAL, gl.TEXTURE_2D, this.normalTX, 0);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, this.ATTACHMENT_ALBEDO, gl.TEXTURE_2D, this.colorTX, 0);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, this.ATTACHMENT_SPECULAR, gl.TEXTURE_2D, this.specularTX, 0);
         gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthRB);
         checkFrameBufferStatusOrThrow(gl);
     }
