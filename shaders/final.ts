@@ -9,7 +9,7 @@ const LIGHTING_FS = new ShaderSourceBuilder()
     .addChunk(`
 layout(location = 0) out vec4 color;
 
-#define SHADOW_MAP_FLOAT_ERROR 0.9999
+#define SHADOW_MAP_ERROR 0.99
 
 uniform sampler2D u_ssaoTx;
 uniform sampler2D u_shadowmapTx;
@@ -150,9 +150,9 @@ void main() {
                     }
                     
                     // out of bounds by Z case
-                    if (abs(posLSS.z) > SHADOW_MAP_FLOAT_ERROR) {
+                    if (abs(posLSS.z) > 1.) {
                         // if out of bounds by Z, then it's in shadow if there's anything else in view (i.e. there's depth)
-                        if (abs(shadowMapDepth) < SHADOW_MAP_FLOAT_ERROR) {
+                        if (abs(shadowMapDepth) < SHADOW_MAP_ERROR) {
                             continue;
                         }
                         notInShadowSamples++;
