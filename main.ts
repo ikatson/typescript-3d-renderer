@@ -4,8 +4,6 @@ import {
     FullScreenQuad,
     glClearColorAndDepth,
     initGL,
-    makeCameraThatBoundsAnotherOne,
-    makeShadowMapCamera,
     QuadArrayBufferData,
     tmpVec3
 } from "./utils.js";
@@ -19,7 +17,6 @@ import {DeferredRenderer, DeferredRendererConfig, ShadowMapConfig, ShowLayer} fr
 import {GLArrayBuffer} from "./glArrayBuffer.js";
 import * as ui from "./ui.js";
 import {SSAOConfig, SSAOState} from "./SSAOState.js";
-import {tmpVec3} from "./utils.js";
 
 
 const originZero = vec3.create();
@@ -29,24 +26,22 @@ function main() {
     const state = {
         lighting: {
             lightCount: {
-                label: 'Lights count',
-                // value: 10,
                 value: 1,
                 min: 1,
                 step: 1,
                 onChange: ui.funcRef(),
             },
             sun: {
-                ambient: {label: 'Ambient', value: 0.2, min: 0, step: 0.1, onChange: ui.funcRef()},
-                diffuse: {label: 'Diffuse', value: 0.6, min: 0, step: 0.1, onChange: ui.funcRef()},
-                specular: {label: 'Specular', value: 0.2, min: 0, step: 0.1, onChange: ui.funcRef()},
-                intensity: {label: 'Intensity', value: 1., min: 0, step: 0.1, onChange: ui.funcRef()},
+                ambient: {value: 0.2, min: 0, step: 0.1, onChange: ui.funcRef()},
+                diffuse: {value: 0.6, min: 0, step: 0.1, onChange: ui.funcRef()},
+                specular: {value: 0.2, min: 0, step: 0.1, onChange: ui.funcRef()},
+                intensity: {value: 1., min: 0, step: 0.1, onChange: ui.funcRef()},
             },
             'new': {
-                radius: {label: 'Radius', value: 1.5, min: 0, step: 0.1, onChange: ui.funcRef()},
-                posScale: {label: 'Position scale', value: 1.5, min: 0, step: 0.1, onChange: ui.funcRef()},
-                attenuation: {label: 'Attenuation', value: 0.15, min: 0, step: 0.1, onChange: ui.funcRef()},
-                intensity: {label: 'Intensity', value: 1., min: 0, step: 0.1, onChange: ui.funcRef()},
+                radius: {value: 1.5, min: 0, step: 0.1, onChange: ui.funcRef()},
+                posScale: {value: 1.5, min: 0, step: 0.1, onChange: ui.funcRef()},
+                attenuation: {value: 0.15, min: 0, step: 0.1, onChange: ui.funcRef()},
+                intensity: {value: 1., min: 0, step: 0.1, onChange: ui.funcRef()},
             }
         },
         shadowMap: {
@@ -55,8 +50,8 @@ function main() {
                 checked: true,
             },
             bias: {
-                fixed: {label: 'Fixed bias', value: 0.01, min: 0, step: 0.0001, onChange: ui.funcRef()},
-                normal: {label: 'Normal bias', value: 0.01, min: 0, step: 0.0001, onChange: ui.funcRef()},
+                fixed: {value: 0.01, min: 0, step: 0.0001, onChange: ui.funcRef()},
+                normal: {value: 0.005, min: 0, step: 0.0001, onChange: ui.funcRef()},
             }
         },
         ssao: {
@@ -186,7 +181,7 @@ function main() {
                 new MeshComponent(arrayBuf.intoGLArrayBuffer(gl))
             ).build();
             aphrodite.boundingBox = new BoundingBoxComponent(arrayBuf.computeBoundingBox());
-            aphrodite.transform.scale = [1/3, 1/3, 1/3];
+            aphrodite.transform.scale = [1 / 3, 1 / 3, 1 / 3];
             aphrodite.transform.rotation = [0, -Math.PI / 2.0, 0];
             aphrodite.transform.position = [0, 1., 0];
             aphrodite.transform.update();
@@ -450,7 +445,6 @@ function main() {
             console.log('new light count ' + scene.lights.length);
         };
         state.lighting.lightCount.onChange(state.lighting.lightCount.value);
-
 
 
         state.showLayer.onChange.ref = vstring => {
