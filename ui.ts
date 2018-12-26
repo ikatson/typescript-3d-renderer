@@ -1,3 +1,5 @@
+import {rgbToHex} from "./utils";
+
 type Props = {
     // onChange: Function,
     checked?: boolean,
@@ -116,6 +118,7 @@ export const NumberInput = (label: string, props: Props, onChange: (number) => v
 
 
 export const ColorInput = (label: string, props: Props, onChange: (string) => void) => {
+    const valueLabel = e('div', c('color-label'), props.value.toString());
     return e('div', c('input-group input-group-xs'),
         e('div', c('input-group-prepend'),
             e('span', c('input-group-text'), label)
@@ -125,10 +128,13 @@ export const ColorInput = (label: string, props: Props, onChange: (string) => vo
             className: 'form-control',
             type: 'color',
             onChange: (ev) => {
-                props.value = ev.target.value;
-                onChange(ev.target.value);
+                const v = ev.target.value;
+                props.value = v;
+                valueLabel.textContent = v;
+                onChange(v);
             },
         }),
+        valueLabel
     )
 };
 

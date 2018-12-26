@@ -34,8 +34,8 @@ function main() {
             },
             sun: {
                 ambient: {value: 0.2, min: 0, step: 0.1, onChange: ui.funcRef()},
-                diffuse: {value: 0.6, min: 0, step: 0.1, onChange: ui.funcRef()},
-                specular: {value: 0.2, min: 0, step: 0.1, onChange: ui.funcRef()},
+                diffuse: {value: 0.5, min: 0, step: 0.1, onChange: ui.funcRef()},
+                specular: {value: 0.5, min: 0, step: 0.1, onChange: ui.funcRef()},
                 intensity: {value: 1., min: 0, step: 0.1, onChange: ui.funcRef()},
             },
             'new': {
@@ -100,7 +100,7 @@ function main() {
                 specular: {
                     value: '#ffffff', onChange: ui.funcRef(),
                 },
-                shininess: {value: 200, min: 0, step: 1, max: 256, onChange: ui.funcRef(),},
+                shininess: {value: 5, min: 0, step: 1, max: 256, onChange: ui.funcRef(),},
             },
             plane: {
                 albedo: {
@@ -109,16 +109,16 @@ function main() {
                 specular: {
                     value: '#ffffff', onChange: ui.funcRef(),
                 },
-                shininess: {value: 20, min: 0, step: 1, max: 256, onChange: ui.funcRef(),},
+                shininess: {value: 3, min: 0, step: 1, max: 256, onChange: ui.funcRef(),},
             },
             aphrodite: {
                 albedo: {
                     value: '#ffdebd', onChange: ui.funcRef(),
                 },
                 specular: {
-                    value: '#ffffff', onChange: ui.funcRef(),
+                    value: '#616161', onChange: ui.funcRef(),
                 },
-                shininess: {value: 20, min: 0, step: 1, max: 256, onChange: ui.funcRef(),},
+                shininess: {value: 3, min: 0, step: 1, max: 256, onChange: ui.funcRef(),},
             }
         }
     };

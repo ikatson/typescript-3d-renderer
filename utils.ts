@@ -250,3 +250,7 @@ export function hexToRgb1(out, hex: string) {
     out[2] = b / 256;
     return out;
 }
+
+export function rgbToHex(r, g, b) {
+    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
