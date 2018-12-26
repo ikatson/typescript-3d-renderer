@@ -237,3 +237,16 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: Ligh
 
     return new ProjectionMatrix(near, far, result);
 };
+
+
+export function hexToRgb1(out, hex: string) {
+    const bigint = parseInt(hex.slice(1, hex.length), 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+
+    out[0] = r / 256;
+    out[1] = g / 256;
+    out[2] = b / 256;
+    return out;
+}

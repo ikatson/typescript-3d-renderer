@@ -2,7 +2,7 @@ import {fetchObject} from "./objparser.js";
 import {
     clip,
     FullScreenQuad,
-    glClearColorAndDepth,
+    glClearColorAndDepth, hexToRgb1,
     initGL,
     QuadArrayBufferData,
     tmpVec3
@@ -100,11 +100,11 @@ function main() {
                 specular: {
                     value: '#ffffff', onChange: ui.funcRef(),
                 },
-                shininess: {value: 20, min: 0, step: 1, max: 256, onChange: ui.funcRef(),},
+                shininess: {value: 200, min: 0, step: 1, max: 256, onChange: ui.funcRef(),},
             },
             plane: {
                 albedo: {
-                    value: '#ff0000', onChange: ui.funcRef(),
+                    value: '#ffffff', onChange: ui.funcRef(),
                 },
                 specular: {
                     value: '#ffffff', onChange: ui.funcRef(),
@@ -113,7 +113,7 @@ function main() {
             },
             aphrodite: {
                 albedo: {
-                    value: '#ff0000', onChange: ui.funcRef(),
+                    value: '#ffdebd', onChange: ui.funcRef(),
                 },
                 specular: {
                     value: '#ffffff', onChange: ui.funcRef(),
@@ -182,6 +182,16 @@ function main() {
                         color('Albedo', state.materials.corvette.albedo),
                         color('Specular', state.materials.corvette.specular),
                         n('Shininess', state.materials.corvette.shininess),
+                    ),
+                    ui.FormGroup('Aphrodite colors',
+                        color('Albedo', state.materials.aphrodite.albedo),
+                        color('Specular', state.materials.aphrodite.specular),
+                        n('Shininess', state.materials.aphrodite.shininess),
+                    ),
+                    ui.FormGroup('Plane colors',
+                        color('Albedo', state.materials.plane.albedo),
+                        color('Specular', state.materials.plane.specular),
+                        n('Shininess', state.materials.plane.shininess),
                     )
                 ),
             ),
@@ -215,18 +225,6 @@ function main() {
         }
     };
 
-    function hexToRgb1(out, hex: string) {
-        const bigint = parseInt(hex.slice(1, hex.length), 16);
-        const r = (bigint >> 16) & 255;
-        const g = (bigint >> 8) & 255;
-        const b = bigint & 255;
-
-        out[0] = r / 256;
-        out[1] = g / 256;
-        out[2] = b / 256;
-        return out;
-    }
-
     const onColorChanges = (stateRef: any, material: Material) => {
         stateRef.albedo.onChange.ref = (v) => {
             hexToRgb1(material.albedo, v);
@@ -239,17 +237,30 @@ function main() {
         }
     };
 
+    const makeMaterialFromState = (stateRef): Material => {
+        return new Material()
+            .setSpecular(...hexToRgb1(tmpVec3, stateRef.specular.value))
+            .setAlbedo(...hexToRgb1(tmpVec3, stateRef.albedo.value))
+            .setShininess(stateRef.shininess.value)
+    }
+
     Promise.all([
         fetchObject('resources/aphrodite/aphrodite.obj', onHeaders).then(parser => {
             const arrayBuf = parser.getArrayBuffer();
-            const aphrodite = new GameObjectBuilder("aphrodite.obj").setMeshComponent(
-                new MeshComponent(arrayBuf.intoGLArrayBuffer(gl))
-            ).build();
-            aphrodite.boundingBox = new BoundingBoxComponent(arrayBuf.computeBoundingBox());
+            const aphrodite = new GameObjectBuilder("aphrodite.obj")
+                .setMeshComponent(
+                    new MeshComponent(arrayBuf.intoGLArrayBuffer(gl))
+                )
+                .setBoundingBoxComponent(new BoundingBoxComponent(arrayBuf.computeBoundingBox()))
+                .setMaterialComponent(new MaterialComponent(
+                    makeMaterialFromState(state.materials.aphrodite)
+                ))
+                .build();
             aphrodite.transform.scale = [1 / 3, 1 / 3, 1 / 3];
             aphrodite.transform.rotation = [0, -Math.PI / 2.0, 0];
             aphrodite.transform.position = [0, 1., 0];
             aphrodite.transform.update();
+            onColorChanges(state.materials.aphrodite, aphrodite.material.material);
             return aphrodite;
         }),
         fetchObject('resources/corvette/corvette.obj', onHeaders).then(parser => {
@@ -262,7 +273,7 @@ function main() {
                     new BoundingBoxComponent(arrayBuffer.computeBoundingBox())
                 )
                 .setMaterialComponent(new MaterialComponent(
-                    new Material().setAlbedo(1, 0, 0).setShininess(10).setSpecular(0.5, 0.5, 0.5)
+                    makeMaterialFromState(state.materials.corvette)
                 ))
                 .build();
             corvette.transform.position = [0, -1., 0];
@@ -334,12 +345,15 @@ function main() {
 
         scene.lights = [sun];
 
-        const plane = new GameObjectBuilder("plane").setMeshComponent(new MeshComponent(planeMesh)).build();
+        const plane = new GameObjectBuilder("plane")
+            .setMeshComponent(new MeshComponent(planeMesh))
+            .setMaterialComponent(new MaterialComponent(makeMaterialFromState(state.materials.plane)))
+            .build();
         plane.mesh.setShadowCaster(false);
         plane.transform.position = [0, -0.8, 0];
         plane.transform.scale = [50, 50, 50];
         plane.transform.update();
-
+        onColorChanges(state.materials.plane, plane.material.material);
 
         scene.addChild(plane);
         scene.addChild(corvette);
