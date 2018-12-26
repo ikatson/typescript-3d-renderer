@@ -36,7 +36,9 @@ export enum ShowLayer {
     Normals,
     Color,
     SSAO,
-    ShadowMap
+    ShadowMap,
+    Specular,
+    Shininess
 }
 
 
@@ -121,6 +123,16 @@ export class GBuffer {
         gl.uniformMatrix4fv(program.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
         gl.uniformMatrix4fv(program.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix().matrix);
 
+        gl.drawBuffers([
+            this.ATTACHMENT_POSITION,
+            this.ATTACHMENT_NORMAL,
+            this.ATTACHMENT_ALBEDO,
+            this.ATTACHMENT_SPECULAR
+        ]);
+
+        // disable blending so that the specular shininess encoding does not mess with the results.
+        gl.disable(gl.BLEND);
+
         const renderObject = (o: GameObject) => {
             if (o.mesh != null) {
                 const modelWorldMatrix = o.transform.getModelToWorld();
@@ -133,13 +145,9 @@ export class GBuffer {
 
                 gl.uniformMatrix4fv(program.getUniformLocation(gl, "u_modelViewMatrix"), false, modelViewMatrix);
                 gl.uniformMatrix4fv(program.getUniformLocation(gl, "u_modelWorldMatrix"), false, modelWorldMatrix);
-
-                gl.drawBuffers([
-                    this.ATTACHMENT_POSITION,
-                    this.ATTACHMENT_NORMAL,
-                    this.ATTACHMENT_ALBEDO,
-                    this.ATTACHMENT_SPECULAR
-                ]);
+                gl.uniform3fv(program.getUniformLocation(gl, "u_albedo"), material.albedo);
+                gl.uniform3fv(program.getUniformLocation(gl, "u_specular"), material.specular);
+                gl.uniform1f(program.getUniformLocation(gl, "u_shininess"), material.shininess);
 
                 o.mesh.draw(gl);
 
@@ -493,6 +501,8 @@ export class FinalLightingRenderer {
                     .defineIfTrue('SHOW_POSITIONS', this.config.showLayer === ShowLayer.Positions)
                     .defineIfTrue('SHOW_SHADOWMAP', this.config.showLayer === ShowLayer.ShadowMap)
                     .defineIfTrue('SHOW_NORMALS', this.config.showLayer === ShowLayer.Normals)
+                    .defineIfTrue('SHOW_SPECULAR', this.config.showLayer === ShowLayer.Specular)
+                    .defineIfTrue('SHOW_SHININESS', this.config.showLayer === ShowLayer.Shininess)
                     .build()
             )
         );
@@ -518,14 +528,13 @@ export class FinalLightingRenderer {
         bindUniformTx(gl, s, "gbuf_position", this.gBuffer.posTx, 0);
         bindUniformTx(gl, s, "gbuf_normal", this.gBuffer.normalTX, 1);
         bindUniformTx(gl, s, "gbuf_colormap", this.gBuffer.colorTX, 2);
-
-
+        bindUniformTx(gl, s, "gbuf_specular", this.gBuffer.specularTX, 3);
 
         // Shadow map stuff
         bindUniformTx(gl, s, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
         gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapFixedBias"), this.config.shadowMap.fixedBias);
         gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapNormalBias"), this.config.shadowMap.normalBias);
-        bindUniformTx(gl, s, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 3);
+        bindUniformTx(gl, s, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
         const cameraViewSpaceToLightCamera = tmpMat4;
         mat4.multiply(cameraViewSpaceToLightCamera, lightCameraWorldToProjectionMatrix.matrix, camera.getCameraToWorld());
         gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_cameraViewSpaceToLightCamera"), false, cameraViewSpaceToLightCamera);

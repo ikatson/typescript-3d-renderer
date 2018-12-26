@@ -8,7 +8,7 @@ import {
     tmpVec3
 } from "./utils.js";
 import {ProgressBar, ProgressBarCommon} from "./progressbar.js";
-import {BoundingBoxComponent, GameObjectBuilder, LightComponent, MeshComponent} from "./object.js";
+import {BoundingBoxComponent, GameObjectBuilder, LightComponent, MaterialComponent, MeshComponent} from "./object.js";
 import {Camera} from "./camera.js";
 
 import {vec3} from "./gl-matrix.js";
@@ -17,6 +17,7 @@ import {DeferredRenderer, DeferredRendererConfig, ShadowMapConfig, ShowLayer} fr
 import {GLArrayBuffer} from "./glArrayBuffer.js";
 import * as ui from "./ui.js";
 import {SSAOConfig, SSAOState} from "./SSAOState.js";
+import {Material} from "./material.js";
 
 
 const originZero = vec3.create();
@@ -79,6 +80,8 @@ function main() {
                 {label: 'SSAO', value: ShowLayer.SSAO},
                 {label: 'Color', value: ShowLayer.Color},
                 {label: 'Shadow Map', value: ShowLayer.ShadowMap},
+                {label: 'Specular', value: ShowLayer.Specular},
+                {label: 'Shininess', value: ShowLayer.Shininess},
             ]
         },
         shouldRotate: {
@@ -88,11 +91,44 @@ function main() {
         pause: {
             onChange: ui.funcRef(),
             checked: false,
+        },
+        materials: {
+            corvette: {
+                albedo: {
+                    value: '#ff0000', onChange: ui.funcRef(),
+                },
+                specular: {
+                    value: '#ffffff', onChange: ui.funcRef(),
+                },
+                shininess: {value: 20, min: 0, step: 1, max: 256, onChange: ui.funcRef(),},
+            },
+            plane: {
+                albedo: {
+                    value: '#ff0000', onChange: ui.funcRef(),
+                },
+                specular: {
+                    value: '#ffffff', onChange: ui.funcRef(),
+                },
+                shininess: {value: 20, min: 0, step: 1, max: 256, onChange: ui.funcRef(),},
+            },
+            aphrodite: {
+                albedo: {
+                    value: '#ff0000', onChange: ui.funcRef(),
+                },
+                specular: {
+                    value: '#ffffff', onChange: ui.funcRef(),
+                },
+                shininess: {value: 20, min: 0, step: 1, max: 256, onChange: ui.funcRef(),},
+            }
         }
     };
 
     const n = (label: string, props: any) => {
         return ui.NumberInput(label, props, props.onChange);
+    };
+
+    const color = (label: string, props: any) => {
+        return ui.ColorInput(label, props, props.onChange);
     };
 
     document.getElementById('app').appendChild(
@@ -142,6 +178,11 @@ function main() {
                         n('Attenuation', state.lighting.new.attenuation),
                         n('Intensity', state.lighting.new.intensity),
                     ),
+                    ui.FormGroup('Car colors',
+                        color('Albedo', state.materials.corvette.albedo),
+                        color('Specular', state.materials.corvette.specular),
+                        n('Shininess', state.materials.corvette.shininess),
+                    )
                 ),
             ),
         )
@@ -174,6 +215,30 @@ function main() {
         }
     };
 
+    function hexToRgb1(out, hex: string) {
+        const bigint = parseInt(hex.slice(1, hex.length), 16);
+        const r = (bigint >> 16) & 255;
+        const g = (bigint >> 8) & 255;
+        const b = bigint & 255;
+
+        out[0] = r / 256;
+        out[1] = g / 256;
+        out[2] = b / 256;
+        return out;
+    }
+
+    const onColorChanges = (stateRef: any, material: Material) => {
+        stateRef.albedo.onChange.ref = (v) => {
+            hexToRgb1(material.albedo, v);
+        };
+        stateRef.specular.onChange.ref = (v) => {
+            hexToRgb1(material.specular, v);
+        };
+        stateRef.shininess.onChange.ref = v => {
+            material.shininess = v;
+        }
+    };
+
     Promise.all([
         fetchObject('resources/aphrodite/aphrodite.obj', onHeaders).then(parser => {
             const arrayBuf = parser.getArrayBuffer();
@@ -189,11 +254,21 @@ function main() {
         }),
         fetchObject('resources/corvette/corvette.obj', onHeaders).then(parser => {
             const arrayBuffer = parser.getArrayBuffer();
-            const corvette = new GameObjectBuilder("corvette.obj").setMeshComponent(new MeshComponent(
-                arrayBuffer.intoGLArrayBuffer(gl),
-            )).setBoundingBoxComponent(new BoundingBoxComponent(arrayBuffer.computeBoundingBox())).build();
+            const corvette = new GameObjectBuilder("corvette.obj")
+                .setMeshComponent(new MeshComponent(
+                    arrayBuffer.intoGLArrayBuffer(gl),
+                ))
+                .setBoundingBoxComponent(
+                    new BoundingBoxComponent(arrayBuffer.computeBoundingBox())
+                )
+                .setMaterialComponent(new MaterialComponent(
+                    new Material().setAlbedo(1, 0, 0).setShininess(10).setSpecular(0.5, 0.5, 0.5)
+                ))
+                .build();
             corvette.transform.position = [0, -1., 0];
             corvette.transform.update();
+
+            onColorChanges(state.materials.corvette, corvette.material.material);
             return corvette;
         }),
         fetchObject('resources/sphere.obj', onHeaders).then(parser => {

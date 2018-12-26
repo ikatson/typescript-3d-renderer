@@ -7,7 +7,7 @@ uniform sampler2D gbuf_specular;
 #define GBUFFER_POSITION(coord) (texture(gbuf_position, coord))
 #define GBUFFER_NORMAL(coord) (texture(gbuf_normal, coord) * 2. - 1.)
 #define GBUFFER_ALBEDO(coord) (texture(gbuf_colormap, coord))
-#define GBUFFER_SPECULAR(coord) (texture(gbuf_specular, coord).xyz)
+#define GBUFFER_SPECULAR(coord) (texture(gbuf_specular, coord))
 `;
 
 export const QUAD_FRAGMENT_INPUTS = `

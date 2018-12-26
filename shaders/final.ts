@@ -63,6 +63,9 @@ void main() {
     vec4 normal = GBUFFER_NORMAL(tx_pos);
     vec4 pos = GBUFFER_POSITION(tx_pos);
     vec4 tcolor = GBUFFER_ALBEDO(tx_pos);
+    vec4 _specular = GBUFFER_SPECULAR(tx_pos);
+    vec3 tspecular = _specular.xyz;
+    float tshininess = _specular.a * 256.;
 
     #ifdef SHOW_NORMALS
     // color = vec4(normal.xyz * .5 + .5, normal.a);
@@ -80,6 +83,16 @@ void main() {
 
     #ifdef SHOW_COLORS
     color = tcolor;
+    return;
+    #endif
+    
+    #ifdef SHOW_SPECULAR
+    color = vec4(tspecular, pos.a);
+    return;
+    #endif
+    
+    #ifdef SHOW_SHININESS
+    color = vec4(vec3(tshininess / 256.0), pos.a);
     return;
     #endif
 
@@ -107,8 +120,8 @@ void main() {
 
         vec3 colAmbient = tcolor.xyz * l.ambient;
         vec3 colDiffuse = tcolor.xyz * l.diffuse;
-        vec3 colSpecular = tcolor.xyz * l.specular;
-        float shininess = 10.;
+        vec3 colSpecular = tspecular.xyz * l.specular;
+        float shininess = tshininess;
 
         vec3 lc = vec3(0.);
         vec3 lightDir = pos.xyz - l.position;

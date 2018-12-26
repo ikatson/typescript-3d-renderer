@@ -142,6 +142,11 @@ export class TransformComponent extends Component {
 
 export class MaterialComponent extends Component{
     material: Material;
+
+    constructor(m: Material) {
+        super();
+        this.material = m;
+    }
 }
 
 export class GameObject {

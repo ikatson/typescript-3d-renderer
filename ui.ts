@@ -112,7 +112,25 @@ export const NumberInput = (label: string, props: Props, onChange: (number) => v
             },
         }),
     )
-}
+};
+
+
+export const ColorInput = (label: string, props: Props, onChange: (string) => void) => {
+    return e('div', c('input-group input-group-xs'),
+        e('div', c('input-group-prepend'),
+            e('span', c('input-group-text'), label)
+        ),
+        e('input', {
+            ...props,
+            className: 'form-control',
+            type: 'color',
+            onChange: (ev) => {
+                props.value = ev.target.value;
+                onChange(ev.target.value);
+            },
+        }),
+    )
+};
 
 export const RadioInput = (options: RadioInputOption[], props: Props, onChange: (string) => void) => {
     const id = nextId();

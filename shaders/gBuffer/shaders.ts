@@ -23,7 +23,7 @@ void main() {
     v_uv = a_uv;
     gl_PointSize = 2.;    
 }
-`
+`;
 
 const FS = `
 precision highp float;
@@ -32,19 +32,25 @@ in vec4 v_pos;
 in vec4 v_norm;
 in vec2 v_uv;
 
+uniform vec3 u_albedo;
+uniform vec3 u_specular;
+uniform float u_shininess;
+
 layout(location = 0) out vec4 gbuf_position;
 layout(location = 1) out vec4 gbuf_normal;
-layout(location = 2) out vec4 gbuf_colmap;
+layout(location = 2) out vec4 gbuf_albedo;
+layout(location = 3) out vec4 gbuf_specular;
 
 void main() {
     gbuf_position = vec4(v_pos.xyz, 1.0);
     gbuf_normal = vec4(v_norm.xyz * .5 + .5, 1.0);
-    // TODO: replace with real materials
-    gbuf_colmap = vec4(1., 0.87, 0.74, 1.);
+    
+    gbuf_albedo = vec4(u_albedo, 1.);
+    gbuf_specular = vec4(u_specular, u_shininess / 256.0);
 }
-`
+`;
 
 export const GBUFFER_SHADER_SOURCE = {
     vs: VS,
     fs: FS,
-}
+};
