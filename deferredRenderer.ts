@@ -150,7 +150,7 @@ export class GBuffer {
 
     private setupGBuffer(gl: WebGLRenderingContext) {
         this.colorTX = createAndBindBufferTexture(gl, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE);
-        this.normalTX = createAndBindBufferTexture(gl, gl.RGBA16F, gl.RGBA, gl.FLOAT);
+        this.normalTX = createAndBindBufferTexture(gl, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE);
         this.posTx = createAndBindBufferTexture(gl, gl.RGBA16F, gl.RGBA, gl.FLOAT);
         this.depthRB = gl.createRenderbuffer();
         this.gFrameBuffer = gl.createFramebuffer();

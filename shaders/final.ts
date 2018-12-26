@@ -66,9 +66,11 @@ void main() {
     vec4 tcolor = texture(gbuf_colormap, tx_pos);
 
     #ifdef SHOW_NORMALS
-    color = vec4(normal.xyz / 2.0 + 0.5, normal.a);
+    color = vec4(normal.xyz, normal.a);
     return;
     #endif
+    
+    normal = normal * 2. - 1.;
 
     #ifdef SHOW_POSITIONS
     // vec4 lpos = u_cameraViewSpaceToLightCamera * pos;

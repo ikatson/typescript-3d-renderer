@@ -38,7 +38,7 @@ layout(location = 2) out vec4 gbuf_colmap;
 
 void main() {
     gbuf_position = vec4(v_pos.xyz, 1.0);
-    gbuf_normal = vec4(v_norm.xyz, 1.0);
+    gbuf_normal = vec4(v_norm.xyz * .5 + .5, 1.0);
     // TODO: replace with real materials
     gbuf_colmap = vec4(1., 0.87, 0.74, 1.);
 }

@@ -66,7 +66,7 @@ float ssao(vec3 normalVS, vec4 posVS, vec2 tx_pos) {
 }
 
 void main() {
-    vec3 normal = texture(gbuf_normal, tx_pos).xyz;
+    vec3 normal = texture(gbuf_normal, tx_pos).xyz * 2. - 1.;
     vec4 pos = texture(gbuf_position, tx_pos);
 
     float occlusion = ssao(normal, pos, tx_pos);
@@ -115,7 +115,7 @@ float getSsaoBlurred(vec4 posVS, vec3 normalVS) {
                 continue;
             }
             
-            vec3 normalVS_offset = texture(gbuf_normal, offset).xyz;
+            vec3 normalVS_offset = texture(gbuf_normal, offset).xyz * 2. - 1.;
             if (abs(dot(normalVS_offset, normalVS)) < u_ssaoBlurNormalThreshold) {
                 continue;
             }
@@ -132,7 +132,7 @@ float getSsaoBlurred(vec4 posVS, vec3 normalVS) {
 
 void main() {
     vec4 posVS = texture(gbuf_position, tx_pos);
-    vec3 normalVS = texture(gbuf_normal, tx_pos).xyz;
+    vec3 normalVS = texture(gbuf_normal, tx_pos).xyz * 2. - 1.;
     color = vec4(getSsaoBlurred(posVS, normalVS), 0., 0., 1.);
     // color = vec4(texture(u_ssaoFirstPassTx, tx_pos).xyz, 1.);
 }
