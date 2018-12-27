@@ -188,12 +188,12 @@ export class GBuffer {
         this.gFrameBuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.gFrameBuffer);
         gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthRB);
-        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, gl.canvas.width, gl.canvas.height);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH24_STENCIL8, gl.canvas.width, gl.canvas.height);
         gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, this.ATTACHMENT_POSITION, gl.TEXTURE_2D, this.posTx, 0);
         gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, this.ATTACHMENT_NORMAL, gl.TEXTURE_2D, this.normalTX, 0);
         gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, this.ATTACHMENT_ALBEDO, gl.TEXTURE_2D, this.colorTX, 0);
         gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, this.ATTACHMENT_SPECULAR, gl.TEXTURE_2D, this.specularTX, 0);
-        gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthRB);
+        gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, this.depthRB);
         checkFrameBufferStatusOrThrow(gl);
     }
 }
@@ -486,6 +486,9 @@ export class FinalLightingRenderer {
             new FragmentShader(gl, VISUALIZE_LIGHTS_SHADERS.FS.build())
         );
 
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, this.gBuffer.depthRB);
+
         this.recompileOnNextRun();
     }
 
@@ -581,7 +584,10 @@ export class FinalLightingRenderer {
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         // No need for depth test when rendering full-screen framebuffers.
         gl.disable(gl.DEPTH_TEST);
-        glClearColorAndDepth(gl, 0., 0, 0, 1.);
+        gl.clearColor(0, 0, 0, 0);
+
+        // NO depth clearing here.
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
 
         if (this.config.showLayer != ShowLayer.Final && this.config.showLayer != ShowLayer.ShadowMap) {
             const s = this.showBuffersShader.use(gl);
@@ -665,7 +671,8 @@ export class FinalLightingRenderer {
             gl.enable(gl.BLEND);
             gl.enable(gl.DEPTH_TEST);
             gl.enable(gl.CULL_FACE);
-            gl.cullFace(gl.FRONT);
+            gl.enable(gl.STENCIL_TEST);
+            gl.depthMask(false);
 
             gl.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
             gl.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE);
@@ -691,8 +698,6 @@ export class FinalLightingRenderer {
             bindUniformTx(gl, s, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
 
             scene.pointLights.forEach((light, i) => {
-                // https://kayru.org/articles/deferred-stencil/
-
                 // NO shadow map support yet.
                 gl.uniform3fv(s.getUniformLocation(gl, "u_lightData"), this.generatePointLightData(light));
 
@@ -708,10 +713,29 @@ export class FinalLightingRenderer {
                 gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelViewMatrix"), false, modelView);
                 gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
 
-                gl.clear(gl.DEPTH_BUFFER_BIT);
+                // https://kayru.org/articles/deferred-stencil/
+
+                // first pass
+                gl.depthFunc(gl.LEQUAL);
+                gl.cullFace(gl.BACK);
+                gl.colorMask(false, false, false, false);
+                gl.stencilFunc(gl.LESS, 1, 0xFF);
+                gl.stencilOp(gl.KEEP, gl.REPLACE, gl.KEEP);
+                this.sphereObject.mesh.draw(gl);
+
+                // second pass
+                gl.depthFunc(gl.GEQUAL);
+                gl.cullFace(gl.FRONT);
+                gl.colorMask(true, true, true, true);
+                gl.stencilFunc(gl.EQUAL, 0, 0xFF);
+                gl.stencilOp(gl.ZERO, gl.ZERO, gl.ZERO);
                 this.sphereObject.mesh.draw(gl);
             });
 
+            // Restore state.
+            gl.depthMask(true);
+            gl.depthFunc(gl.LEQUAL);
+            gl.disable(gl.STENCIL_TEST);
             gl.cullFace(gl.BACK);
         };
 
