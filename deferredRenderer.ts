@@ -549,7 +549,7 @@ export class FinalLightingRenderer {
                     .define('SHADOW_MAP_HEIGHT', `${this.shadowMapRenderer.shadowMapHeight}.`)
                     .define('POINT_LIGHT', '')
                     .defineIfTrue('SSAO_ENABLED', this.config.ssao.isEnabled())
-                    .defineIfTrue('SHADOWMAP_ENABLED', this.config.shadowMap.enabled)
+                    // .defineIfTrue('SHADOWMAP_ENABLED', this.config.shadowMap.enabled)
                     .build()
             )
         );
@@ -574,7 +574,6 @@ export class FinalLightingRenderer {
         gl.disable(gl.DEPTH_TEST);
         glClearColorAndDepth(gl, 0., 0, 0, 1.);
 
-
         if (this.config.showLayer != ShowLayer.Final && this.config.showLayer != ShowLayer.ShadowMap) {
             const s = this.showBuffersShader.use(gl);
             this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
@@ -588,7 +587,7 @@ export class FinalLightingRenderer {
             return;
         }
 
-        scene.directionalLights.forEach(light => {
+        scene.directionalLights.forEach((light, i) => {
             const lightCameraWorldToProjectionMatrix = computeDirectionalLightCameraWorldToProjectionMatrix(
                 light, camera, scene
             );
@@ -610,7 +609,8 @@ export class FinalLightingRenderer {
             }
 
             gl.enable(gl.BLEND);
-            // gl.blendFunc(gl.SRC_COLOR, gl.DST_COLOR);
+
+            gl.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
             gl.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE);
 
             let s = this.directionalLightShader;
@@ -636,15 +636,52 @@ export class FinalLightingRenderer {
 
             gl.uniform3fv(s.getUniformLocation(gl, "u_lightData"), this.generateDirectionalLightData(light));
 
-            bindUniformTx(gl, this.directionalLightShader, "gbuf_position", this.gBuffer.posTx, 0);
-            bindUniformTx(gl, this.directionalLightShader, "gbuf_normal", this.gBuffer.normalTX, 1);
-            bindUniformTx(gl, this.directionalLightShader, "gbuf_colormap", this.gBuffer.colorTX, 2);
-            bindUniformTx(gl, this.directionalLightShader, "gbuf_specular", this.gBuffer.specularTX, 3);
-            bindUniformTx(gl, this.directionalLightShader, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
-            bindUniformTx(gl, this.directionalLightShader, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
+            bindUniformTx(gl, s, "gbuf_position", this.gBuffer.posTx, 0);
+            bindUniformTx(gl, s, "gbuf_normal", this.gBuffer.normalTX, 1);
+            bindUniformTx(gl, s, "gbuf_colormap", this.gBuffer.colorTX, 2);
+            bindUniformTx(gl, s, "gbuf_specular", this.gBuffer.specularTX, 3);
+            bindUniformTx(gl, s, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
+            bindUniformTx(gl, s, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
 
             this.fullScreenQuad.draw(gl);
         });
+
+        const renderPointLights = () => {
+            const s = this.pointLightShader;
+            s.use(gl);
+
+            this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
+            gl.enable(gl.BLEND);
+
+            gl.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
+            gl.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE);
+
+            // Shadow map stuff
+            gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapFixedBias"), this.config.shadowMap.fixedBias);
+            gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapNormalBias"), this.config.shadowMap.normalBias);
+
+            // Common uniforms
+            gl.uniform3fv(s.getUniformLocation(gl, "u_cameraPos"), camera.position);
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix().matrix);
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_cameraToWorldMatrix"), false, camera.getCameraToWorld());
+
+            bindUniformTx(gl, s, "gbuf_position", this.gBuffer.posTx, 0);
+            bindUniformTx(gl, s, "gbuf_normal", this.gBuffer.normalTX, 1);
+            bindUniformTx(gl, s, "gbuf_colormap", this.gBuffer.colorTX, 2);
+            bindUniformTx(gl, s, "gbuf_specular", this.gBuffer.specularTX, 3);
+            bindUniformTx(gl, s, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
+            bindUniformTx(gl, s, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
+
+            scene.pointLights.forEach((light, i) => {
+                // NO shadow map support yet.
+                gl.uniform3fv(s.getUniformLocation(gl, "u_lightData"), this.generatePointLightData(light));
+
+                this.fullScreenQuad.draw(gl);
+            });
+        };
+
+        renderPointLights();
 
         // if (this.config.showLayer === ShowLayer.Final) {
         //     this.renderLightVolumes(gl, camera, scene);

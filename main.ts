@@ -341,13 +341,13 @@ function main() {
         sun.directionalLight.diffuse = v3(state.lighting.sun.diffuse.value);
         sun.directionalLight.specular = v3(state.lighting.sun.specular.value);
 
-        scene.directionalLights.push(sun.directionalLight);
+        // scene.directionalLights.push(sun.directionalLight);
 
 
-        // TEST
-        // const sun2 = new GameObjectBuilder("sun").setDirectionalLightComponent(new DirectionalLight()).build();
-        // sun2.directionalLight.direction = vec3.normalize(sun.directionalLight.direction, [-1, -1, 1]);
-        // sun2.directionalLight.intensity = 0.2;
+        // TEST 2 shadow lights
+        // const sun2 = new GameObjectBuilder("sun 2").setDirectionalLightComponent(new DirectionalLight()).build();
+        // sun2.directionalLight.direction = vec3.normalize(sun2.directionalLight.direction, [-1, -0.2, 1]);
+        // sun2.directionalLight.intensity = 0.5;
         // sun2.directionalLight.ambient = v3(state.lighting.sun.ambient.value);
         // sun2.directionalLight.diffuse = v3(state.lighting.sun.diffuse.value);
         // sun2.directionalLight.specular = v3(state.lighting.sun.specular.value);

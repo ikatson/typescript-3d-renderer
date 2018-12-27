@@ -114,36 +114,25 @@ float getSsaoBlurred() {
 }
 
 light makeLight() {
-    // TODO: remove i
-    int i = 0;
     light l;
     
     #ifdef DIRECTIONAL_LIGHT
-    l.direction = u_lightData[0];
-    // transform to world space.
-    l.direction = (u_worldToCameraMatrix * vec4(l.direction, 0.)).xyz;
-    // l.direction = normalize(-(u_worldToCameraMatrix * vec4(-l.direction, 1.)).xyz);
+    l.direction = (u_worldToCameraMatrix * vec4(u_lightData[0], 0.)).xyz;
     #endif
     
     #ifdef POINT_LIGHT
-    l.position = (u_worldToCameraMatrix * vec4(u_lightData[i * 5], 0.)).xyz;
-    l.radius = u_lightData[i * 5 + 4].y;
-    l.attenuation = u_lightData[i * 5 + 4].z;
+    l.position = (u_worldToCameraMatrix * vec4(u_lightData[0], 1.)).xyz;
+    l.radius = u_lightData[4].y;
+    l.attenuation = u_lightData[4].z;
     #endif
     
-    l.ambient = u_lightData[i * 5 + 1];
-    l.diffuse = u_lightData[i * 5 + 2];
-    l.specular = u_lightData[i * 5 + 3];
-    l.intensity = u_lightData[i * 5 + 4].x;
+    l.ambient = u_lightData[1];
+    l.diffuse = u_lightData[2];
+    l.specular = u_lightData[3];
+    l.intensity = u_lightData[4].x;
     
     return l;
 }
-
-float eye_space_z(float depth, float near, float far) {
-    float eye_z = near * far / ((depth * (far - near)) - far);
-    float val = ( eye_z - (-near) ) / ( -far - (-near) );
-    return val;
-} 
 
 void main() {
     vec4 normal = GBUFFER_NORMAL(tx_pos);
@@ -152,8 +141,6 @@ void main() {
     vec4 _specular = GBUFFER_SPECULAR(tx_pos);
     vec3 tspecular = _specular.xyz;
     float tshininess = _specular.a * 256.;
-
-    vec3 eye = vec3(0.);
 
     // final color.
     vec3 c = vec3(0.);
@@ -231,14 +218,14 @@ void main() {
     #endif
 
     // diffuse
-    lc += colDiffuse * l.intensity * max(dot(normal.xyz, normalize(-lightDir)), 0.) * pos.a;
+    lc += colDiffuse * l.intensity * max(dot(normal.xyz, -lightDir), 0.) * pos.a;
 
     // specular
     lc += colSpecular * l.intensity * pow(
         max(
             dot(
-                normalize(reflect(lightDir, normal.xyz)),
-                normalize(eye - pos.xyz)
+                reflect(lightDir, normal.xyz),
+                normalize(-pos.xyz)
             ), 
             0.
         ), 
@@ -247,7 +234,7 @@ void main() {
 
     #ifdef POINT_LIGHT
     if (l.radius > 0.) {
-        lc *= 1. - smoothstep(l.radius, l.radius + l.attenuation, length(lightDir));
+        lc *= 1. - smoothstep(l.radius, l.radius + l.attenuation, length(pos.xyz - l.position));
     }
     #endif
 
