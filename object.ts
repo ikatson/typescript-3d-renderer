@@ -73,11 +73,19 @@ export class BoundingBoxComponent extends Component {
     }
 }
 
-export class LightComponent extends Component {
+export class BaseLightComponent extends Component {
     diffuse: number[] | Float32Array = [1., 1., 1.];
     specular: number[] | Float32Array = [1., 1., 1.];
     ambient: number[] | Float32Array = [0., 0., 0.];
     intensity: number = 1.;
+}
+
+export class DirectionalLight extends BaseLightComponent {
+    direction: number[] | Float32Array = [0, -1, 0];
+    castsShadows: boolean;
+}
+
+export class PointLightComponent extends BaseLightComponent {
     radius: number = 1.;
     attenuation: number = 0.2;
 }
@@ -155,7 +163,8 @@ export class GameObject {
     name: string;
     transform: TransformComponent;
     mesh: MeshComponent = null;
-    light: LightComponent = null;
+    pointLight: PointLightComponent = null;
+    directionalLight: DirectionalLight = null;
     boundingBox: BoundingBoxComponent = null;
     material: MaterialComponent;
 
@@ -183,8 +192,14 @@ export class GameObjectBuilder {
         return this;
     }
 
-    setLightComponent(light: LightComponent): GameObjectBuilder {
-        this.o.light = light;
+    setDirectionalLightComponent(light: DirectionalLight): GameObjectBuilder {
+        this.o.directionalLight = light;
+        light.object = this.o;
+        return this;
+    }
+
+    setPointLightComponent(light: PointLightComponent): GameObjectBuilder {
+        this.o.pointLight = light;
         light.object = this.o;
         return this;
     }

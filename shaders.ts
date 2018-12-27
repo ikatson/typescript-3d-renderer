@@ -75,8 +75,9 @@ export class ShaderProgram {
         }
     }
 
-    use(gl: WebGLRenderingContext) {
+    use(gl: WebGLRenderingContext): ShaderProgram {
         gl.useProgram(this.getProgram());
+        return this;
     }
 
     getProgram(): WebGLProgram {

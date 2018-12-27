@@ -1,31 +1,31 @@
-import { GameObject, GameObjectBuilder, LightComponent } from "./object.js";
+import {DirectionalLight, GameObject, GameObjectBuilder, PointLightComponent} from "./object.js";
 import { vec3 } from "./gl-matrix.js";
 import { randFloat, randVec3 } from "./utils.js";
 
-export function randomLight(posScale: number, intensity?: number) {
+export function randomPointLight(posScale: number, intensity?: number) {
     intensity = intensity || 1.;
-    const l = new GameObjectBuilder("a light").setLightComponent(new LightComponent()).build();
+    const l = new GameObjectBuilder("a light").setPointLightComponent(new PointLightComponent()).build();
     l.transform.position = randVec3(-posScale, posScale);
     l.transform.scale = [0.1, 0.1, 0.1];
     l.transform.update();
 
-    l.light.specular = vec3.normalize(l.light.specular, randVec3(0., 1.));
-    l.light.diffuse = vec3.normalize(l.light.diffuse, randVec3(0., 1.));
+    l.pointLight.specular = vec3.normalize(l.pointLight.specular, randVec3(0., 1.));
+    l.pointLight.diffuse = vec3.normalize(l.pointLight.diffuse, randVec3(0., 1.));
 
     const diffuseSpecularRatio = Math.random();
-    l.light.diffuse = vec3.scale(l.light.diffuse, l.light.diffuse, diffuseSpecularRatio);
-    l.light.specular = vec3.scale(l.light.specular, l.light.specular, 1. - diffuseSpecularRatio);
-    l.light.intensity = intensity;
-    return l;
+    l.pointLight.diffuse = vec3.scale(l.pointLight.diffuse, l.pointLight.diffuse, diffuseSpecularRatio);
+    l.pointLight.specular = vec3.scale(l.pointLight.specular, l.pointLight.specular, 1. - diffuseSpecularRatio);
+    l.pointLight.intensity = intensity;
+    return l.pointLight;
 }
 
-export function randomLights(count: number, posScale: number, totalIntensity?: number): GameObject[] {
+export function randomPointLights(count: number, posScale: number, totalIntensity?: number): PointLightComponent[] {
     if (totalIntensity === undefined) {
         totalIntensity = 1.0;
     }
-    const result: GameObject[] = []
+    const result: PointLightComponent[] = [];
     for (let index = 0; index < count; index++) {
-        const l = randomLight(posScale, totalIntensity / count);
+        const l = randomPointLight(posScale, totalIntensity / count);
         result.push(l);
     }
     return result;
@@ -33,12 +33,12 @@ export function randomLights(count: number, posScale: number, totalIntensity?: n
 
 export class Scene {
     children = new Array<GameObject>();
-    lights = new Array<GameObject>();
+    directionalLights = new Array<DirectionalLight>();
+    pointLights = new Array<PointLightComponent>();
     constructor() {}
 
     addChild(o: GameObject) {
         this.children.push(o);
-        this.lights.push(randomLight(5.))
         o.parent = null;
     }
 }

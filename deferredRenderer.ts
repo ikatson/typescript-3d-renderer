@@ -1,6 +1,6 @@
 import {Camera, ProjectionMatrix} from "./camera.js";
 import {mat4, vec3} from "./gl-matrix.js";
-import {GameObject} from "./object.js";
+import {DirectionalLight, GameObject, PointLightComponent} from "./object.js";
 import {Scene} from "./scene.js";
 import {FragmentShader, ShaderProgram, VertexShader} from "./shaders.js";
 import {FINAL_SHADER_SOURCE} from "./shaders/final.js";
@@ -238,6 +238,7 @@ export class SSAORenderer {
             }
         });
 
+        // FIRST PASS SHADER
         this.firstPassShader = new ShaderProgram(
             gl, this.fullScreenQuad.vertexShader, new FragmentShader(gl,
                 SSAO_SHADER_SOURCE.first_pass_fs
@@ -247,6 +248,13 @@ export class SSAORenderer {
             )
         );
 
+        this.firstPassShader.use(gl);
+        this.fullScreenQuad.bind(gl, this.firstPassShader.getAttribLocation(gl, "a_pos"));
+        bindUniformTx(gl, this.firstPassShader, "gbuf_position", this.gBuffer.posTx, 0);
+        bindUniformTx(gl, this.firstPassShader, "gbuf_normal", this.gBuffer.normalTX, 1);
+        bindUniformTx(gl, this.firstPassShader, "u_ssaoNoise", this.ssaoState.noiseTexture, 2);
+
+        // BLUR SHADER
         this.blurShader = new ShaderProgram(
             gl, this.fullScreenQuad.vertexShader, new FragmentShader(gl,
                 SSAO_SHADER_SOURCE.blur_pass_fs
@@ -257,6 +265,14 @@ export class SSAORenderer {
                     .build()
             )
         );
+        this.blurShader.use(gl);
+
+        this.fullScreenQuad.bind(gl, this.blurShader.getAttribLocation(gl, "a_pos"));
+
+        bindUniformTx(gl, this.blurShader, "gbuf_position", this.gBuffer.posTx, 0);
+        bindUniformTx(gl, this.blurShader, "gbuf_normal", this.gBuffer.normalTX, 1);
+        bindUniformTx(gl, this.blurShader, "u_ssaoNoise", this.ssaoState.noiseTexture, 2);
+        bindUniformTx(gl, this.blurShader, "u_ssaoFirstPassTx", this._ssaoFirstPassTx, 3);
     }
 
     render(gl: WebGLRenderingContext, camera: Camera) {
@@ -268,12 +284,6 @@ export class SSAORenderer {
             gl.bindFramebuffer(gl.FRAMEBUFFER, this.firstPassFB);
 
             glClearColorAndDepth(gl, 0., 0, 0, 1.);
-
-            this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
-
-            bindUniformTx(gl, s, "gbuf_position", this.gBuffer.posTx, 0);
-            bindUniformTx(gl, s, "gbuf_normal", this.gBuffer.normalTX, 1);
-            bindUniformTx(gl, s, "u_ssaoNoise", this.ssaoState.noiseTexture, 2);
 
             // Common uniforms
             gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
@@ -301,14 +311,6 @@ export class SSAORenderer {
             gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurPassFB);
 
             glClearColorAndDepth(gl, 0., 0, 0, 1.);
-
-            this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
-
-            bindUniformTx(gl, s, "gbuf_position", this.gBuffer.posTx, 0);
-            bindUniformTx(gl, s, "gbuf_normal", this.gBuffer.normalTX, 1);
-
-            bindUniformTx(gl, s, "u_ssaoNoise", this.ssaoState.noiseTexture, 2);
-            bindUniformTx(gl, s, "u_ssaoFirstPassTx", this._ssaoFirstPassTx, 3);
 
             // Common uniforms
             gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
@@ -441,7 +443,10 @@ export class ShadowMapRenderer {
 }
 
 export class FinalLightingRenderer {
-    private lightingShader: ShaderProgram = null;
+    private showBuffersShader: ShaderProgram = null;
+    private directionalLightShader: ShaderProgram = null;
+    private pointLightShader: ShaderProgram = null;
+
     private fullScreenQuad: FullScreenQuad;
 
     private config: DeferredRendererConfig;
@@ -450,7 +455,6 @@ export class FinalLightingRenderer {
     private shadowMapRenderer: ShadowMapRenderer;
     private visualizeLightsShader: ShaderProgram;
     private sphereMesh: GLArrayBuffer;
-    private lastLightCount: number = 0;
     private _recompileOnNextRun: boolean = true;
 
     constructor(gl: WebGLRenderingContext,
@@ -472,24 +476,28 @@ export class FinalLightingRenderer {
             new VertexShader(gl, VISUALIZE_LIGHTS_SHADERS.vs.build()),
             new FragmentShader(gl, VISUALIZE_LIGHTS_SHADERS.FS.build())
         );
+
+        this.recompileOnNextRun();
     }
 
     recompileOnNextRun() {
         this._recompileOnNextRun = true;
     }
 
-    recompileShaders(gl: WebGLRenderingContext, lightCount: number) {
-        if (this.lightingShader) {
-            this.lightingShader.deleteAll(gl);
-        }
-        this.lightingShader = new ShaderProgram(
+    recompileShaders(gl: WebGLRenderingContext) {
+        [this.showBuffersShader, this.pointLightShader, this.directionalLightShader].forEach(s => {
+            if (s) {
+                s.deleteAll(gl);
+            }
+        });
+
+        this.showBuffersShader = new ShaderProgram(
             gl,
             this.fullScreenQuad.vertexShader,
             new FragmentShader(
                 gl,
-                FINAL_SHADER_SOURCE.fs
+                FINAL_SHADER_SOURCE.showLayerFS
                     .clone()
-                    .define('LIGHT_COUNT', lightCount.toString())
                     .define('SCREEN_WIDTH', gl.canvas.width.toString())
                     .define('SCREEN_HEIGHT', gl.canvas.height.toString())
                     .define('SHADOW_MAP_WIDTH', `${this.shadowMapRenderer.shadowMapWidth}.`)
@@ -506,55 +514,113 @@ export class FinalLightingRenderer {
                     .build()
             )
         );
+
+        this.directionalLightShader = new ShaderProgram(
+            gl,
+            this.fullScreenQuad.vertexShader,
+            new FragmentShader(
+                gl,
+                FINAL_SHADER_SOURCE.fs
+                    .clone()
+                    .define('SCREEN_WIDTH', gl.canvas.width.toString())
+                    .define('SCREEN_HEIGHT', gl.canvas.height.toString())
+                    .define('SHADOW_MAP_WIDTH', `${this.shadowMapRenderer.shadowMapWidth}.`)
+                    .define('SHADOW_MAP_HEIGHT', `${this.shadowMapRenderer.shadowMapHeight}.`)
+                    .define('DIRECTIONAL_LIGHT', '')
+                    .defineIfTrue('SSAO_ENABLED', this.config.ssao.isEnabled())
+                    .defineIfTrue('SHADOWMAP_ENABLED', this.config.shadowMap.enabled)
+                    .build()
+            )
+        );
+
+        this.pointLightShader = new ShaderProgram(
+            gl,
+            this.fullScreenQuad.vertexShader,
+            new FragmentShader(
+                gl,
+                FINAL_SHADER_SOURCE.fs
+                    .clone()
+                    .define('SCREEN_WIDTH', gl.canvas.width.toString())
+                    .define('SCREEN_HEIGHT', gl.canvas.height.toString())
+                    .define('SHADOW_MAP_WIDTH', `${this.shadowMapRenderer.shadowMapWidth}.`)
+                    .define('SHADOW_MAP_HEIGHT', `${this.shadowMapRenderer.shadowMapHeight}.`)
+                    .define('POINT_LIGHT', '')
+                    .defineIfTrue('SSAO_ENABLED', this.config.ssao.isEnabled())
+                    .defineIfTrue('SHADOWMAP_ENABLED', this.config.shadowMap.enabled)
+                    .build()
+            )
+        );
+
         this._recompileOnNextRun = false;
     }
 
-    render(gl: WebGLRenderingContext, scene: Scene, camera: Camera, lightCameraWorldToProjectionMatrix: ProjectionMatrix) {
-        const sceneLightCount = scene.lights.length;
-        if (this.lightingShader == null || this._recompileOnNextRun || this.lastLightCount != sceneLightCount) {
-            this.recompileShaders(gl, sceneLightCount);
-            this.lastLightCount = sceneLightCount;
+    render(gl: WebGLRenderingContext, scene: Scene, camera: Camera) {
+        if (this._recompileOnNextRun) {
+            this.recompileShaders(gl);
         }
-
-        const s = this.lightingShader;
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.useProgram(s.getProgram());
-
+        gl.disable(gl.DEPTH_TEST);
         glClearColorAndDepth(gl, 0., 0, 0, 1.);
 
-        this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
+        if (this.config.showLayer != ShowLayer.Final) {
+            const s = this.showBuffersShader.use(gl);
+            this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
 
-        bindUniformTx(gl, s, "gbuf_position", this.gBuffer.posTx, 0);
-        bindUniformTx(gl, s, "gbuf_normal", this.gBuffer.normalTX, 1);
-        bindUniformTx(gl, s, "gbuf_colormap", this.gBuffer.colorTX, 2);
-        bindUniformTx(gl, s, "gbuf_specular", this.gBuffer.specularTX, 3);
+            bindUniformTx(gl, s, "gbuf_position", this.gBuffer.posTx, 0);
+            bindUniformTx(gl, s, "gbuf_normal", this.gBuffer.normalTX, 1);
+            bindUniformTx(gl, s, "gbuf_colormap", this.gBuffer.colorTX, 2);
+            bindUniformTx(gl, s, "gbuf_specular", this.gBuffer.specularTX, 3);
+            bindUniformTx(gl, s, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
+            bindUniformTx(gl, s, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
 
-        // Shadow map stuff
-        bindUniformTx(gl, s, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
-        gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapFixedBias"), this.config.shadowMap.fixedBias);
-        gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapNormalBias"), this.config.shadowMap.normalBias);
-        bindUniformTx(gl, s, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
-        const cameraViewSpaceToLightCamera = tmpMat4;
-        mat4.multiply(cameraViewSpaceToLightCamera, lightCameraWorldToProjectionMatrix.matrix, camera.getCameraToWorld());
-        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_cameraViewSpaceToLightCamera"), false, cameraViewSpaceToLightCamera);
-        gl.uniform1f(s.getUniformLocation(gl, "u_lightNear"), lightCameraWorldToProjectionMatrix.near);
-        gl.uniform1f(s.getUniformLocation(gl, "u_lightFar"), lightCameraWorldToProjectionMatrix.far);
-
-        // Common uniforms
-        gl.uniform3fv(s.getUniformLocation(gl, "u_lightData"), this.generateLightData(scene.lights));
-        gl.uniform3fv(s.getUniformLocation(gl, "u_cameraPos"), camera.position);
-        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
-        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix().matrix);
-        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_cameraToWorldMatrix"), false, camera.getCameraToWorld());
-
-
-
-        // Draw
-        this.fullScreenQuad.draw(gl);
-        if (this.config.showLayer === ShowLayer.Final) {
-            this.renderLightVolumes(gl, camera, scene);
+            this.fullScreenQuad.draw(gl);
+            return;
         }
+
+        scene.directionalLights.forEach(light => {
+            const lightCameraWorldToProjectionMatrix = computeDirectionalLightCameraWorldToProjectionMatrix(
+                light, camera, scene
+            );
+
+            this.shadowMapRenderer.render(gl, lightCameraWorldToProjectionMatrix, scene);
+
+            let s = this.directionalLightShader;
+            gl.useProgram(s.getProgram());
+
+            this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
+
+            bindUniformTx(gl, s, "gbuf_position", this.gBuffer.posTx, 0);
+            bindUniformTx(gl, s, "gbuf_normal", this.gBuffer.normalTX, 1);
+            bindUniformTx(gl, s, "gbuf_colormap", this.gBuffer.colorTX, 2);
+            bindUniformTx(gl, s, "gbuf_specular", this.gBuffer.specularTX, 3);
+
+            // Shadow map stuff
+            bindUniformTx(gl, s, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
+            gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapFixedBias"), this.config.shadowMap.fixedBias);
+            gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapNormalBias"), this.config.shadowMap.normalBias);
+            bindUniformTx(gl, s, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
+
+            // Common uniforms
+
+            gl.uniform3fv(s.getUniformLocation(gl, "u_cameraPos"), camera.position);
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix().matrix);
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_cameraToWorldMatrix"), false, camera.getCameraToWorld());
+
+            const cameraViewSpaceToLightCamera = tmpMat4;
+            mat4.multiply(cameraViewSpaceToLightCamera, lightCameraWorldToProjectionMatrix.matrix, camera.getCameraToWorld());
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_cameraViewSpaceToLightCamera"), false, cameraViewSpaceToLightCamera);
+            gl.uniform1f(s.getUniformLocation(gl, "u_lightNear"), lightCameraWorldToProjectionMatrix.near);
+            gl.uniform1f(s.getUniformLocation(gl, "u_lightFar"), lightCameraWorldToProjectionMatrix.far);
+
+            gl.uniform3fv(s.getUniformLocation(gl, "u_lightData"), this.generateDirectionalLightData(light));
+            this.fullScreenQuad.draw(gl);
+        });
+
+        // if (this.config.showLayer === ShowLayer.Final) {
+        //     this.renderLightVolumes(gl, camera, scene);
+        // }
     }
 
     private renderLightVolumes(gl: WebGLRenderingContext, camera: Camera, scene: Scene) {
@@ -573,7 +639,7 @@ export class FinalLightingRenderer {
 
         bindUniformTx(gl, s, "u_posTexture", this.gBuffer.posTx, 0);
 
-        scene.lights.forEach(light => {
+        scene.pointLights.forEach(light => {
             const modelWorldMatrix = light.transform.getModelToWorld();
             const modelViewMatrix = tmpMat4;
 
@@ -588,15 +654,23 @@ export class FinalLightingRenderer {
         })
     }
 
-    private generateLightData(lights: GameObject[]): Float32List {
+    private generateDirectionalLightData(l: DirectionalLight): Float32List {
         let result: number[] = [];
-        lights.forEach(l => {
-            result.push(...l.transform.position);
-            result.push(...l.light.ambient);
-            result.push(...l.light.diffuse);
-            result.push(...l.light.specular);
-            result.push(...[l.light.intensity, l.light.radius, l.light.attenuation])
-        });
+        result.push(...l.direction);
+        result.push(...l.ambient);
+        result.push(...l.diffuse);
+        result.push(...l.specular);
+        result.push(l.intensity);
+        return new Float32Array(result);
+    }
+
+    private generatePointLightData(l: PointLightComponent): Float32List {
+        let result: number[] = [];
+        result.push(...l.object.transform.position);
+        result.push(...l.ambient);
+        result.push(...l.diffuse);
+        result.push(...l.specular);
+        result.push(...[l.intensity, l.radius, l.attenuation]);
         return new Float32Array(result);
     }
 }
@@ -636,10 +710,6 @@ export class DeferredRenderer {
 
     render(scene: Scene, camera: Camera) {
         const gl: WebGLRenderingContext = this.gl;
-        const shadowDirectionalLight = scene.lights[0];
-        const lightCameraWorldToProjectionMatrix = computeDirectionalLightCameraWorldToProjectionMatrix(
-            shadowDirectionalLight.light, camera, scene
-        );
 
         if (this.recompileOnNextRun) {
             this.ssaoRenderer.recompileShaders(gl);
@@ -651,11 +721,8 @@ export class DeferredRenderer {
         if (this._config.ssao.isEnabled()) {
             this.ssaoRenderer.render(gl, camera);
         }
-        if (this._config.shadowMap.enabled) {
-            this.shadowMap.render(gl, lightCameraWorldToProjectionMatrix, scene);
-        }
 
-        this.finalPass.render(gl, scene, camera, lightCameraWorldToProjectionMatrix);
+        this.finalPass.render(gl, scene, camera);
     }
 
 }

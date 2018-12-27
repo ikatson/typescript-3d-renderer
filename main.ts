@@ -8,11 +8,11 @@ import {
     tmpVec3
 } from "./utils.js";
 import {ProgressBar, ProgressBarCommon} from "./progressbar.js";
-import {BoundingBoxComponent, GameObjectBuilder, LightComponent, MaterialComponent, MeshComponent} from "./object.js";
+import {BoundingBoxComponent, DirectionalLight, GameObjectBuilder, MaterialComponent, MeshComponent} from "./object.js";
 import {Camera} from "./camera.js";
 
 import {vec3} from "./gl-matrix.js";
-import {randomLight, Scene} from "./scene.js";
+import {randomPointLight, Scene} from "./scene.js";
 import {DeferredRenderer, DeferredRendererConfig, ShadowMapConfig, ShowLayer} from "./deferredRenderer.js";
 import {GLArrayBuffer} from "./glArrayBuffer.js";
 import * as ui from "./ui.js";
@@ -334,16 +334,14 @@ function main() {
 
         const v3 = v => [v, v, v];
 
-        const sun = new GameObjectBuilder("sun").setLightComponent(new LightComponent()).build();
-        sun.transform.position = [2., 2., -2.];
-        sun.transform.update();
-        sun.light.radius = 0;
-        sun.light.intensity = state.lighting.sun.intensity.value;
-        sun.light.ambient = v3(state.lighting.sun.ambient.value);
-        sun.light.diffuse = v3(state.lighting.sun.diffuse.value);
-        sun.light.specular = v3(state.lighting.sun.specular.value);
+        const sun = new GameObjectBuilder("sun").setDirectionalLightComponent(new DirectionalLight()).build();
+        sun.directionalLight.direction = vec3.normalize(sun.directionalLight.direction, [-1, -1, -1]);
+        sun.directionalLight.intensity = state.lighting.sun.intensity.value;
+        sun.directionalLight.ambient = v3(state.lighting.sun.ambient.value);
+        sun.directionalLight.diffuse = v3(state.lighting.sun.diffuse.value);
+        sun.directionalLight.specular = v3(state.lighting.sun.specular.value);
 
-        scene.lights = [sun];
+        scene.directionalLights.push(sun.directionalLight);
 
         const plane = new GameObjectBuilder("plane")
             .setMeshComponent(new MeshComponent(planeMesh))
@@ -504,34 +502,34 @@ function main() {
         };
 
         state.lighting.sun.ambient.onChange.ref = v => {
-            sun.light.ambient = [v, v, v];
+            sun.directionalLight.ambient = [v, v, v];
         };
         state.lighting.sun.specular.onChange.ref = v => {
-            sun.light.specular = [v, v, v];
+            sun.directionalLight.specular = [v, v, v];
         };
         state.lighting.sun.diffuse.onChange.ref = v => {
-            sun.light.diffuse = [v, v, v];
+            sun.directionalLight.diffuse = [v, v, v];
         };
         state.lighting.sun.intensity.onChange.ref = v => {
-            sun.light.intensity = v;
+            sun.directionalLight.intensity = v;
         };
         state.lighting.lightCount.onChange.ref = v => {
             v = clip(v, 1, 500);
-            console.log(scene.lights.length);
-            const diff = scene.lights.length - v;
+            console.log(scene.pointLights.length);
+            const diff = scene.pointLights.length - v;
             if (diff > 0) {
                 for (let index = 0; index < diff; index++) {
-                    scene.lights.pop();
+                    scene.pointLights.pop();
                 }
             } else if (diff < 0) {
                 for (let index = 0; index < -diff; index++) {
-                    const l = randomLight(state.lighting.new.posScale.value, state.lighting.new.intensity.value);
-                    l.light.radius = state.lighting.new.radius.value;
-                    l.light.attenuation = state.lighting.new.attenuation.value;
-                    scene.lights.push(l)
+                    const l = randomPointLight(state.lighting.new.posScale.value, state.lighting.new.intensity.value);
+                    l.radius = state.lighting.new.radius.value;
+                    l.attenuation = state.lighting.new.attenuation.value;
+                    scene.pointLights.push(l)
                 }
             }
-            console.log('new light count ' + scene.lights.length);
+            console.log('new point light count ' + scene.pointLights.length);
         };
         state.lighting.lightCount.onChange(state.lighting.lightCount.value);
 
