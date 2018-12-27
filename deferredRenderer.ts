@@ -722,7 +722,7 @@ export class FinalLightingRenderer {
                 gl.depthFunc(gl.LEQUAL);
                 gl.cullFace(gl.BACK);
                 gl.colorMask(false, false, false, false);
-                gl.stencilFunc(gl.LESS, 1, 0xFF);
+                gl.stencilFunc(gl.GREATER, 1, 0xFF);
                 gl.stencilOp(gl.KEEP, gl.REPLACE, gl.KEEP);
                 this.sphereObject.mesh.draw(gl);
 

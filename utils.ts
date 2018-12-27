@@ -66,7 +66,7 @@ export class FullScreenQuad {
 }
 
 export function initGL(canvas: HTMLCanvasElement): WebGLRenderingContext {
-    let gl = <WebGLRenderingContext>canvas.getContext("webgl2", {antialias: false});
+    let gl = <WebGLRenderingContext>canvas.getContext("webgl2", {antialias: false, stencil: true});
     gl.getExtension("EXT_color_buffer_float");
 
     glClearColorAndDepth(gl, 0.0, 0.0, 0.0, 1.0);
