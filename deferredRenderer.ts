@@ -691,6 +691,8 @@ export class FinalLightingRenderer {
             bindUniformTx(gl, s, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
 
             scene.pointLights.forEach((light, i) => {
+                // https://kayru.org/articles/deferred-stencil/
+
                 // NO shadow map support yet.
                 gl.uniform3fv(s.getUniformLocation(gl, "u_lightData"), this.generatePointLightData(light));
 

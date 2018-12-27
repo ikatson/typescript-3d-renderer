@@ -153,7 +153,7 @@ export class GLArrayBuffer {
     /**
      * @deprecated
      */
-    REMOVE_ME_DATA: GLArrayBufferData;
+    // REMOVE_ME_DATA: GLArrayBufferData;
 
     constructor(gl: WebGLRenderingContext, data: GLArrayBufferData, usage?: number, defaultRenderMode?: GLenum) {
         if (usage === undefined) {
@@ -161,7 +161,7 @@ export class GLArrayBuffer {
         }
         this.buffer = gl.createBuffer();
         this.params = data.params;
-        this.REMOVE_ME_DATA = data;
+        // this.REMOVE_ME_DATA = data;
 
         gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
         gl.bufferData(gl.ARRAY_BUFFER, data.buf, usage);
