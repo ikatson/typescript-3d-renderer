@@ -13,7 +13,7 @@ void main() {
     gl_Position = u_perspectiveMatrix * v_pos;
     tx_pos = (gl_Position.xy / gl_Position.w) / 2. + 0.5;
 }
-`)
+`);
 
 const FS = new ShaderSourceBuilder()
     .addTopChunk(WORLD_AND_CAMERA_TRANSFORMS)
@@ -41,4 +41,4 @@ void main() {
 export const VISUALIZE_LIGHTS_SHADERS = {
     vs: VS,
     FS: FS,
-}
+};

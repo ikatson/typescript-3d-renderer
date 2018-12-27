@@ -1,6 +1,13 @@
 import {Camera, ProjectionMatrix} from "./camera.js";
 import {mat4, vec3} from "./gl-matrix.js";
-import {DirectionalLight, GameObject, PointLightComponent} from "./object.js";
+import {
+    DirectionalLight,
+    GameObject,
+    GameObjectBuilder,
+    MeshComponent,
+    PointLightComponent,
+    TransformComponent
+} from "./object.js";
 import {Scene} from "./scene.js";
 import {FragmentShader, ShaderProgram, VertexShader} from "./shaders.js";
 import {FINAL_SHADER_SOURCE} from "./shaders/final.js";
@@ -454,8 +461,8 @@ export class FinalLightingRenderer {
     private ssaoRenderer: SSAORenderer;
     private shadowMapRenderer: ShadowMapRenderer;
     private visualizeLightsShader: ShaderProgram;
-    private sphereMesh: GLArrayBuffer;
     private _recompileOnNextRun: boolean = true;
+    private sphereObject: GameObject;
 
     constructor(gl: WebGLRenderingContext,
                 config: DeferredRendererConfig,
@@ -468,7 +475,9 @@ export class FinalLightingRenderer {
         this.gBuffer = gBuffer;
         this.ssaoRenderer = ssaoRenderer;
         this.shadowMapRenderer = shadowMapRenderer;
-        this.sphereMesh = sphereMesh;
+        this.sphereObject = new GameObjectBuilder("sphere")
+            .setMeshComponent(new MeshComponent(sphereMesh))
+            .build();
         this.config = config;
 
         this.visualizeLightsShader = new ShaderProgram(
@@ -538,7 +547,7 @@ export class FinalLightingRenderer {
 
         this.pointLightShader = new ShaderProgram(
             gl,
-            this.fullScreenQuad.vertexShader,
+            new VertexShader(gl, FINAL_SHADER_SOURCE.pointLightSphere.build()),
             new FragmentShader(
                 gl,
                 FINAL_SHADER_SOURCE.fs
@@ -648,13 +657,21 @@ export class FinalLightingRenderer {
 
         const renderPointLights = () => {
             const s = this.pointLightShader;
+            const obj = new GameObject("sphere");
+            const tc = obj.transform;
+            const modelView = mat4.create();
             s.use(gl);
 
-            this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
             gl.enable(gl.BLEND);
+            gl.enable(gl.DEPTH_TEST);
+            gl.enable(gl.CULL_FACE);
+            gl.cullFace(gl.FRONT);
 
             gl.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
             gl.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE);
+
+            this.sphereObject.mesh.arrayBuffer.bind(gl);
+            this.sphereObject.mesh.prepareMeshVertexAndShaderDataForRendering(gl, s, false, false);
 
             // Shadow map stuff
             gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapFixedBias"), this.config.shadowMap.fixedBias);
@@ -677,8 +694,23 @@ export class FinalLightingRenderer {
                 // NO shadow map support yet.
                 gl.uniform3fv(s.getUniformLocation(gl, "u_lightData"), this.generatePointLightData(light));
 
-                this.fullScreenQuad.draw(gl);
+                // 2 is because the sphere mesh is of size 1.
+                // 2.1 is to round the imperfect sphere shape, as it is very low poly.
+                const scale = (light.radius + light.attenuation) * 2.1;
+                tc.scale = [scale, scale, scale];
+                vec3.copy(tc.position, light.object.transform.position);
+                tc.update();
+
+                mat4.multiply(modelView, camera.getWorldToCamera(), tc.getModelToWorld());
+
+                gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelViewMatrix"), false, modelView);
+                gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
+
+                gl.clear(gl.DEPTH_BUFFER_BIT);
+                this.sphereObject.mesh.draw(gl);
             });
+
+            gl.cullFace(gl.BACK);
         };
 
         renderPointLights();

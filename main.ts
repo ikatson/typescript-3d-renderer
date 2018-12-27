@@ -341,7 +341,7 @@ function main() {
         sun.directionalLight.diffuse = v3(state.lighting.sun.diffuse.value);
         sun.directionalLight.specular = v3(state.lighting.sun.specular.value);
 
-        // scene.directionalLights.push(sun.directionalLight);
+        scene.directionalLights.push(sun.directionalLight);
 
 
         // TEST 2 shadow lights

@@ -156,6 +156,8 @@ void main() {
     
     #ifdef POINT_LIGHT
     vec3 lightDir = normalize(pos.xyz - l.position);
+    // color = vec4(1.);
+    // return;
     #endif
     
     #ifdef DIRECTIONAL_LIGHT
@@ -244,7 +246,22 @@ void main() {
 }
 `);
 
+
+const POINT_LIGHT_RADIUS_VS = new ShaderSourceBuilder()
+    .addTopChunk(WORLD_AND_CAMERA_TRANSFORMS)
+    .addChunk(`
+in vec4 a_pos;
+out vec2 tx_pos;
+
+void main() {
+    gl_Position = u_perspectiveMatrix * u_modelViewMatrix * a_pos;
+    gl_Position /= gl_Position.w;
+    tx_pos = (gl_Position.xy / gl_Position.w) / 2. + 0.5;
+}
+`);
+
 export const FINAL_SHADER_SOURCE = {
     fs: LIGHTING_FS,
     showLayerFS: SHOW_LAYER_FS,
+    pointLightSphere: POINT_LIGHT_RADIUS_VS,
 };
