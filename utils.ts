@@ -118,7 +118,7 @@ export const loadSphere = makeObjLoader('resources/sphere.obj');
 export const loadCube = makeObjLoader('resources/cube.obj');
 
 export const tmpMat4 = mat4.create();
-export const tmpVec3 = vec3.create();
+export const tmpVec3: number[] = vec3.create();
 export const tmpVec4 = vec4.create();
 export const tmpIdentityMatrix = (function () {
     const m = mat4.create();
@@ -239,7 +239,7 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: Ligh
 };
 
 
-export function hexToRgb1(out, hex: string) {
+export function hexToRgb1(out: number[], hex: string) {
     const bigint = parseInt(hex.slice(1, hex.length), 16);
     const r = (bigint >> 16) & 255;
     const g = (bigint >> 8) & 255;

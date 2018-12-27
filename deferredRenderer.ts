@@ -249,7 +249,6 @@ export class SSAORenderer {
         );
 
         this.firstPassShader.use(gl);
-        this.fullScreenQuad.bind(gl, this.firstPassShader.getAttribLocation(gl, "a_pos"));
         bindUniformTx(gl, this.firstPassShader, "gbuf_position", this.gBuffer.posTx, 0);
         bindUniformTx(gl, this.firstPassShader, "gbuf_normal", this.gBuffer.normalTX, 1);
         bindUniformTx(gl, this.firstPassShader, "u_ssaoNoise", this.ssaoState.noiseTexture, 2);
@@ -266,9 +265,6 @@ export class SSAORenderer {
             )
         );
         this.blurShader.use(gl);
-
-        this.fullScreenQuad.bind(gl, this.blurShader.getAttribLocation(gl, "a_pos"));
-
         bindUniformTx(gl, this.blurShader, "gbuf_position", this.gBuffer.posTx, 0);
         bindUniformTx(gl, this.blurShader, "gbuf_normal", this.gBuffer.normalTX, 1);
         bindUniformTx(gl, this.blurShader, "u_ssaoNoise", this.ssaoState.noiseTexture, 2);
@@ -282,8 +278,9 @@ export class SSAORenderer {
             s.use(gl);
 
             gl.bindFramebuffer(gl.FRAMEBUFFER, this.firstPassFB);
-
             glClearColorAndDepth(gl, 0., 0, 0, 1.);
+
+            this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
 
             // Common uniforms
             gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
@@ -309,8 +306,9 @@ export class SSAORenderer {
             s.use(gl);
 
             gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurPassFB);
-
             glClearColorAndDepth(gl, 0., 0, 0, 1.);
+
+            this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
 
             // Common uniforms
             gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
@@ -514,6 +512,13 @@ export class FinalLightingRenderer {
                     .build()
             )
         );
+        this.showBuffersShader.use(gl);
+        bindUniformTx(gl, this.showBuffersShader, "gbuf_position", this.gBuffer.posTx, 0);
+        bindUniformTx(gl, this.showBuffersShader, "gbuf_normal", this.gBuffer.normalTX, 1);
+        bindUniformTx(gl, this.showBuffersShader, "gbuf_colormap", this.gBuffer.colorTX, 2);
+        bindUniformTx(gl, this.showBuffersShader, "gbuf_specular", this.gBuffer.specularTX, 3);
+        bindUniformTx(gl, this.showBuffersShader, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
+        bindUniformTx(gl, this.showBuffersShader, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
 
         this.directionalLightShader = new ShaderProgram(
             gl,
@@ -532,6 +537,13 @@ export class FinalLightingRenderer {
                     .build()
             )
         );
+        this.directionalLightShader.use(gl);
+        bindUniformTx(gl, this.directionalLightShader, "gbuf_position", this.gBuffer.posTx, 0);
+        bindUniformTx(gl, this.directionalLightShader, "gbuf_normal", this.gBuffer.normalTX, 1);
+        bindUniformTx(gl, this.directionalLightShader, "gbuf_colormap", this.gBuffer.colorTX, 2);
+        bindUniformTx(gl, this.directionalLightShader, "gbuf_specular", this.gBuffer.specularTX, 3);
+        bindUniformTx(gl, this.directionalLightShader, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
+        bindUniformTx(gl, this.directionalLightShader, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
 
         this.pointLightShader = new ShaderProgram(
             gl,
@@ -550,6 +562,13 @@ export class FinalLightingRenderer {
                     .build()
             )
         );
+        this.pointLightShader.use(gl);
+        bindUniformTx(gl, this.pointLightShader, "gbuf_position", this.gBuffer.posTx, 0);
+        bindUniformTx(gl, this.pointLightShader, "gbuf_normal", this.gBuffer.normalTX, 1);
+        bindUniformTx(gl, this.pointLightShader, "gbuf_colormap", this.gBuffer.colorTX, 2);
+        bindUniformTx(gl, this.pointLightShader, "gbuf_specular", this.gBuffer.specularTX, 3);
+        bindUniformTx(gl, this.pointLightShader, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
+        bindUniformTx(gl, this.pointLightShader, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
 
         this._recompileOnNextRun = false;
     }
@@ -560,20 +579,15 @@ export class FinalLightingRenderer {
         }
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+        // No need for depth test when rendering full-screen framebuffers.
         gl.disable(gl.DEPTH_TEST);
+
         glClearColorAndDepth(gl, 0., 0, 0, 1.);
 
         if (this.config.showLayer != ShowLayer.Final) {
             const s = this.showBuffersShader.use(gl);
             this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
-
-            bindUniformTx(gl, s, "gbuf_position", this.gBuffer.posTx, 0);
-            bindUniformTx(gl, s, "gbuf_normal", this.gBuffer.normalTX, 1);
-            bindUniformTx(gl, s, "gbuf_colormap", this.gBuffer.colorTX, 2);
-            bindUniformTx(gl, s, "gbuf_specular", this.gBuffer.specularTX, 3);
-            bindUniformTx(gl, s, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
-            bindUniformTx(gl, s, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
-
             this.fullScreenQuad.draw(gl);
             return;
         }
@@ -583,26 +597,24 @@ export class FinalLightingRenderer {
                 light, camera, scene
             );
 
-            this.shadowMapRenderer.render(gl, lightCameraWorldToProjectionMatrix, scene);
+            if (this.config.shadowMap.enabled) {
+                this.shadowMapRenderer.render(gl, lightCameraWorldToProjectionMatrix, scene);
+
+                // No need for depth test when rendering full-screen framebuffers.
+                gl.disable(gl.DEPTH_TEST);
+                gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            }
 
             let s = this.directionalLightShader;
-            gl.useProgram(s.getProgram());
+            s.use(gl);
 
             this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
 
-            bindUniformTx(gl, s, "gbuf_position", this.gBuffer.posTx, 0);
-            bindUniformTx(gl, s, "gbuf_normal", this.gBuffer.normalTX, 1);
-            bindUniformTx(gl, s, "gbuf_colormap", this.gBuffer.colorTX, 2);
-            bindUniformTx(gl, s, "gbuf_specular", this.gBuffer.specularTX, 3);
-
             // Shadow map stuff
-            bindUniformTx(gl, s, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
             gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapFixedBias"), this.config.shadowMap.fixedBias);
             gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapNormalBias"), this.config.shadowMap.normalBias);
-            bindUniformTx(gl, s, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
 
             // Common uniforms
-
             gl.uniform3fv(s.getUniformLocation(gl, "u_cameraPos"), camera.position);
             gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
             gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix().matrix);
@@ -660,7 +672,8 @@ export class FinalLightingRenderer {
         result.push(...l.ambient);
         result.push(...l.diffuse);
         result.push(...l.specular);
-        result.push(l.intensity);
+        // the 2 zeroes are unused.
+        result.push(...[l.intensity, 0, 0]);
         return new Float32Array(result);
     }
 
