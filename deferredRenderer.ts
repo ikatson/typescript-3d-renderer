@@ -486,9 +486,6 @@ export class FinalLightingRenderer {
             new FragmentShader(gl, VISUALIZE_LIGHTS_SHADERS.FS.build())
         );
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, this.gBuffer.depthRB);
-
         this.recompileOnNextRun();
     }
 
@@ -582,6 +579,12 @@ export class FinalLightingRenderer {
         }
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.gBuffer.gFrameBuffer);
+
+        gl.blitFramebuffer(0, 0, gl.canvas.width, gl.canvas.height,
+            0, 0, gl.canvas.width, gl.canvas.height,
+            gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT, gl.NEAREST);
+
         // No need for depth test when rendering full-screen framebuffers.
         gl.disable(gl.DEPTH_TEST);
         gl.clearColor(0, 0, 0, 0);
