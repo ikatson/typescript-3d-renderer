@@ -120,10 +120,13 @@ light makeLight() {
     
     #ifdef DIRECTIONAL_LIGHT
     l.direction = u_lightData[0];
+    // transform to world space.
+    l.direction = (u_worldToCameraMatrix * vec4(l.direction, 0.)).xyz;
+    // l.direction = normalize(-(u_worldToCameraMatrix * vec4(-l.direction, 1.)).xyz);
     #endif
     
     #ifdef POINT_LIGHT
-    l.position = (u_worldToCameraMatrix * vec4(u_lightData[i * 5], 1.)).xyz;
+    l.position = (u_worldToCameraMatrix * vec4(u_lightData[i * 5], 0.)).xyz;
     l.radius = u_lightData[i * 5 + 4].y;
     l.attenuation = u_lightData[i * 5 + 4].z;
     #endif

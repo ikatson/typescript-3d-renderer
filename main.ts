@@ -343,6 +343,18 @@ function main() {
 
         scene.directionalLights.push(sun.directionalLight);
 
+
+        // TEST
+        // const sun2 = new GameObjectBuilder("sun").setDirectionalLightComponent(new DirectionalLight()).build();
+        // sun2.directionalLight.direction = vec3.normalize(sun.directionalLight.direction, [-1, -1, 1]);
+        // sun2.directionalLight.intensity = 0.2;
+        // sun2.directionalLight.ambient = v3(state.lighting.sun.ambient.value);
+        // sun2.directionalLight.diffuse = v3(state.lighting.sun.diffuse.value);
+        // sun2.directionalLight.specular = v3(state.lighting.sun.specular.value);
+        //
+        // scene.directionalLights.push(sun2.directionalLight);
+
+
         const plane = new GameObjectBuilder("plane")
             .setMeshComponent(new MeshComponent(planeMesh))
             .setMaterialComponent(new MaterialComponent(makeMaterialFromState(state.materials.plane)))

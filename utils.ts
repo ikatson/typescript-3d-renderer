@@ -12,7 +12,7 @@ import {
 import {Camera, ProjectionMatrix} from "./camera.js";
 import {AxisAlignedBox} from "./axisAlignedBox.js";
 import {Scene} from "./scene.js";
-import {GameObject, LightComponent} from "./object.js";
+import {DirectionalLight, GameObject, LightComponent} from "./object.js";
 import {object} from "prop-types";
 
 export const QuadVertices = new Float32Array([
@@ -157,9 +157,9 @@ export const makeWorldSpaceCameraFrustum = (camera: Camera, pointsOnly: boolean 
     return new GLArrayBufferData(new Float32Array(data), cubeVertices.params);
 };
 
-export const makeDirectionalLightWorldToCameraMatrix = (direction: number[]): any => {
+export const makeDirectionalLightWorldToCameraMatrix = (direction: number[] | Float32Array): any => {
     // A new "camera" IS NOT needed here, but we only need the world to camera matrix from it.
-    let tempCamera = new Camera(1.);
+    let tempCamera = new Camera();
     tempCamera.forward = direction;
     tempCamera.calculateUpFromWorldUp();
     tempCamera.update();
@@ -184,8 +184,8 @@ export const myOrtho = (out, left, right, bottom, top, near, far) => {
     );
 };
 
-export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: LightComponent, camera: Camera, scene: Scene): ProjectionMatrix => {
-    const worldToLightViewSpace = makeDirectionalLightWorldToCameraMatrix(getLightDirection(tmpVec3, light));
+export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: DirectionalLight, camera: Camera, scene: Scene): ProjectionMatrix => {
+    const worldToLightViewSpace = makeDirectionalLightWorldToCameraMatrix(light.direction);
 
     // TODO: we ONLY need to render objects that are intersecting the camera frustum
     // leaving that for another day.

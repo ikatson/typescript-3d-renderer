@@ -116,12 +116,12 @@ export class GBuffer {
         gl.enable(gl.CULL_FACE);
         gl.enable(gl.DEPTH_TEST);
 
-        const program = this.gBufferShader;
-        gl.useProgram(program.getProgram());
+        const s = this.gBufferShader;
+        s.use(gl);
 
-        gl.uniform3fv(program.getUniformLocation(gl, "u_cameraPos"), camera.position);
-        gl.uniformMatrix4fv(program.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
-        gl.uniformMatrix4fv(program.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix().matrix);
+        gl.uniform3fv(s.getUniformLocation(gl, "u_cameraPos"), camera.position);
+        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
+        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix().matrix);
 
         gl.drawBuffers([
             this.ATTACHMENT_POSITION,
@@ -141,19 +141,19 @@ export class GBuffer {
 
                 mat4.multiply(modelViewMatrix, camera.getWorldToCamera(), modelWorldMatrix);
 
-                o.mesh.prepareMeshVertexAndShaderDataForRendering(gl, program);
+                o.mesh.prepareMeshVertexAndShaderDataForRendering(gl, s);
 
-                gl.uniformMatrix4fv(program.getUniformLocation(gl, "u_modelViewMatrix"), false, modelViewMatrix);
-                gl.uniformMatrix4fv(program.getUniformLocation(gl, "u_modelWorldMatrix"), false, modelWorldMatrix);
-                gl.uniform3fv(program.getUniformLocation(gl, "u_albedo"), material.albedo);
-                gl.uniform3fv(program.getUniformLocation(gl, "u_specular"), material.specular);
-                gl.uniform1f(program.getUniformLocation(gl, "u_shininess"), material.shininess);
+                gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelViewMatrix"), false, modelViewMatrix);
+                gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelWorldMatrix"), false, modelWorldMatrix);
+                gl.uniform3fv(s.getUniformLocation(gl, "u_albedo"), material.albedo);
+                gl.uniform3fv(s.getUniformLocation(gl, "u_specular"), material.specular);
+                gl.uniform1f(s.getUniformLocation(gl, "u_shininess"), material.shininess);
 
                 o.mesh.draw(gl);
 
                 if (o.boundingBox && o.boundingBox.visible) {
                     const buf = o.boundingBox.asArrayBuffer(gl);
-                    buf.prepareMeshVertexAndShaderDataForRendering(gl, program);
+                    buf.prepareMeshVertexAndShaderDataForRendering(gl, s);
                     buf.draw(gl);
                 }
             }
@@ -249,9 +249,6 @@ export class SSAORenderer {
         );
 
         this.firstPassShader.use(gl);
-        bindUniformTx(gl, this.firstPassShader, "gbuf_position", this.gBuffer.posTx, 0);
-        bindUniformTx(gl, this.firstPassShader, "gbuf_normal", this.gBuffer.normalTX, 1);
-        bindUniformTx(gl, this.firstPassShader, "u_ssaoNoise", this.ssaoState.noiseTexture, 2);
 
         // BLUR SHADER
         this.blurShader = new ShaderProgram(
@@ -265,10 +262,6 @@ export class SSAORenderer {
             )
         );
         this.blurShader.use(gl);
-        bindUniformTx(gl, this.blurShader, "gbuf_position", this.gBuffer.posTx, 0);
-        bindUniformTx(gl, this.blurShader, "gbuf_normal", this.gBuffer.normalTX, 1);
-        bindUniformTx(gl, this.blurShader, "u_ssaoNoise", this.ssaoState.noiseTexture, 2);
-        bindUniformTx(gl, this.blurShader, "u_ssaoFirstPassTx", this._ssaoFirstPassTx, 3);
     }
 
     render(gl: WebGLRenderingContext, camera: Camera) {
@@ -294,6 +287,10 @@ export class SSAORenderer {
                 s.getUniformLocation(gl, "u_ssaoNoiseScale"),
                 [this.width / this.ssaoConfig.noiseScale, this.height / this.ssaoConfig.noiseScale]
             );
+
+            bindUniformTx(gl, this.firstPassShader, "gbuf_position", this.gBuffer.posTx, 0);
+            bindUniformTx(gl, this.firstPassShader, "gbuf_normal", this.gBuffer.normalTX, 1);
+            bindUniformTx(gl, this.firstPassShader, "u_ssaoNoise", this.ssaoState.noiseTexture, 2);
 
             // Draw
             withViewport(gl, this.width, this.height, () => {
@@ -325,6 +322,11 @@ export class SSAORenderer {
                 s.getUniformLocation(gl, "u_ssaoNoiseScale"),
                 [gl.canvas.width / this.ssaoConfig.noiseScale, gl.canvas.height / this.ssaoConfig.noiseScale]
             );
+
+            bindUniformTx(gl, this.blurShader, "gbuf_position", this.gBuffer.posTx, 0);
+            bindUniformTx(gl, this.blurShader, "gbuf_normal", this.gBuffer.normalTX, 1);
+            bindUniformTx(gl, this.blurShader, "u_ssaoNoise", this.ssaoState.noiseTexture, 2);
+            bindUniformTx(gl, this.blurShader, "u_ssaoFirstPassTx", this._ssaoFirstPassTx, 3);
 
             this.fullScreenQuad.draw(gl);
         };
@@ -513,12 +515,7 @@ export class FinalLightingRenderer {
             )
         );
         this.showBuffersShader.use(gl);
-        bindUniformTx(gl, this.showBuffersShader, "gbuf_position", this.gBuffer.posTx, 0);
-        bindUniformTx(gl, this.showBuffersShader, "gbuf_normal", this.gBuffer.normalTX, 1);
-        bindUniformTx(gl, this.showBuffersShader, "gbuf_colormap", this.gBuffer.colorTX, 2);
-        bindUniformTx(gl, this.showBuffersShader, "gbuf_specular", this.gBuffer.specularTX, 3);
-        bindUniformTx(gl, this.showBuffersShader, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
-        bindUniformTx(gl, this.showBuffersShader, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
+
 
         this.directionalLightShader = new ShaderProgram(
             gl,
@@ -538,12 +535,6 @@ export class FinalLightingRenderer {
             )
         );
         this.directionalLightShader.use(gl);
-        bindUniformTx(gl, this.directionalLightShader, "gbuf_position", this.gBuffer.posTx, 0);
-        bindUniformTx(gl, this.directionalLightShader, "gbuf_normal", this.gBuffer.normalTX, 1);
-        bindUniformTx(gl, this.directionalLightShader, "gbuf_colormap", this.gBuffer.colorTX, 2);
-        bindUniformTx(gl, this.directionalLightShader, "gbuf_specular", this.gBuffer.specularTX, 3);
-        bindUniformTx(gl, this.directionalLightShader, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
-        bindUniformTx(gl, this.directionalLightShader, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
 
         this.pointLightShader = new ShaderProgram(
             gl,
@@ -579,15 +570,20 @@ export class FinalLightingRenderer {
         }
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
         // No need for depth test when rendering full-screen framebuffers.
         gl.disable(gl.DEPTH_TEST);
-
         glClearColorAndDepth(gl, 0., 0, 0, 1.);
 
-        if (this.config.showLayer != ShowLayer.Final) {
+
+        if (this.config.showLayer != ShowLayer.Final && this.config.showLayer != ShowLayer.ShadowMap) {
             const s = this.showBuffersShader.use(gl);
             this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
+            bindUniformTx(gl, this.showBuffersShader, "gbuf_position", this.gBuffer.posTx, 0);
+            bindUniformTx(gl, this.showBuffersShader, "gbuf_normal", this.gBuffer.normalTX, 1);
+            bindUniformTx(gl, this.showBuffersShader, "gbuf_colormap", this.gBuffer.colorTX, 2);
+            bindUniformTx(gl, this.showBuffersShader, "gbuf_specular", this.gBuffer.specularTX, 3);
+            bindUniformTx(gl, this.showBuffersShader, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
+            bindUniformTx(gl, this.showBuffersShader, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
             this.fullScreenQuad.draw(gl);
             return;
         }
@@ -600,10 +596,22 @@ export class FinalLightingRenderer {
             if (this.config.shadowMap.enabled) {
                 this.shadowMapRenderer.render(gl, lightCameraWorldToProjectionMatrix, scene);
 
-                // No need for depth test when rendering full-screen framebuffers.
+                // Bind back the null framebuffer.
                 gl.disable(gl.DEPTH_TEST);
                 gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+                if (this.config.showLayer == ShowLayer.ShadowMap) {
+                    const s = this.showBuffersShader.use(gl);
+                    this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
+                    bindUniformTx(gl, this.showBuffersShader, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
+                    this.fullScreenQuad.draw(gl);
+                    return;
+                }
             }
+
+            gl.enable(gl.BLEND);
+            // gl.blendFunc(gl.SRC_COLOR, gl.DST_COLOR);
+            gl.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE);
 
             let s = this.directionalLightShader;
             s.use(gl);
@@ -627,6 +635,14 @@ export class FinalLightingRenderer {
             gl.uniform1f(s.getUniformLocation(gl, "u_lightFar"), lightCameraWorldToProjectionMatrix.far);
 
             gl.uniform3fv(s.getUniformLocation(gl, "u_lightData"), this.generateDirectionalLightData(light));
+
+            bindUniformTx(gl, this.directionalLightShader, "gbuf_position", this.gBuffer.posTx, 0);
+            bindUniformTx(gl, this.directionalLightShader, "gbuf_normal", this.gBuffer.normalTX, 1);
+            bindUniformTx(gl, this.directionalLightShader, "gbuf_colormap", this.gBuffer.colorTX, 2);
+            bindUniformTx(gl, this.directionalLightShader, "gbuf_specular", this.gBuffer.specularTX, 3);
+            bindUniformTx(gl, this.directionalLightShader, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
+            bindUniformTx(gl, this.directionalLightShader, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
+
             this.fullScreenQuad.draw(gl);
         });
 
