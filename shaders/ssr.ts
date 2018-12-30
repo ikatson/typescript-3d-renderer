@@ -33,7 +33,7 @@ void main() {
         vec4 resultVS = GBUFFER_POSITION(sampleSS.xy * 0.5 + 0.5);
         
         float absLength = length(resultVS.xyz - sampleVS);
-        if (absLength < 1. && (minZ == 0. || absLength < minZ)) {
+        if (minZ == 0. || absLength < minZ) {
             minZ = absLength;
             c = texture(u_lightedSceneTx, sampleSS.xy * 0.5 + 0.5).xyz;
         }

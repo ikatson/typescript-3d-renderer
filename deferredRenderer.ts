@@ -1010,10 +1010,12 @@ export class DeferredRenderer {
 
         this.finalToDefaultFB.copy(gl);
 
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-        // gl.blendFunc(gl.ONE, gl.ZERO);
-        this.ssrToDefaultFB.copy(gl);
+        if (this.config.showLayer == ShowLayer.Final) {
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+            // gl.blendFunc(gl.ONE, gl.ZERO);
+            this.ssrToDefaultFB.copy(gl);
+        }
     }
 
 }
