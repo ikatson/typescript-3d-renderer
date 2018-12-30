@@ -27,15 +27,16 @@ void main() {
         
         // ignore off-screen samples
         if (sampleSS.x < -1. || sampleSS.x > 1. || sampleSS.y < -1. || sampleSS.y > 1.) {
-            continue;
+            break;
         } 
         
         vec4 resultVS = GBUFFER_POSITION(sampleSS.xy * 0.5 + 0.5);
         
-        float absLength = length(resultVS.xyz - sampleVS);
-        if (minZ == 0. || absLength < minZ) {
-            minZ = absLength;
+        float distance = -(sampleVS.z - resultVS.z);
+        if (distance > 0. && distance < 0.02) {
+            // c = vec3(1. / float(i + 1));
             c = texture(u_lightedSceneTx, sampleSS.xy * 0.5 + 0.5).xyz;
+            break;
         }
     }
     
