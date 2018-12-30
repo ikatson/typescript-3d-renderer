@@ -28,7 +28,7 @@ function main() {
         lighting: {
             lightCount: {
                 value: 1,
-                min: 1,
+                min: 0,
                 step: 1,
                 onChange: ui.funcRef(),
             },
