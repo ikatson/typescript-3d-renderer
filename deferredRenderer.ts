@@ -96,10 +96,10 @@ export class GBuffer {
     normalTX: WebGLTexture;
     colorTX: WebGLTexture;
     specularTX: WebGLTexture;
+    depthTX: WebGLTexture;
 
     gFrameBuffer: WebGLFramebuffer;
     gBufferShader: ShaderProgram;
-    depthRB: WebGLRenderbuffer;
 
     defaultMaterial: Material = new Material();
 
@@ -196,16 +196,14 @@ export class GBuffer {
         this.specularTX = createAndBindBufferTexture(gl, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE);
         this.normalTX = createAndBindBufferTexture(gl, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE);
         this.posTx = createAndBindBufferTexture(gl, gl.RGBA16F, gl.RGBA, gl.FLOAT);
-        this.depthRB = gl.createRenderbuffer();
+        this.depthTX = createAndBindBufferTexture(gl, gl.DEPTH24_STENCIL8, gl.DEPTH_STENCIL, gl.UNSIGNED_INT_24_8);
         this.gFrameBuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.gFrameBuffer);
-        gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthRB);
-        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH24_STENCIL8, gl.canvas.width, gl.canvas.height);
         gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, this.ATTACHMENT_POSITION, gl.TEXTURE_2D, this.posTx, 0);
         gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, this.ATTACHMENT_NORMAL, gl.TEXTURE_2D, this.normalTX, 0);
         gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, this.ATTACHMENT_ALBEDO, gl.TEXTURE_2D, this.colorTX, 0);
         gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, this.ATTACHMENT_SPECULAR, gl.TEXTURE_2D, this.specularTX, 0);
-        gl.framebufferRenderbuffer(gl.DRAW_FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, this.depthRB);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, this.depthTX, 0);
         checkFrameBufferStatusOrThrow(gl);
     }
 }
