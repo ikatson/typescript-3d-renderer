@@ -463,7 +463,7 @@ export class ShadowMapRenderer {
     }
 }
 
-export class FinalLightingRenderer {
+export class LightingRenderer {
     private showBuffersShader: ShaderProgram = null;
     private directionalLightShader: ShaderProgram = null;
     private pointLightShader: ShaderProgram = null;
@@ -842,11 +842,24 @@ export class FinalLightingRenderer {
 
 
 class SSRRenderer {
+    get resultTX(): WebGLTexture {
+        return this._resultTX;
+    }
     private shader: ShaderProgram;
     private fullScreenQuad: FullScreenQuad;
+    private fb: WebGLFramebuffer;
+    private _resultTX: WebGLTexture;
 
     constructor(gl: WebGLRenderingContext, config: DeferredRendererConfig, gbuffer: GBuffer, fullScreenQuad: FullScreenQuad) {
         this.fullScreenQuad = fullScreenQuad;
+
+        this.fb = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
+        this._resultTX = createAndBindBufferTexture(gl, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._resultTX, 0);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, gbuffer.depthTX, 0);
+        checkFrameBufferStatusOrThrow(gl);
+
         this.shader = new ShaderProgram(
             gl,
             fullScreenQuad.vertexShader,
@@ -856,8 +869,10 @@ class SSRRenderer {
         )
     }
 
-
     render(gl: WebGLRenderingContext, scene: Scene, camera: Camera) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
         gl.disable(gl.DEPTH_TEST);
         gl.enable(gl.STENCIL_TEST);
         gl.stencilMask(0x00);
@@ -878,16 +893,14 @@ class SSRRenderer {
     }
 }
 
-class TextureToFbCopier {
-    private tx: WebGLTexture;
-    private targetFB: GLint;
-    private fsq: FullScreenQuad;
-    private shader: ShaderProgram;
-    constructor(gl: WebGLRenderingContext, tx: WebGLTexture, targetFramebuffer: GLint, fullScreenQuad: FullScreenQuad) {
-        this.tx = tx;
-        this.targetFB = targetFramebuffer;
-        this.fsq = fullScreenQuad;
-        this.shader = new ShaderProgram(
+class CopierShader {
+    get shader(): ShaderProgram {
+        return this._shader;
+    }
+    private _shader: ShaderProgram;
+
+    constructor(gl: WebGLRenderingContext, fullScreenQuad: FullScreenQuad) {
+        this._shader = new ShaderProgram(
             gl,
             fullScreenQuad.vertexShader,
             new FragmentShader(gl, new ShaderSourceBuilder().addTopChunk(QUAD_FRAGMENT_INPUTS).addChunk(`
@@ -899,19 +912,34 @@ class TextureToFbCopier {
             `).build())
         );
     }
+}
+
+class TextureToFbCopier {
+    private tx: WebGLTexture;
+    private targetFB: GLint;
+    private fsq: FullScreenQuad;
+    private shader: CopierShader;
+
+    constructor(gl: WebGLRenderingContext, tx: WebGLTexture, targetFramebuffer: GLint, shader: CopierShader, fullScreenQuad: FullScreenQuad) {
+        this.tx = tx;
+        this.targetFB = targetFramebuffer;
+        this.fsq = fullScreenQuad;
+        this.shader = shader;
+    }
 
     copy(gl: WebGLRenderingContext) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.targetFB);
-        this.shader.use(gl);
-        this.fsq.bind(gl, this.shader.getAttribLocation(gl, "a_pos"));
-        bindUniformTx(gl, this.shader, "tx", this.tx, 0);
+        const s = this.shader.shader;
+        s.use(gl);
+        this.fsq.bind(gl, s.getAttribLocation(gl, "a_pos"));
+        bindUniformTx(gl, s, "tx", this.tx, 0);
         this.fsq.draw(gl);
     }
 }
 
 
 export class DeferredRenderer {
-    private finalPass: FinalLightingRenderer;
+    private lightingRenderer: LightingRenderer;
     private gl: WebGLRenderingContext;
     private gbuffer: GBuffer;
     private ssaoRenderer: SSAORenderer;
@@ -920,6 +948,7 @@ export class DeferredRenderer {
     private _config: DeferredRendererConfig;
     private ssr: SSRRenderer;
     private finalToDefaultFB: TextureToFbCopier;
+    private ssrToDefaultFB: TextureToFbCopier;
 
     constructor(gl: WebGLRenderingContext, config: DeferredRendererConfig, fullScreenQuad: FullScreenQuad, sphere: GLArrayBuffer, ssaoState?: SSAOState) {
         this.gl = gl;
@@ -927,14 +956,16 @@ export class DeferredRenderer {
         this.gbuffer = new GBuffer(gl);
         this.ssaoRenderer = new SSAORenderer(gl, ssaoState, this._config.ssao, this.gbuffer, fullScreenQuad);
         this.shadowMap = new ShadowMapRenderer(gl);
-        this.finalPass = new FinalLightingRenderer(
+        this.lightingRenderer = new LightingRenderer(
             gl, this.config, fullScreenQuad, this.gbuffer, this.ssaoRenderer, this.shadowMap, sphere
         );
         this.ssr = new SSRRenderer(
             gl, this.config, this.gbuffer, fullScreenQuad
         );
 
-        this.finalToDefaultFB = new TextureToFbCopier(gl, this.finalPass.resultTX, null, fullScreenQuad);
+        const copierShader = new CopierShader(gl, fullScreenQuad);
+        this.finalToDefaultFB = new TextureToFbCopier(gl, this.lightingRenderer.resultTX, null, copierShader, fullScreenQuad);
+        this.ssrToDefaultFB = new TextureToFbCopier(gl, this.ssr.resultTX, null, copierShader, fullScreenQuad);
     }
 
     get config(): DeferredRendererConfig {
@@ -943,7 +974,7 @@ export class DeferredRenderer {
 
     onChangeSSAOState() {
         this.ssaoRenderer.onChangeSSAOState(this.gl);
-        this.finalPass.recompileOnNextRun();
+        this.lightingRenderer.recompileOnNextRun();
     }
 
     recompileShaders() {
@@ -955,7 +986,7 @@ export class DeferredRenderer {
 
         if (this.recompileOnNextRun) {
             this.ssaoRenderer.recompileShaders(gl);
-            this.finalPass.recompileOnNextRun();
+            this.lightingRenderer.recompileOnNextRun();
             this.recompileOnNextRun = false;
         }
 
@@ -964,9 +995,16 @@ export class DeferredRenderer {
             this.ssaoRenderer.render(gl, camera);
         }
 
-        this.finalPass.render(gl, scene, camera);
-        // this.ssr.render(gl, scene, camera);
+        this.lightingRenderer.render(gl, scene, camera);
+
+        this.ssr.render(gl, scene, camera);
+
         this.finalToDefaultFB.copy(gl);
+
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        // gl.blendFunc(gl.ONE, gl.ZERO);
+        this.ssrToDefaultFB.copy(gl);
     }
 
 }

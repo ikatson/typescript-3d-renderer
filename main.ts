@@ -63,7 +63,6 @@ function main() {
             blurNormalThreshold: {value: 0.9, min: 0, step: 0.05, onChange: ui.funcRef()},
         },
         showLayer: {
-            // value: ShowLayer.Final,
             value: ShowLayer.Final,
             onChange: ui.funcRef(),
             options: [
@@ -353,7 +352,7 @@ function main() {
             .setMeshComponent(new MeshComponent(planeMesh))
             .setMaterialComponent(new MaterialComponent(
                 makeMaterialFromState(state.materials.plane)
-            //        .setReflective(true)
+                    .setReflective(true)
             ))
             .build();
         plane.mesh.setShadowCaster(false);
