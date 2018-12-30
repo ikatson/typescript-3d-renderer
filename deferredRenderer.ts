@@ -842,18 +842,22 @@ export class LightingRenderer {
 
 
 class SSRRenderer {
+    private gbuffer: GBuffer;
     get resultTX(): WebGLTexture {
         return this._resultTX;
     }
+    private lightingRenderer: LightingRenderer;
     private shader: ShaderProgram;
     private fullScreenQuad: FullScreenQuad;
     private fb: WebGLFramebuffer;
     private _resultTX: WebGLTexture;
 
-    constructor(gl: WebGLRenderingContext, config: DeferredRendererConfig, gbuffer: GBuffer, fullScreenQuad: FullScreenQuad) {
+    constructor(gl: WebGLRenderingContext, config: DeferredRendererConfig, gbuffer: GBuffer, light: LightingRenderer, fullScreenQuad: FullScreenQuad) {
         this.fullScreenQuad = fullScreenQuad;
 
         this.fb = gl.createFramebuffer();
+        this.lightingRenderer = light;
+        this.gbuffer = gbuffer;
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
         this._resultTX = createAndBindBufferTexture(gl, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE);
         gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._resultTX, 0);
@@ -864,6 +868,8 @@ class SSRRenderer {
             gl,
             fullScreenQuad.vertexShader,
             new FragmentShader(gl, SSR_SHADERS.fs
+                .define('SSR_STEPS', '400')
+                .define('SSR_STEP_SIZE', '0.01')
                 .build()
             ),
         )
@@ -883,6 +889,9 @@ class SSRRenderer {
         const s = this.shader;
         s.use(gl);
 
+        bindUniformTx(gl, s, "u_lightedSceneTx", this.lightingRenderer.resultTX, 0);
+        bindUniformTx(gl, s, "gbuf_normal", this.gbuffer.normalTX, 1);
+        bindUniformTx(gl, s, "gbuf_position", this.gbuffer.posTx, 2);
         gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
         gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_cameraToWorldMatrix"), false, camera.getCameraToWorld());
         gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix().matrix);
@@ -960,7 +969,7 @@ export class DeferredRenderer {
             gl, this.config, fullScreenQuad, this.gbuffer, this.ssaoRenderer, this.shadowMap, sphere
         );
         this.ssr = new SSRRenderer(
-            gl, this.config, this.gbuffer, fullScreenQuad
+            gl, this.config, this.gbuffer, this.lightingRenderer, fullScreenQuad
         );
 
         const copierShader = new CopierShader(gl, fullScreenQuad);
