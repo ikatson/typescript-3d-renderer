@@ -2,7 +2,7 @@ import {Camera, ProjectionMatrix} from "./camera.js";
 import {mat4, vec3} from "./gl-matrix.js";
 import {DirectionalLight, GameObject, GameObjectBuilder, MeshComponent, PointLightComponent} from "./object.js";
 import {Scene} from "./scene.js";
-import {FragmentShader, ShaderProgram, VertexShader} from "./shaders.js";
+import {FragmentShader, ShaderProgram, ShaderSourceBuilder, VertexShader} from "./shaders.js";
 import {FINAL_SHADER_SOURCE} from "./shaders/final.js";
 import {GBUFFER_SHADER_SOURCE} from "./shaders/gBuffer/shaders.js";
 import {SSAO_SHADER_SOURCE} from "./shaders/ssao.js";
@@ -13,6 +13,7 @@ import {SHADOWMAP_SHADERS} from "./shaders/shadowMap.js";
 import {GLArrayBuffer} from "./glArrayBuffer.js";
 import {Material} from "./material.js";
 import {SSR_SHADERS} from "./shaders/ssr.js";
+import {QUAD_FRAGMENT_INPUTS} from "./shaders/includes/common.js";
 
 export class ShadowMapConfig {
     enabled: boolean;
@@ -476,6 +477,8 @@ export class FinalLightingRenderer {
     private visualizeLightsShader: ShaderProgram;
     private _recompileOnNextRun: boolean = true;
     private sphereObject: GameObject;
+    private fb: WebGLFramebuffer;
+    resultTX: WebGLTexture;
 
     constructor(gl: WebGLRenderingContext,
                 config: DeferredRendererConfig,
@@ -492,6 +495,13 @@ export class FinalLightingRenderer {
             .setMeshComponent(new MeshComponent(sphereMesh))
             .build();
         this.config = config;
+
+        this.fb = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
+        this.resultTX = createAndBindBufferTexture(gl, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.resultTX, 0);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, this.gBuffer.depthTX, 0);
+        checkFrameBufferStatusOrThrow(gl);
 
         this.visualizeLightsShader = new ShaderProgram(
             gl,
@@ -590,7 +600,7 @@ export class FinalLightingRenderer {
             this.recompileShaders(gl);
         }
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
 
         // No need for depth test when rendering full-screen framebuffers.
         gl.disable(gl.DEPTH_TEST);
@@ -600,7 +610,12 @@ export class FinalLightingRenderer {
         // No stencil clearing too as it may contain important information in bits other than TEMP.
         gl.clear(gl.COLOR_BUFFER_BIT);
 
-        if (this.config.showLayer != ShowLayer.Final && this.config.showLayer != ShowLayer.ShadowMap) {
+        if (this.config.showLayer != ShowLayer.Final) {
+            if (this.config.showLayer == ShowLayer.ShadowMap) {
+                this.shadowMapRenderer.render(gl, computeDirectionalLightCameraWorldToProjectionMatrix(
+                    scene.directionalLights[0], camera, scene
+                ), scene);
+            }
             const s = this.showBuffersShader.use(gl);
             this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
             bindUniformTx(gl, this.showBuffersShader, "gbuf_position", this.gBuffer.posTx, 0);
@@ -624,12 +639,6 @@ export class FinalLightingRenderer {
 
         setStencilOnlyNormal();
 
-        // Copy the g-buffer framebuffer into the default depth one.
-        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.gBuffer.gFrameBuffer);
-        gl.blitFramebuffer(0, 0, gl.canvas.width, gl.canvas.height,
-            0, 0, gl.canvas.width, gl.canvas.height,
-            gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT, gl.NEAREST);
-
         scene.directionalLights.forEach((light, i) => {
             const lightCameraWorldToProjectionMatrix = computeDirectionalLightCameraWorldToProjectionMatrix(
                 light, camera, scene
@@ -642,16 +651,7 @@ export class FinalLightingRenderer {
                 // Bind back the null framebuffer.
                 gl.disable(gl.DEPTH_TEST);
                 gl.enable(gl.STENCIL_TEST);
-                gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-                if (this.config.showLayer == ShowLayer.ShadowMap) {
-
-                    const s = this.showBuffersShader.use(gl);
-                    this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
-                    bindUniformTx(gl, this.showBuffersShader, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
-                    this.fullScreenQuad.draw(gl);
-                    return;
-                }
+                gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
             }
 
             gl.enable(gl.BLEND);
@@ -878,6 +878,38 @@ class SSRRenderer {
     }
 }
 
+class TextureToFbCopier {
+    private tx: WebGLTexture;
+    private targetFB: GLint;
+    private fsq: FullScreenQuad;
+    private shader: ShaderProgram;
+    constructor(gl: WebGLRenderingContext, tx: WebGLTexture, targetFramebuffer: GLint, fullScreenQuad: FullScreenQuad) {
+        this.tx = tx;
+        this.targetFB = targetFramebuffer;
+        this.fsq = fullScreenQuad;
+        this.shader = new ShaderProgram(
+            gl,
+            fullScreenQuad.vertexShader,
+            new FragmentShader(gl, new ShaderSourceBuilder().addTopChunk(QUAD_FRAGMENT_INPUTS).addChunk(`
+            uniform sampler2D tx;
+            out vec4 color;
+            void main() {
+                color = texture(tx, tx_pos);
+            }
+            `).build())
+        );
+    }
+
+    copy(gl: WebGLRenderingContext) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.targetFB);
+        this.shader.use(gl);
+        this.fsq.bind(gl, this.shader.getAttribLocation(gl, "a_pos"));
+        bindUniformTx(gl, this.shader, "tx", this.tx, 0);
+        this.fsq.draw(gl);
+    }
+}
+
+
 export class DeferredRenderer {
     private finalPass: FinalLightingRenderer;
     private gl: WebGLRenderingContext;
@@ -887,6 +919,7 @@ export class DeferredRenderer {
     private recompileOnNextRun: boolean = false;
     private _config: DeferredRendererConfig;
     private ssr: SSRRenderer;
+    private finalToDefaultFB: TextureToFbCopier;
 
     constructor(gl: WebGLRenderingContext, config: DeferredRendererConfig, fullScreenQuad: FullScreenQuad, sphere: GLArrayBuffer, ssaoState?: SSAOState) {
         this.gl = gl;
@@ -899,7 +932,9 @@ export class DeferredRenderer {
         );
         this.ssr = new SSRRenderer(
             gl, this.config, this.gbuffer, fullScreenQuad
-        )
+        );
+
+        this.finalToDefaultFB = new TextureToFbCopier(gl, this.finalPass.resultTX, null, fullScreenQuad);
     }
 
     get config(): DeferredRendererConfig {
@@ -930,7 +965,8 @@ export class DeferredRenderer {
         }
 
         this.finalPass.render(gl, scene, camera);
-        this.ssr.render(gl, scene, camera);
+        // this.ssr.render(gl, scene, camera);
+        this.finalToDefaultFB.copy(gl);
     }
 
 }
