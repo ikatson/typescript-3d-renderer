@@ -867,9 +867,15 @@ class SSRRenderer {
         gl.stencilFunc(gl.EQUAL, StencilValues.SSR,0x0f);
         gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
 
-        this.shader.use(gl);
-        this.fullScreenQuad.bind(gl, this.shader.getAttribLocation(gl, "a_pos"));
+        const s = this.shader;
+        s.use(gl);
 
+        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
+        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_cameraToWorldMatrix"), false, camera.getCameraToWorld());
+        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix().matrix);
+
+        // full screen quad final draw
+        this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
         this.fullScreenQuad.draw(gl);
     }
 }
