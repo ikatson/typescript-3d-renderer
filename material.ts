@@ -4,6 +4,7 @@ export class Material {
     albedo = vec3.fromValues(1, 1, 1);
     specular = vec3.fromValues(1, 1, 1);
     shininess: number = 1;
+    isReflective: boolean = false;
 
     constructor(albedo?, specular?, shininess?) {
         this.albedo = albedo || vec3.fromValues(1, 1, 1);
@@ -27,6 +28,11 @@ export class Material {
 
     setShininess(v): Material {
         this.shininess = v;
+        return this;
+    }
+
+    setReflective(v: boolean): Material {
+        this.isReflective = v;
         return this;
     }
 }

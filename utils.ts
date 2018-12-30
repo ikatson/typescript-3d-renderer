@@ -13,7 +13,6 @@ import {Camera, ProjectionMatrix} from "./camera.js";
 import {AxisAlignedBox} from "./axisAlignedBox.js";
 import {Scene} from "./scene.js";
 import {DirectionalLight, GameObject, LightComponent} from "./object.js";
-import {object} from "prop-types";
 
 export const QuadVertices = new Float32Array([
     -1.0, 1.0,
@@ -69,13 +68,9 @@ export function initGL(canvas: HTMLCanvasElement): WebGLRenderingContext {
     let gl = <WebGLRenderingContext>canvas.getContext("webgl2", {antialias: false, stencil: true});
     gl.getExtension("EXT_color_buffer_float");
 
-    glClearColorAndDepth(gl, 0.0, 0.0, 0.0, 1.0);
-    return gl;
-}
-
-export function glClearColorAndDepth(gl: WebGLRenderingContext, a: number, b: number, c: number, d: number) {
-    gl.clearColor(a, b, c, d);
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    return gl;
 }
 
 export const clip = (v: number, min: number, max: number): number => {

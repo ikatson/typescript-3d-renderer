@@ -1,12 +1,5 @@
 import {fetchObject} from "./objparser.js";
-import {
-    clip,
-    FullScreenQuad,
-    glClearColorAndDepth, hexToRgb1,
-    initGL,
-    QuadArrayBufferData,
-    tmpVec3
-} from "./utils.js";
+import {clip, FullScreenQuad, hexToRgb1, initGL, QuadArrayBufferData, tmpVec3} from "./utils.js";
 import {ProgressBar, ProgressBarCommon} from "./progressbar.js";
 import {BoundingBoxComponent, DirectionalLight, GameObjectBuilder, MaterialComponent, MeshComponent} from "./object.js";
 import {Camera} from "./camera.js";
@@ -211,7 +204,8 @@ function main() {
     var contentLength = 1;
     var downloaded = 0;
 
-    glClearColorAndDepth(gl, 0, 0, 0, 1);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     progressBar.prepare(gl);
 
@@ -357,7 +351,10 @@ function main() {
 
         const plane = new GameObjectBuilder("plane")
             .setMeshComponent(new MeshComponent(planeMesh))
-            .setMaterialComponent(new MaterialComponent(makeMaterialFromState(state.materials.plane)))
+            .setMaterialComponent(new MaterialComponent(
+                makeMaterialFromState(state.materials.plane)
+            //        .setReflective(true)
+            ))
             .build();
         plane.mesh.setShadowCaster(false);
         plane.transform.position = [0, -0.8, 0];

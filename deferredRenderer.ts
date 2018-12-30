@@ -1,13 +1,6 @@
 import {Camera, ProjectionMatrix} from "./camera.js";
 import {mat4, vec3} from "./gl-matrix.js";
-import {
-    DirectionalLight,
-    GameObject,
-    GameObjectBuilder,
-    MeshComponent,
-    PointLightComponent,
-    TransformComponent
-} from "./object.js";
+import {DirectionalLight, GameObject, GameObjectBuilder, MeshComponent, PointLightComponent} from "./object.js";
 import {Scene} from "./scene.js";
 import {FragmentShader, ShaderProgram, VertexShader} from "./shaders.js";
 import {FINAL_SHADER_SOURCE} from "./shaders/final.js";
@@ -15,15 +8,11 @@ import {GBUFFER_SHADER_SOURCE} from "./shaders/gBuffer/shaders.js";
 import {SSAO_SHADER_SOURCE} from "./shaders/ssao.js";
 import {VISUALIZE_LIGHTS_SHADERS} from "./shaders/visualize-lights.js";
 import {SSAOConfig, SSAOState} from "./SSAOState.js";
-import {
-    computeDirectionalLightCameraWorldToProjectionMatrix,
-    FullScreenQuad,
-    glClearColorAndDepth,
-    tmpMat4, tmpVec3,
-} from "./utils.js";
+import {computeDirectionalLightCameraWorldToProjectionMatrix, FullScreenQuad, tmpMat4,} from "./utils.js";
 import {SHADOWMAP_SHADERS} from "./shaders/shadowMap.js";
 import {GLArrayBuffer} from "./glArrayBuffer.js";
 import {Material} from "./material.js";
+import {SSR_SHADERS} from "./shaders/ssr.js";
 
 export class ShadowMapConfig {
     enabled: boolean;
@@ -46,6 +35,15 @@ export enum ShowLayer {
     ShadowMap,
     Specular,
     Shininess
+}
+
+export enum StencilValues {
+    NORMAL = 1,
+    SSR = 2,
+}
+
+export enum StencilBits {
+    TEMP = 1 << 7,
 }
 
 
@@ -118,10 +116,13 @@ export class GBuffer {
     render(gl: WebGLRenderingContext, camera: Camera, scene: Scene) {
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.gFrameBuffer);
 
-        glClearColorAndDepth(gl, 0, 0, 0, 0.);
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
 
         gl.enable(gl.CULL_FACE);
         gl.enable(gl.DEPTH_TEST);
+        gl.enable(gl.STENCIL_TEST);
+        gl.stencilMask(0x0f);
 
         const s = this.gBufferShader;
         s.use(gl);
@@ -156,6 +157,14 @@ export class GBuffer {
                 gl.uniform3fv(s.getUniformLocation(gl, "u_specular"), material.specular);
                 gl.uniform1f(s.getUniformLocation(gl, "u_shininess"), material.shininess);
 
+                let stencilValue = StencilValues.NORMAL;
+                if (material.isReflective) {
+                    stencilValue = StencilValues.SSR;
+                }
+
+                // always pass and overwrite the stencil value.
+                gl.stencilFunc(gl.ALWAYS, stencilValue, 0xff);
+                gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
                 o.mesh.draw(gl);
 
                 if (o.boundingBox && o.boundingBox.visible) {
@@ -169,6 +178,9 @@ export class GBuffer {
         };
 
         scene.children.forEach(o => renderObject(o))
+
+        // restore state.
+        gl.disable(gl.STENCIL_TEST);
     }
 
     private compileShader(gl: WebGLRenderingContext) {
@@ -278,7 +290,8 @@ export class SSAORenderer {
             s.use(gl);
 
             gl.bindFramebuffer(gl.FRAMEBUFFER, this.firstPassFB);
-            glClearColorAndDepth(gl, 0., 0, 0, 1.);
+            gl.clearColor(0., 0, 0, 1.);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
             this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
 
@@ -310,7 +323,8 @@ export class SSAORenderer {
             s.use(gl);
 
             gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurPassFB);
-            glClearColorAndDepth(gl, 0., 0, 0, 1.);
+            gl.clearColor(0., 0, 0, 1.);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
             this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
 
@@ -394,7 +408,8 @@ export class ShadowMapRenderer {
 
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.shadowMapFB);
 
-        glClearColorAndDepth(gl, 0., 0, 0., 1.);
+        gl.clearColor(0., 0, 0., 1.);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         s.use(gl);
 
@@ -525,7 +540,6 @@ export class FinalLightingRenderer {
         );
         this.showBuffersShader.use(gl);
 
-
         this.directionalLightShader = new ShaderProgram(
             gl,
             this.fullScreenQuad.vertexShader,
@@ -582,10 +596,11 @@ export class FinalLightingRenderer {
 
         // No need for depth test when rendering full-screen framebuffers.
         gl.disable(gl.DEPTH_TEST);
-        gl.clearColor(0, 0, 0, 0);
+        gl.clearColor(0, 0, 0, 1.);
 
         // NO depth clearing here.
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+        // No stencil clearing too as it may contain important information in bits other than TEMP.
+        gl.clear(gl.COLOR_BUFFER_BIT);
 
         if (this.config.showLayer != ShowLayer.Final && this.config.showLayer != ShowLayer.ShadowMap) {
             const s = this.showBuffersShader.use(gl);
@@ -600,19 +615,39 @@ export class FinalLightingRenderer {
             return;
         }
 
+
+        gl.enable(gl.STENCIL_TEST);
+
+        const setStencilOnlyNormal = () => {
+            gl.stencilFunc(gl.EQUAL, StencilValues.NORMAL, 0x0f);
+            gl.stencilMask(0x00);
+            gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
+        };
+
+        setStencilOnlyNormal();
+
+        // Copy the g-buffer framebuffer into the default depth one.
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.gBuffer.gFrameBuffer);
+        gl.blitFramebuffer(0, 0, gl.canvas.width, gl.canvas.height,
+            0, 0, gl.canvas.width, gl.canvas.height,
+            gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT, gl.NEAREST);
+
         scene.directionalLights.forEach((light, i) => {
             const lightCameraWorldToProjectionMatrix = computeDirectionalLightCameraWorldToProjectionMatrix(
                 light, camera, scene
             );
 
             if (this.config.shadowMap.enabled) {
+                gl.disable(gl.STENCIL_TEST);
                 this.shadowMapRenderer.render(gl, lightCameraWorldToProjectionMatrix, scene);
 
                 // Bind back the null framebuffer.
                 gl.disable(gl.DEPTH_TEST);
+                gl.enable(gl.STENCIL_TEST);
                 gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
                 if (this.config.showLayer == ShowLayer.ShadowMap) {
+
                     const s = this.showBuffersShader.use(gl);
                     this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
                     bindUniformTx(gl, this.showBuffersShader, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
@@ -660,12 +695,6 @@ export class FinalLightingRenderer {
         });
 
         const renderPointLights = () => {
-            // Copy the g-buffer framebuffer into the default depth one.
-            gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.gBuffer.gFrameBuffer);
-            gl.blitFramebuffer(0, 0, gl.canvas.width, gl.canvas.height,
-                0, 0, gl.canvas.width, gl.canvas.height,
-                gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT, gl.NEAREST);
-
             const s = this.pointLightShader;
             const obj = new GameObject("sphere");
             const tc = obj.transform;
@@ -676,6 +705,7 @@ export class FinalLightingRenderer {
             gl.enable(gl.DEPTH_TEST);
             gl.enable(gl.CULL_FACE);
             gl.enable(gl.STENCIL_TEST);
+            gl.stencilMask(StencilBits.TEMP);
             gl.depthMask(false);
 
             gl.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
@@ -723,7 +753,11 @@ export class FinalLightingRenderer {
                 gl.depthFunc(gl.LEQUAL);
                 gl.cullFace(gl.BACK);
                 gl.colorMask(false, false, false, false);
-                gl.stencilFunc(gl.GREATER, 1, 0xFF);
+                // stencil function will ALWAYS pass, BUT it will set the TEMP bit
+                // for all front-facing faces that are occluded by scene geometry.
+                // if they are occluded, it's not possible for them to be lighted.
+                // this is used in the second pass.
+                gl.stencilFunc(gl.ALWAYS, StencilBits.TEMP, StencilBits.TEMP);
                 gl.stencilOp(gl.KEEP, gl.REPLACE, gl.KEEP);
                 this.sphereObject.mesh.draw(gl);
 
@@ -731,7 +765,11 @@ export class FinalLightingRenderer {
                 gl.depthFunc(gl.GEQUAL);
                 gl.cullFace(gl.FRONT);
                 gl.colorMask(true, true, true, true);
-                gl.stencilFunc(gl.EQUAL, 0, 0xFF);
+                // only renders the BACK parts of the light that ARE occluded by scene geometry (using GEQUAL depth func)
+                // BUT WHERE the front part of the sphere is NOT occluded by scene geometry using the TEMP bit
+                // from the previous pass.
+                // essentially this only will light up the pixels that are within the volume light's sphere.
+                gl.stencilFunc(gl.EQUAL, StencilValues.NORMAL, StencilBits.TEMP | 0x0f);
                 gl.stencilOp(gl.ZERO, gl.ZERO, gl.ZERO);
                 this.sphereObject.mesh.draw(gl);
             });
@@ -740,6 +778,7 @@ export class FinalLightingRenderer {
             gl.depthMask(true);
             gl.depthFunc(gl.LEQUAL);
             gl.disable(gl.STENCIL_TEST);
+            gl.stencilMask(0xff);
             gl.cullFace(gl.BACK);
         };
 
@@ -803,6 +842,38 @@ export class FinalLightingRenderer {
     }
 }
 
+
+class SSRRenderer {
+    private shader: ShaderProgram;
+    private fullScreenQuad: FullScreenQuad;
+
+    constructor(gl: WebGLRenderingContext, config: DeferredRendererConfig, gbuffer: GBuffer, fullScreenQuad: FullScreenQuad) {
+        this.fullScreenQuad = fullScreenQuad;
+        this.shader = new ShaderProgram(
+            gl,
+            fullScreenQuad.vertexShader,
+            new FragmentShader(gl, SSR_SHADERS.fs
+                .build()
+            ),
+        )
+    }
+
+
+    render(gl: WebGLRenderingContext, scene: Scene, camera: Camera) {
+        gl.disable(gl.DEPTH_TEST);
+        gl.enable(gl.STENCIL_TEST);
+        gl.stencilMask(0x00);
+
+        gl.stencilFunc(gl.EQUAL, StencilValues.SSR,0x0f);
+        gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
+
+        this.shader.use(gl);
+        this.fullScreenQuad.bind(gl, this.shader.getAttribLocation(gl, "a_pos"));
+
+        this.fullScreenQuad.draw(gl);
+    }
+}
+
 export class DeferredRenderer {
     private finalPass: FinalLightingRenderer;
     private gl: WebGLRenderingContext;
@@ -811,6 +882,7 @@ export class DeferredRenderer {
     private shadowMap: ShadowMapRenderer;
     private recompileOnNextRun: boolean = false;
     private _config: DeferredRendererConfig;
+    private ssr: SSRRenderer;
 
     constructor(gl: WebGLRenderingContext, config: DeferredRendererConfig, fullScreenQuad: FullScreenQuad, sphere: GLArrayBuffer, ssaoState?: SSAOState) {
         this.gl = gl;
@@ -821,6 +893,9 @@ export class DeferredRenderer {
         this.finalPass = new FinalLightingRenderer(
             gl, this.config, fullScreenQuad, this.gbuffer, this.ssaoRenderer, this.shadowMap, sphere
         );
+        this.ssr = new SSRRenderer(
+            gl, this.config, this.gbuffer, fullScreenQuad
+        )
     }
 
     get config(): DeferredRendererConfig {
@@ -851,6 +926,7 @@ export class DeferredRenderer {
         }
 
         this.finalPass.render(gl, scene, camera);
+        this.ssr.render(gl, scene, camera);
     }
 
 }
