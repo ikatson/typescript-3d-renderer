@@ -19,7 +19,9 @@ void main() {
     
     vec3 c = vec3(0.);
     
-    for (int i = 0; i < SSR_STEPS; i++) {
+    int i = 0;
+    
+    for (; i < SSR_STEPS; i++) {
         vec3 sampleVS = posVS.xyz + reflectRay * (SSR_STEP_SIZE * float(i + 1));
         vec4 sampleSS4 = u_perspectiveMatrix * vec4(sampleVS, 1.);
         vec3 sampleSS = sampleSS4.xyz / sampleSS4.w;
@@ -36,10 +38,10 @@ void main() {
         float minDistance = abs(distance);
         vec3 minPosSS = sampleSS;
         
-        if (distance > 0. || resultVS.a == 0.) {
+        if (distance > 0. && resultVS.a > 0.) {
             vec3 dir = reflectRay * (SSR_STEP_SIZE * 0.5);
             for (int j = 0; j < SSR_BINARY_SEARCH_STEPS; ++j) {
-                if (distance > 0. || resultVS.a == 0.) {
+                if (distance > 0. && resultVS.a > 0.) {
                     sampleVS -= dir;
                 } else {
                     sampleVS += dir;
@@ -60,9 +62,12 @@ void main() {
             
             // c = vec3(distance);
             if (abs(minDistance) < 0.05) {
-                // c = texture(u_lightedSceneTx, minPosSS.xy * 0.5 + 0.5).xyz / (length(sampleVS - posVS.xyz) * 2. + 1.);
-                c = texture(u_lightedSceneTx, minPosSS.xy * 0.5 + 0.5).xyz;
+                float howFar = clamp(length(sampleVS - posVS.xyz) * 2. / (float(SSR_STEPS) * SSR_STEP_SIZE), 0., 1.);
+                c = texture(u_lightedSceneTx, minPosSS.xy * 0.5 + 0.5).xyz * (1. - howFar);
+                // c = texture(u_lightedSceneTx, minPosSS.xy * 0.5 + 0.5).xyz;
             }
+            
+            
             break;
         }
         
@@ -73,7 +78,7 @@ void main() {
         //     break;
         // }
     }
-    
+    // c = vec3(float(i) / float(SSR_STEPS));
     color = vec4(c, 1.);
 }
 `);
