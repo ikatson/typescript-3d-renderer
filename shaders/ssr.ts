@@ -25,7 +25,7 @@ void main() {
         vec3 sampleSS = sampleSS4.xyz / sampleSS4.w;
         
         // ignore off-screen samples
-        if (sampleSS.x < -1. || sampleSS.x > 1. || sampleSS.y < -1. || sampleSS.y > 1.) {
+        if (abs(sampleSS.x) > 1. || abs(sampleSS.y) > 1.) {
             break;
         } 
         
@@ -33,6 +33,9 @@ void main() {
         
         // The ray intersected smth, do binary search
         float distance = resultVS.z - sampleVS.z;
+        float minDistance = abs(distance);
+        vec3 minPosSS = sampleSS;
+        
         if (distance > 0. || resultVS.a == 0.) {
             vec3 dir = reflectRay * (SSR_STEP_SIZE * 0.5);
             for (int j = 0; j < SSR_BINARY_SEARCH_STEPS; ++j) {
@@ -49,11 +52,16 @@ void main() {
                 resultVS = GBUFFER_POSITION(sampleSS.xy * 0.5 + 0.5);
                 
                 distance = resultVS.z - sampleVS.z;
+                if (abs(distance) < minDistance) {
+                    minDistance = abs(distance);
+                    minPosSS = sampleSS;
+                }
             }
             
             // c = vec3(distance);
-            if (abs(distance) < 0.1) {
-                c = texture(u_lightedSceneTx, sampleSS.xy * 0.5 + 0.5).xyz;
+            if (abs(minDistance) < 0.05) {
+                // c = texture(u_lightedSceneTx, minPosSS.xy * 0.5 + 0.5).xyz / (length(sampleVS - posVS.xyz) * 2. + 1.);
+                c = texture(u_lightedSceneTx, minPosSS.xy * 0.5 + 0.5).xyz;
             }
             break;
         }
