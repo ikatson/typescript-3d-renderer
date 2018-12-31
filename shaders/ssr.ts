@@ -18,7 +18,6 @@ void main() {
     color = vec4(reflectRay, 1.0);
     
     vec3 c = vec3(0.);
-    float minZ = 0.; 
     
     for (int i = 0; i < SSR_STEPS; i++) {
         vec3 sampleVS = posVS.xyz + reflectRay * (SSR_STEP_SIZE * float(i + 1));
@@ -32,12 +31,39 @@ void main() {
         
         vec4 resultVS = GBUFFER_POSITION(sampleSS.xy * 0.5 + 0.5);
         
-        float distance = -(sampleVS.z - resultVS.z);
-        if (distance > 0. && distance < 0.02) {
-            // c = vec3(1. / float(i + 1));
-            c = texture(u_lightedSceneTx, sampleSS.xy * 0.5 + 0.5).xyz;
+        // The ray intersected smth, do binary search
+        float distance = resultVS.z - sampleVS.z;
+        if (distance > 0. || resultVS.a == 0.) {
+            vec3 dir = reflectRay * (SSR_STEP_SIZE * 0.5);
+            for (int j = 0; j < SSR_BINARY_SEARCH_STEPS; ++j) {
+                if (distance > 0. || resultVS.a == 0.) {
+                    sampleVS -= dir;
+                } else {
+                    sampleVS += dir;
+                }
+                dir *= 0.5;
+                
+                sampleSS4 = u_perspectiveMatrix * vec4(sampleVS, 1.);
+                sampleSS = sampleSS4.xyz / sampleSS4.w;
+                
+                resultVS = GBUFFER_POSITION(sampleSS.xy * 0.5 + 0.5);
+                
+                distance = resultVS.z - sampleVS.z;
+            }
+            
+            // c = vec3(distance);
+            if (abs(distance) < 0.1) {
+                c = texture(u_lightedSceneTx, sampleSS.xy * 0.5 + 0.5).xyz;
+            }
             break;
         }
+        
+        // float distance = -(sampleVS.z - resultVS.z);
+        // if (distance > 0. && distance < 0.02) {
+        //     // c = vec3(1. / float(i + 1));
+        //     c = texture(u_lightedSceneTx, sampleSS.xy * 0.5 + 0.5).xyz;
+        //     break;
+        // }
     }
     
     color = vec4(c, 1.);

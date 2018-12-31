@@ -868,8 +868,9 @@ class SSRRenderer {
             gl,
             fullScreenQuad.vertexShader,
             new FragmentShader(gl, SSR_SHADERS.fs
-                .define('SSR_STEPS', '400')
-                .define('SSR_STEP_SIZE', '0.01')
+                .define('SSR_STEPS', '30')
+                .define('SSR_STEP_SIZE', '0.1')
+                .define('SSR_BINARY_SEARCH_STEPS', '10')
                 .build()
             ),
         )
