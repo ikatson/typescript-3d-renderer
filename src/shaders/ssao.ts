@@ -52,7 +52,7 @@ float ssao(vec3 normalVS, vec4 posVS, vec2 tx_pos) {
             continue;
         }
 
-        vec4 storedPosVS = texture(gbuf_position, sampleSS.xy * 0.5 + 0.5);
+        vec4 storedPosVS = GBUFFER_POSITION(sampleSS.xy * 0.5 + 0.5);
         float storedDepthVS = storedPosVS.z;
 
         if (storedDepthVS > sampleVS.z + bias) {
@@ -66,8 +66,8 @@ float ssao(vec3 normalVS, vec4 posVS, vec2 tx_pos) {
 }
 
 void main() {
-    vec3 normal = texture(gbuf_normal, tx_pos).xyz * 2. - 1.;
-    vec4 pos = texture(gbuf_position, tx_pos);
+    vec3 normal = GBUFFER_NORMAL(tx_pos).xyz;
+    vec4 pos = GBUFFER_POSITION(tx_pos);
 
     float occlusion = ssao(normal, pos, tx_pos);
     color = vec4(vec3(occlusion), pos.a);
@@ -131,8 +131,9 @@ float getSsaoBlurred(vec4 posVS, vec3 normalVS) {
 }
 
 void main() {
-    vec4 posVS = GBUFFER_POSITION(tx_pos);
     vec3 normalVS = GBUFFER_NORMAL(tx_pos).xyz;
+    vec4 posVS = GBUFFER_POSITION(tx_pos);
+    
     color = vec4(getSsaoBlurred(posVS, normalVS), 0., 0., 1.);
     // color = vec4(texture(u_ssaoFirstPassTx, tx_pos).xyz, 1.);
 }

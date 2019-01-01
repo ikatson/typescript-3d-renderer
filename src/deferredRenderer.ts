@@ -4,7 +4,7 @@ import {DirectionalLight, GameObject, GameObjectBuilder, MeshComponent, PointLig
 import {Scene} from "./scene";
 import {FragmentShader, ShaderProgram, ShaderSourceBuilder, VertexShader} from "./shaders";
 import {FINAL_SHADER_SOURCE} from "./shaders/final";
-import {GBUFFER_SHADER_SOURCE} from "./shaders/gBuffer/shaders";
+import {GBUFFER_SHADER_SOURCE} from "./shaders/gBuffer";
 import {SSAO_SHADER_SOURCE} from "./shaders/ssao";
 import {VISUALIZE_LIGHTS_SHADERS} from "./shaders/visualize-lights";
 import {SSAOConfig, SSAOState} from "./SSAOState";

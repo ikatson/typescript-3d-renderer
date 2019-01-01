@@ -56,7 +56,7 @@ void main() {
     gbuf_position = vec4(v_pos.xyz, 1.0);
     
     // TODO: use normal map here.
-    gbuf_normal = vec4(v_norm.xyz * .5 + .5, 1.0);
+    gbuf_normal = vec4(normalize(v_norm.xyz), 1.0);
     
     if (u_albedoHasTexture) {
         gbuf_albedo = texture(u_albedoTexture, v_uv);
