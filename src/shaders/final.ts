@@ -28,9 +28,8 @@ void main() {
     vec4 normal = GBUFFER_NORMAL(tx_pos);
     vec4 pos = GBUFFER_POSITION(tx_pos);
     vec4 albedo = GBUFFER_ALBEDO(tx_pos);
-    vec4 _specular = GBUFFER_SPECULAR(tx_pos);
-    vec3 tspecular = _specular.xyz;
-    float tshininess = _specular.a * 256.;
+    
+    metallicRoughness mr = gbufferMetallicRoughness(tx_pos);
 
     #ifdef SHOW_NORMALS
     // color = vec4(normal.xyz * .5 + .5, normal.a);
@@ -48,13 +47,13 @@ void main() {
     return;
     #endif
     
-    #ifdef SHOW_SPECULAR
-    color = vec4(tspecular, pos.a);
+    #ifdef SHOW_METALLIC
+    color = vec4(mr.metallic, pos.a);
     return;
     #endif
     
-    #ifdef SHOW_SHININESS
-    color = vec4(vec3(tshininess / 256.0), pos.a);
+    #ifdef SHOW_ROUGHNESS
+    color = vec4(mr.roughness, pos.a);
     return;
     #endif
 
@@ -131,7 +130,7 @@ void main() {
     vec4 pos = GBUFFER_POSITION(tx_pos);
 
     vec4 albedo = GBUFFER_ALBEDO(tx_pos);
-    metallicRoughness = gbufferMetallicRoughness(tx_pos);
+    metallicRoughness mr = gbufferMetallicRoughness(tx_pos);
 
     // final color.
     vec3 c = vec3(0.);
@@ -162,7 +161,7 @@ void main() {
     #endif
 
     //ambient
-    vec3 ambient = colAmbient * l.intensity * ssao;
+    vec3 ambient = vec3(0.03) * albedo * ssao;
     lc += ambient;
 
     #ifdef SHADOWMAP_ENABLED

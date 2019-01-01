@@ -34,8 +34,8 @@ export enum ShowLayer {
     Color,
     SSAO,
     ShadowMap,
-    Specular,
-    Shininess
+    Metallic,
+    Roughness
 }
 
 export enum StencilValues {
@@ -562,8 +562,8 @@ export class LightingRenderer {
                     .defineIfTrue('SHOW_POSITIONS', this.config.showLayer === ShowLayer.Positions)
                     .defineIfTrue('SHOW_SHADOWMAP', this.config.showLayer === ShowLayer.ShadowMap)
                     .defineIfTrue('SHOW_NORMALS', this.config.showLayer === ShowLayer.Normals)
-                    .defineIfTrue('SHOW_SPECULAR', this.config.showLayer === ShowLayer.Specular)
-                    .defineIfTrue('SHOW_SHININESS', this.config.showLayer === ShowLayer.Shininess)
+                    .defineIfTrue('SHOW_METALLIC', this.config.showLayer === ShowLayer.Metallic)
+                    .defineIfTrue('SHOW_ROUGHNESS', this.config.showLayer === ShowLayer.Roughness)
                     .build()
             )
         );

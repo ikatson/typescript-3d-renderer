@@ -69,8 +69,8 @@ function main() {
                 {label: 'SSAO', value: ShowLayer.SSAO},
                 {label: 'Color', value: ShowLayer.Color},
                 {label: 'Shadow Map', value: ShowLayer.ShadowMap},
-                {label: 'Specular', value: ShowLayer.Specular},
-                {label: 'Shininess', value: ShowLayer.Shininess},
+                {label: 'Metallic', value: ShowLayer.Metallic},
+                {label: 'Roughness', value: ShowLayer.Roughness},
             ]
         },
         shouldRotate: {
@@ -86,19 +86,17 @@ function main() {
                 albedo: {
                     value: '#ff0000', onChange: ui.funcRef(),
                 },
-                shininess: {value: 5, min: 0, step: 1, max: 256, onChange: ui.funcRef(),},
+                // shininess: {value: 5, min: 0, step: 1, max: 256, onChange: ui.funcRef(),},
             },
             plane: {
                 albedo: {
                     value: '#ffffff', onChange: ui.funcRef(),
                 },
-                shininess: {value: 3, min: 0, step: 1, max: 256, onChange: ui.funcRef(),},
             },
             aphrodite: {
                 albedo: {
                     value: '#ffdebd', onChange: ui.funcRef(),
                 },
-                shininess: {value: 3, min: 0, step: 1, max: 256, onChange: ui.funcRef(),},
             }
         }
     };
@@ -157,15 +155,12 @@ function main() {
                     ),
                     ui.FormGroup('Car colors',
                         color('Albedo', state.materials.corvette.albedo),
-                        n('Shininess', state.materials.corvette.shininess),
                     ),
                     ui.FormGroup('Aphrodite colors',
                         color('Albedo', state.materials.aphrodite.albedo),
-                        n('Shininess', state.materials.aphrodite.shininess),
                     ),
                     ui.FormGroup('Plane colors',
                         color('Albedo', state.materials.plane.albedo),
-                        n('Shininess', state.materials.plane.shininess),
                     )
                 ),
             ),
@@ -202,7 +197,7 @@ function main() {
 
     const onColorChanges = (stateRef: any, material: Material) => {
         stateRef.albedo.onChange.ref = (v) => {
-            hexToRgb1(material.albedo, v);
+            hexToRgb1(material.albedo.value, v);
         };
         // stateRef.specular.onChange.ref = (v) => {
         //     hexToRgb1(material.specular, v);
@@ -213,11 +208,9 @@ function main() {
     };
 
     const makeMaterialFromState = (stateRef): Material => {
-        // @ts-ignore
+        const albedo = hexToRgb1(tmpVec3, stateRef.albedo.value);
         return new Material()
-            // .setSpecular(...hexToRgb1(tmpVec3, stateRef.specular.value))
-            .setAlbedo(...hexToRgb1(tmpVec3, stateRef.albedo.value))
-            .setShininess(stateRef.shininess.value)
+            .setAlbedo(albedo[0], albedo[1], albedo[2])
     };
 
     Promise.all([
