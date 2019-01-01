@@ -271,7 +271,7 @@ function main() {
                     //    .setReflective(true)
                 ))
                 .build();
-            vec3.copy(corvette.transform.position,[0, -1., 0]);
+            vec3.copy(corvette.transform.position, [0, -1., 0]);
             corvette.transform.update();
 
             onColorChanges(state.materials.corvette, corvette.material.material);
@@ -354,11 +354,11 @@ function main() {
             .setMeshComponent(new MeshComponent(planeMesh))
             .setMaterialComponent(new MaterialComponent(
                 makeMaterialFromState(state.materials.plane)
-            //        .setReflective(true)
+                //        .setReflective(true)
             ))
             .build();
         plane.mesh.setShadowCaster(false);
-        vec3.copy(plane.transform.position,[0, -0.8, 0]);
+        vec3.copy(plane.transform.position, [0, -0.8, 0]);
         vec3.copy(plane.transform.scale, [50, 50, 50]);
         plane.transform.update();
         onColorChanges(state.materials.plane, plane.material.material);
