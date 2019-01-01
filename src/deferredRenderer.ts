@@ -155,6 +155,7 @@ export class GBuffer {
                 gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelWorldMatrix"), false, modelWorldMatrix);
 
                 function bindValueOrTx<T>(prefix: string, txOrValue: TextureOrValue<T>, uniformFunc: Function, index: number) {
+
                     const valueName = prefix;
                     const hasTxName = prefix + "HasTexture";
                     const txName = prefix + "Texture";

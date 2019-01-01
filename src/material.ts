@@ -48,9 +48,9 @@ export class Material {
     }
 
     setAlbedo(r, g, b): Material {
-        this.albedo[0] = r;
-        this.albedo[1] = g;
-        this.albedo[2] = b;
+        this.albedo.value[0] = r;
+        this.albedo.value[1] = g;
+        this.albedo.value[2] = b;
         return this;
     }
 
