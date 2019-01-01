@@ -1,5 +1,6 @@
 import { ShaderSourceBuilder } from "../shaders";
 import {GBUF_TEXTURES, QUAD_FRAGMENT_INPUTS, WORLD_AND_CAMERA_TRANSFORMS} from "./includes/common";
+import {PBR_INCLUDE} from "./includes/pbr";
 
 const SHOW_LAYER_FS = new ShaderSourceBuilder()
     .addTopChunk(QUAD_FRAGMENT_INPUTS)
@@ -74,7 +75,7 @@ const LIGHTING_FS = new ShaderSourceBuilder()
     .addTopChunk(QUAD_FRAGMENT_INPUTS)
     .addTopChunk(WORLD_AND_CAMERA_TRANSFORMS)
     .addTopChunk(GBUF_TEXTURES)
-    .addChunk(`
+    .addTopChunk(`
 layout(location = 0) out vec4 color;
 
 #define SHADOW_MAP_ERROR 0.99
@@ -124,13 +125,21 @@ light makeLight() {
     
     return l;
 }
-
+`)
+    .addTopChunk(PBR_INCLUDE)
+    .addChunk(`
 void main() {
     vec4 normal = GBUFFER_NORMAL(tx_pos);
     vec4 pos = GBUFFER_POSITION(tx_pos);
-
     vec4 albedo = GBUFFER_ALBEDO(tx_pos);
-    metallicRoughness mr = gbufferMetallicRoughness(tx_pos);
+
+    float metallic;
+    float roughness;
+    {
+        metallicRoughness mr = gbufferMetallicRoughness(tx_pos);
+        metallic = mr.metallic;
+        roughness = mr.roughness;
+    }
 
     // final color.
     vec3 c = vec3(0.);
@@ -155,7 +164,7 @@ void main() {
     #endif
 
     //ambient
-    vec3 ambient = vec3(0.03) * albedo * l.color * ssao;
+    vec3 ambient = vec3(0.03) * albedo.rgb * l.color * ssao;
     lc += ambient;
 
     #ifdef SHADOWMAP_ENABLED
@@ -202,27 +211,42 @@ void main() {
     }
     l.intensity *= float(notInShadowSamples) / 16.0;
     #endif
-
-    // diffuse
-    lc += colDiffuse * l.intensity * max(dot(normal.xyz, -lightDir), 0.) * pos.a;
-
-    // specular
-    lc += colSpecular * l.intensity * pow(
-        max(
-            dot(
-                reflect(lightDir, normal.xyz),
-                normalize(-pos.xyz)
-            ), 
-            0.
-        ), 
-        shininess
-    );
-
+    
+    // MAIN PBR PIECE 
+    vec3 F0 = vec3(0.04); 
+    F0 = mix(F0, albedo.xyz, metallic);
+    
+    // calculate per-light radiance
+    vec3 V = pos.xyz;
+    vec3 L = lightDir;
+    vec3 H = normalize(V + L);
+    vec3 N = normal.xyz;
+    
     #ifdef POINT_LIGHT
-    if (l.radius > 0.) {
-        lc *= 1. - smoothstep(l.radius, l.radius + l.attenuation, length(pos.xyz - l.position));
-    }
+    float distance    = length(l.position - pos.xyz);
+    float attenuation = 1.0 / (distance * distance);
+    #else
+    float attenuation = 1.;
     #endif
+    
+    vec3 radiance     = l.color * attenuation;
+    
+    // cook-torrance brdf
+    float NDF = DistributionGGX(N, H, roughness);        
+    float G   = GeometrySmith(N, V, L, roughness);      
+    vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);       
+    
+    vec3 kS = F;
+    vec3 kD = vec3(1.0) - kS;
+    kD *= 1.0 - metallic;	  
+    
+    vec3 numerator    = NDF * G * F;
+    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
+    vec3 specular     = numerator / max(denominator, 0.001);  
+        
+    // add to outgoing radiance Lo
+    float NdotL = max(dot(N, L), 0.0);                
+    lc += (kD * albedo.xyz / PI + specular) * radiance * NdotL; 
 
     c += lc;
 
