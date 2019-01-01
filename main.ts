@@ -267,6 +267,7 @@ function main() {
                 )
                 .setMaterialComponent(new MaterialComponent(
                     makeMaterialFromState(state.materials.corvette)
+                    //    .setReflective(true)
                 ))
                 .build();
             corvette.transform.position = [0, -1., 0];
@@ -352,7 +353,7 @@ function main() {
             .setMeshComponent(new MeshComponent(planeMesh))
             .setMaterialComponent(new MaterialComponent(
                 makeMaterialFromState(state.materials.plane)
-                    .setReflective(true)
+            //        .setReflective(true)
             ))
             .build();
         plane.mesh.setShadowCaster(false);
