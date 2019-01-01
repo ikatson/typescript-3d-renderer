@@ -33,18 +33,18 @@ in vec4 v_norm;
 in vec2 v_uv;
 
 uniform vec3 u_albedo;
-uniform boolean u_albedoHasTexture;
+uniform bool u_albedoHasTexture;
 uniform sampler2D u_albedoTexture;
 
 uniform float u_metallic;
-uniform boolean u_metallicHasTexture;
+uniform bool u_metallicHasTexture;
 uniform sampler2D u_metallicTexture;
 
 uniform float u_roughness;
-uniform boolean u_roughnessHasTexture;
+uniform bool u_roughnessHasTexture;
 uniform sampler2D u_roughnessTexture;
 
-uniform boolean u_normalMapHasTexture;
+uniform bool u_normalMapHasTexture;
 uniform sampler2D u_normalMapTx;
 
 layout(location = 0) out vec4 gbuf_position;

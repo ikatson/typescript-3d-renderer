@@ -9,12 +9,7 @@ export function randomPointLight(posScale: number, intensity?: number) {
     l.transform.scale = vec3.fromValues(0.1, 0.1, 0.1);
     l.transform.update();
 
-    l.pointLight.specular = vec3.normalize(l.pointLight.specular, randVec3(0., 1.));
-    l.pointLight.diffuse = vec3.normalize(l.pointLight.diffuse, randVec3(0., 1.));
-
-    const diffuseSpecularRatio = Math.random();
-    l.pointLight.diffuse = vec3.scale(l.pointLight.diffuse, l.pointLight.diffuse, diffuseSpecularRatio);
-    l.pointLight.specular = vec3.scale(l.pointLight.specular, l.pointLight.specular, 1. - diffuseSpecularRatio);
+    l.pointLight.color = vec3.normalize(l.pointLight.color, randVec3(0., 1.));
     l.pointLight.intensity = intensity;
     return l.pointLight;
 }

@@ -12,11 +12,11 @@ vec4 read_gbuffer_normal(vec2 pos) {
 }
 
 struct metallicRoughness {
-    metallic float;
-    roughness float;
+    float metallic;
+    float roughness;
 };
 
-metallicRoughness gbufferMetallicRoughness(coord) {
+metallicRoughness gbufferMetallicRoughness(vec2 coord) {
     metallicRoughness r;
     vec4 tx = texture(gbuf_metallic_roughness, coord);
     r.metallic = tx.r;

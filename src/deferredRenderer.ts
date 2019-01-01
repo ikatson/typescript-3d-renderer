@@ -159,7 +159,9 @@ export class GBuffer {
                     const valueName = prefix + "Value";
                     const hasTxName = prefix + "HasTexture";
                     const txName = prefix + "Texture";
-                    uniformFunc(s.getUniformLocation(gl, valueName), txOrValue.value);
+
+                    // can't just call it, chrome complains.
+                    gl[uniformFunc.name](s.getUniformLocation(gl, valueName), txOrValue.value);
 
                     const has = txOrValue.hasTexture();
                     gl.uniform1i(s.getUniformLocation(gl, hasTxName), has ? 1 : 0);
