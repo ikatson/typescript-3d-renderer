@@ -49,12 +49,12 @@ void main() {
     #endif
     
     #ifdef SHOW_METALLIC
-    color = vec4(mr.metallic, pos.a);
+    color = vec4(vec3(mr.metallic), pos.a);
     return;
     #endif
     
     #ifdef SHOW_ROUGHNESS
-    color = vec4(mr.roughness, pos.a);
+    color = vec4(vec3(mr.roughness), pos.a);
     return;
     #endif
 
@@ -217,7 +217,7 @@ void main() {
     F0 = mix(F0, albedo.xyz, metallic);
     
     // calculate per-light radiance
-    vec3 V = pos.xyz;
+    vec3 V = normalize(pos.xyz);
     vec3 L = lightDir;
     vec3 H = normalize(V + L);
     vec3 N = normal.xyz;

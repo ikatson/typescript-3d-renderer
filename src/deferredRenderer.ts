@@ -139,7 +139,6 @@ export class GBuffer {
             this.ATTACHMENT_METALLIC_ROUGHNESS
         ]);
 
-        // disable blending so that the specular shininess encoding does not mess with the results.
         gl.disable(gl.BLEND);
 
         const renderObject = (o: GameObject) => {
@@ -156,7 +155,7 @@ export class GBuffer {
                 gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelWorldMatrix"), false, modelWorldMatrix);
 
                 function bindValueOrTx<T>(prefix: string, txOrValue: TextureOrValue<T>, uniformFunc: Function, index: number) {
-                    const valueName = prefix + "Value";
+                    const valueName = prefix;
                     const hasTxName = prefix + "HasTexture";
                     const txName = prefix + "Texture";
 
@@ -611,7 +610,7 @@ export class LightingRenderer {
         bindUniformTx(gl, this.pointLightShader, "gbuf_position", this.gBuffer.posTx, 0);
         bindUniformTx(gl, this.pointLightShader, "gbuf_normal", this.gBuffer.normalTX, 1);
         bindUniformTx(gl, this.pointLightShader, "gbuf_colormap", this.gBuffer.albedoTX, 2);
-        bindUniformTx(gl, this.pointLightShader, "gbuf_specular", this.gBuffer.metallicRoughnessTX, 3);
+        bindUniformTx(gl, this.pointLightShader, "gbuf_metallic_roughness", this.gBuffer.metallicRoughnessTX, 3);
         bindUniformTx(gl, this.pointLightShader, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
         bindUniformTx(gl, this.pointLightShader, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
 
@@ -644,7 +643,7 @@ export class LightingRenderer {
             bindUniformTx(gl, this.showBuffersShader, "gbuf_position", this.gBuffer.posTx, 0);
             bindUniformTx(gl, this.showBuffersShader, "gbuf_normal", this.gBuffer.normalTX, 1);
             bindUniformTx(gl, this.showBuffersShader, "gbuf_colormap", this.gBuffer.albedoTX, 2);
-            bindUniformTx(gl, this.showBuffersShader, "gbuf_specular", this.gBuffer.metallicRoughnessTX, 3);
+            bindUniformTx(gl, this.showBuffersShader, "gbuf_metallic_roughness", this.gBuffer.metallicRoughnessTX, 3);
             bindUniformTx(gl, this.showBuffersShader, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
             bindUniformTx(gl, this.showBuffersShader, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
             this.fullScreenQuad.draw(gl);
@@ -708,7 +707,7 @@ export class LightingRenderer {
             bindUniformTx(gl, s, "gbuf_position", this.gBuffer.posTx, 0);
             bindUniformTx(gl, s, "gbuf_normal", this.gBuffer.normalTX, 1);
             bindUniformTx(gl, s, "gbuf_colormap", this.gBuffer.albedoTX, 2);
-            bindUniformTx(gl, s, "gbuf_specular", this.gBuffer.metallicRoughnessTX, 3);
+            bindUniformTx(gl, s, "gbuf_metallic_roughness", this.gBuffer.metallicRoughnessTX, 3);
             bindUniformTx(gl, s, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
             bindUniformTx(gl, s, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
 
@@ -748,7 +747,7 @@ export class LightingRenderer {
             bindUniformTx(gl, s, "gbuf_position", this.gBuffer.posTx, 0);
             bindUniformTx(gl, s, "gbuf_normal", this.gBuffer.normalTX, 1);
             bindUniformTx(gl, s, "gbuf_colormap", this.gBuffer.albedoTX, 2);
-            bindUniformTx(gl, s, "gbuf_specular", this.gBuffer.metallicRoughnessTX, 3);
+            bindUniformTx(gl, s, "gbuf_metallic_roughness", this.gBuffer.metallicRoughnessTX, 3);
             bindUniformTx(gl, s, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
             bindUniformTx(gl, s, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
 
