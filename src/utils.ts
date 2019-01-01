@@ -1,6 +1,6 @@
-import {mat4, vec3, vec4} from "./gl-matrix.js";
-import {VertexShader} from "./shaders.js";
-import {fetchObject, ObjParser} from "./objparser.js";
+import {mat4, vec3, vec4} from "gl-matrix";
+import {VertexShader} from "./shaders";
+import {fetchObject, ObjParser} from "./objparser";
 import {
     ArrayBufferDataType,
     computeBoundingBox,
@@ -8,11 +8,11 @@ import {
     GLArrayBufferData,
     GLArrayBufferDataIterResult,
     GLArrayBufferDataParams
-} from "./glArrayBuffer.js";
-import {Camera, ProjectionMatrix} from "./camera.js";
-import {AxisAlignedBox} from "./axisAlignedBox.js";
-import {Scene} from "./scene.js";
-import {DirectionalLight, GameObject, LightComponent} from "./object.js";
+} from "./glArrayBuffer";
+import {Camera, ProjectionMatrix} from "./camera";
+import {AxisAlignedBox} from "./axisAlignedBox";
+import {Scene} from "./scene";
+import {DirectionalLight, GameObject} from "./object";
 
 export const QuadVertices = new Float32Array([
     -1.0, 1.0,
@@ -159,12 +159,6 @@ export const makeDirectionalLightWorldToCameraMatrix = (direction: number[] | Fl
     tempCamera.calculateUpFromWorldUp();
     tempCamera.update();
     return tempCamera.getWorldToCamera();
-};
-
-export const getLightDirection = (outVec: any, l: LightComponent): any => {
-    vec3.scale(outVec, l.object.transform.position, -1);
-    vec3.normalize(outVec, outVec);
-    return outVec;
 };
 
 export const myOrtho = (out, left, right, bottom, top, near, far) => {

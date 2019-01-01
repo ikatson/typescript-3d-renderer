@@ -1,19 +1,19 @@
-import {Camera, ProjectionMatrix} from "./camera.js";
-import {mat4, vec3} from "./gl-matrix.js";
-import {DirectionalLight, GameObject, GameObjectBuilder, MeshComponent, PointLightComponent} from "./object.js";
-import {Scene} from "./scene.js";
-import {FragmentShader, ShaderProgram, ShaderSourceBuilder, VertexShader} from "./shaders.js";
-import {FINAL_SHADER_SOURCE} from "./shaders/final.js";
-import {GBUFFER_SHADER_SOURCE} from "./shaders/gBuffer/shaders.js";
-import {SSAO_SHADER_SOURCE} from "./shaders/ssao.js";
-import {VISUALIZE_LIGHTS_SHADERS} from "./shaders/visualize-lights.js";
-import {SSAOConfig, SSAOState} from "./SSAOState.js";
-import {computeDirectionalLightCameraWorldToProjectionMatrix, FullScreenQuad, tmpMat4,} from "./utils.js";
-import {SHADOWMAP_SHADERS} from "./shaders/shadowMap.js";
-import {GLArrayBuffer} from "./glArrayBuffer.js";
-import {Material} from "./material.js";
-import {SSR_SHADERS} from "./shaders/ssr.js";
-import {QUAD_FRAGMENT_INPUTS} from "./shaders/includes/common.js";
+import {Camera, ProjectionMatrix} from "./camera";
+import {mat4, vec3} from "gl-matrix";
+import {DirectionalLight, GameObject, GameObjectBuilder, MeshComponent, PointLightComponent} from "./object";
+import {Scene} from "./scene";
+import {FragmentShader, ShaderProgram, ShaderSourceBuilder, VertexShader} from "./shaders";
+import {FINAL_SHADER_SOURCE} from "./shaders/final";
+import {GBUFFER_SHADER_SOURCE} from "./shaders/gBuffer/shaders";
+import {SSAO_SHADER_SOURCE} from "./shaders/ssao";
+import {VISUALIZE_LIGHTS_SHADERS} from "./shaders/visualize-lights";
+import {SSAOConfig, SSAOState} from "./SSAOState";
+import {computeDirectionalLightCameraWorldToProjectionMatrix, FullScreenQuad, tmpMat4,} from "./utils";
+import {SHADOWMAP_SHADERS} from "./shaders/shadowMap";
+import {GLArrayBuffer} from "./glArrayBuffer";
+import {Material} from "./material";
+import {SSR_SHADERS} from "./shaders/ssr";
+import {QUAD_FRAGMENT_INPUTS} from "./shaders/includes/common";
 
 export class ShadowMapConfig {
     enabled: boolean;

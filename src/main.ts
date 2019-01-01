@@ -1,16 +1,16 @@
-import {fetchObject} from "./objparser.js";
-import {clip, FullScreenQuad, hexToRgb1, initGL, QuadArrayBufferData, tmpVec3} from "./utils.js";
-import {ProgressBar, ProgressBarCommon} from "./progressbar.js";
-import {BoundingBoxComponent, DirectionalLight, GameObjectBuilder, MaterialComponent, MeshComponent} from "./object.js";
-import {Camera} from "./camera.js";
+import {fetchObject} from "./objparser";
+import {clip, FullScreenQuad, hexToRgb1, initGL, QuadArrayBufferData, tmpVec3} from "./utils";
+import {ProgressBar, ProgressBarCommon} from "./progressbar";
+import {BoundingBoxComponent, DirectionalLight, GameObjectBuilder, MaterialComponent, MeshComponent} from "./object";
+import {Camera} from "./camera";
 
-import {vec3} from "./gl-matrix.js";
-import {randomPointLight, Scene} from "./scene.js";
-import {DeferredRenderer, DeferredRendererConfig, ShadowMapConfig, ShowLayer} from "./deferredRenderer.js";
-import {GLArrayBuffer} from "./glArrayBuffer.js";
-import * as ui from "./ui.js";
-import {SSAOConfig, SSAOState} from "./SSAOState.js";
-import {Material} from "./material.js";
+import {vec3} from "gl-matrix";
+import {randomPointLight, Scene} from "./scene";
+import {DeferredRenderer, DeferredRendererConfig, ShadowMapConfig, ShowLayer} from "./deferredRenderer";
+import {GLArrayBuffer} from "./glArrayBuffer";
+import * as ui from "./ui";
+import {SSAOConfig, SSAOState} from "./SSAOState";
+import {Material} from "./material";
 
 
 const originZero = vec3.create();

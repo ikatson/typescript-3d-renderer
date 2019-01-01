@@ -1,5 +1,5 @@
-import {mat4, vec3} from "./gl-matrix.js";
-import {tmpIdentityMatrix} from "./utils.js";
+import {mat4, vec3} from "gl-matrix";
+import {tmpIdentityMatrix} from "./utils";
 
 const tmpVec3: vec3 = vec3.create();
 

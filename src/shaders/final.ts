@@ -1,5 +1,5 @@
-import { ShaderSourceBuilder } from "../shaders.js";
-import {GBUF_TEXTURES, QUAD_FRAGMENT_INPUTS, WORLD_AND_CAMERA_TRANSFORMS} from "./includes/common.js";
+import { ShaderSourceBuilder } from "../shaders";
+import {GBUF_TEXTURES, QUAD_FRAGMENT_INPUTS, WORLD_AND_CAMERA_TRANSFORMS} from "./includes/common";
 
 const SHOW_LAYER_FS = new ShaderSourceBuilder()
     .addTopChunk(QUAD_FRAGMENT_INPUTS)

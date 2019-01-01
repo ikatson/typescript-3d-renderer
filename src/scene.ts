@@ -1,6 +1,6 @@
-import {DirectionalLight, GameObject, GameObjectBuilder, PointLightComponent} from "./object.js";
-import { vec3 } from "./gl-matrix.js";
-import { randFloat, randVec3 } from "./utils.js";
+import {DirectionalLight, GameObject, GameObjectBuilder, PointLightComponent} from "./object";
+import { vec3 } from "gl-matrix";
+import { randFloat, randVec3 } from "./utils";
 
 export function randomPointLight(posScale: number, intensity?: number) {
     intensity = intensity || 1.;

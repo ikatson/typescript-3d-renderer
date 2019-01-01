@@ -1,9 +1,16 @@
 {
   "devDependencies": {
-    "@machinomy/types-readable-stream": "git+https://github.com/machinomy/types-readable-stream.git"
+    "@machinomy/types-readable-stream": "git+https://github.com/machinomy/types-readable-stream.git",
+    "ts-loader": "^5.3.2",
+    "typescript": "^3.2.2",
+    "webpack": "^4.28.3",
+    "webpack-cli": "^3.1.2"
   },
   "dependencies": {
     "@types/gl-matrix": "^2.4.4",
     "gl-matrix": "^2.8.1"
+  },
+  "scripts": {
+    "start": "./node_modules/.bin/webpack --config webpack.config.js"
   }
 }

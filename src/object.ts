@@ -1,8 +1,8 @@
-import {mat4, vec3} from "./gl-matrix.js"
-import {ShaderProgram} from "./shaders.js";
-import {AxisAlignedBox} from "./axisAlignedBox.js";
-import {ArrayBufferDataTypeToGL, GLArrayBuffer} from "./glArrayBuffer.js";
-import {Material} from "./material.js";
+import {mat4, vec3} from "gl-matrix"
+import {ShaderProgram} from "./shaders";
+import {AxisAlignedBox} from "./axisAlignedBox";
+import {ArrayBufferDataTypeToGL, GLArrayBuffer} from "./glArrayBuffer";
+import {Material} from "./material";
 
 export abstract class Component {
     object: GameObject = null;

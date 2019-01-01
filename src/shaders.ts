@@ -1,4 +1,4 @@
-import {ShaderLoadError, LinkError} from "./errors.js";
+import {ShaderLoadError, LinkError} from "./errors";
 
 export function redefine(shaderSource: string, defineName: string, value: string) {
     return shaderSource.replace(new RegExp(`#define ${defineName} .*`), `#define ${defineName} ${value}`);

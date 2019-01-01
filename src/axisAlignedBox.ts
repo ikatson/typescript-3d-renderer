@@ -1,4 +1,4 @@
-import {ArrayBufferDataType, GLArrayBufferData, GLArrayBufferDataParams} from "./glArrayBuffer.js";
+import {ArrayBufferDataType, GLArrayBufferData, GLArrayBufferDataParams} from "./glArrayBuffer";
 
 export class AxisAlignedBox {
     min: number[] | Float32Array = new Float32Array([-1, -1, -1]);

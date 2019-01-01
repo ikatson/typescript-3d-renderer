@@ -1,4 +1,4 @@
-import {vec3} from "./gl-matrix.js";
+import {vec3} from "gl-matrix";
 
 export class Material {
     albedo = vec3.fromValues(1, 1, 1);

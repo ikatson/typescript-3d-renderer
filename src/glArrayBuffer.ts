@@ -1,6 +1,6 @@
-import {ShaderProgram} from "./shaders.js";
-import {AxisAlignedBox} from "./axisAlignedBox.js";
-import {mat4, vec3, vec4} from "./gl-matrix.js";
+import {ShaderProgram} from "./shaders";
+import {AxisAlignedBox} from "./axisAlignedBox";
+import {mat4, vec3, vec4} from "gl-matrix";
 
 const FLOAT_BYTES = 4;
 const VEC3 = 3;
