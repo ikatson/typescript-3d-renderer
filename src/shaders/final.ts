@@ -149,12 +149,16 @@ void main() {
     
     #ifdef POINT_LIGHT
     vec3 lightDir = normalize(pos.xyz - l.position);
+    float distanceForAttenuation    = length(l.position - pos.xyz);
+    float attenuation = UE4Falloff(distanceForAttenuation, l.radius);
+    
     // color = vec4(1.);
     // return;
     #endif
     
     #ifdef DIRECTIONAL_LIGHT
     vec3 lightDir = l.direction;
+    float attenuation = 1.;
     #endif
     
     #ifdef SSAO_ENABLED
@@ -162,9 +166,9 @@ void main() {
     #else
     float ssao = 1.0;
     #endif
-
+    
     //ambient
-    vec3 ambient = vec3(0.03) * albedo.rgb * l.color * ssao;
+    vec3 ambient = vec3(0.03) * albedo.rgb * l.color * ssao * attenuation;
     lc += ambient;
 
     #ifdef SHADOWMAP_ENABLED
@@ -212,41 +216,13 @@ void main() {
     l.intensity *= float(notInShadowSamples) / 16.0;
     #endif
     
-    // MAIN PBR PIECE 
-    vec3 F0 = vec3(0.04); 
-    F0 = mix(F0, albedo.xyz, metallic);
-    
     // calculate per-light radiance
-    vec3 V = normalize(pos.xyz);
-    vec3 L = lightDir;
-    vec3 H = normalize(V + L);
-    vec3 N = normal.xyz;
+    vec3 radiance = l.color * attenuation * l.intensity;
     
-    #ifdef POINT_LIGHT
-    float distance    = length(l.position - pos.xyz);
-    float attenuation = 1.0 / (distance * distance);
-    #else
-    float attenuation = 1.;
-    #endif
-    
-    vec3 radiance     = l.color * attenuation;
-    
-    // cook-torrance brdf
-    float NDF = DistributionGGX(N, H, roughness);        
-    float G   = GeometrySmith(N, V, L, roughness);      
-    vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);       
-    
-    vec3 kS = F;
-    vec3 kD = vec3(1.0) - kS;
-    kD *= 1.0 - metallic;	  
-    
-    vec3 numerator    = NDF * G * F;
-    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
-    vec3 specular     = numerator / max(denominator, 0.001);  
-        
-    // add to outgoing radiance Lo
-    float NdotL = max(dot(N, L), 0.0);                
-    lc += (kD * albedo.xyz / PI + specular) * radiance * NdotL; 
+    lc += CookTorranceBRDF(
+        albedo.xyz, roughness, metallic, 
+        normalize(pos.xyz), normal.xyz, lightDir, radiance
+    );
 
     c += lc;
 

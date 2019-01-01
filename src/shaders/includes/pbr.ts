@@ -1,6 +1,12 @@
 export const PBR_INCLUDE = `
 const float PI = 3.14159265359;
 
+// https://blog.selfshadow.com/publications/s2013-shading-course/karis/s2013_pbs_epic_notes_v2.pdf
+float UE4Falloff(float distance, float lightRadius) {
+    float nominator = clamp(0., 1., 1. - pow(distance / lightRadius, 4.)); 
+    return nominator * nominator / (distance * distance + 1.);
+}
+
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
     float a      = roughness*roughness;
@@ -39,4 +45,36 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }  
+
+
+vec3 CookTorranceBRDF(
+    vec3 albedo, float roughness, float metallic, 
+    vec3 view, vec3 normal, vec3 lightDir, vec3 radiance
+) {
+    vec3 V = view;
+    vec3 L = lightDir;
+    vec3 H = normalize(V + L);
+    vec3 N = normal;
+
+    vec3 F0 = vec3(0.04); 
+    F0 = mix(F0, albedo, metallic);
+
+    // cook-torrance brdf
+    float NDF = DistributionGGX(N, H, roughness);        
+    float G   = GeometrySmith(N, V, L, roughness);      
+    vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);       
+    
+    vec3 kS = F;
+    vec3 kD = vec3(1.0) - kS;
+    kD *= 1.0 - metallic;	  
+    
+    vec3 numerator    = NDF * G * F;
+    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
+    vec3 specular     = numerator / max(denominator, 0.001);
+        
+    // add to outgoing radiance Lo
+    float NdotL = max(dot(N, L), 0.0);                
+    return (kD * albedo.xyz / PI + specular) * radiance * NdotL; 
+}
+
 `;

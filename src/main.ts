@@ -244,6 +244,8 @@ function main() {
                 .setMaterialComponent(new MaterialComponent(
                     makeMaterialFromState(state.materials.corvette)
                     //    .setReflective(true)
+                        .setMetallic(1.)
+                        .setRoughness(0.1)
                 ))
                 .build();
             vec3.copy(corvette.transform.position, [0, -1., 0]);
