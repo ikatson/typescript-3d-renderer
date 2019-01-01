@@ -136,12 +136,6 @@ void main() {
     vec3 c = vec3(0.);
 
     light l = makeLight();
-
-    vec3 colAmbient = albedo.xyz * l.ambient;
-    vec3 colDiffuse = albedo.xyz * l.diffuse;
-    vec3 colSpecular = tspecular.xyz * l.specular;
-    float shininess = tshininess;
-
     vec3 lc = vec3(0.);
     
     #ifdef POINT_LIGHT
@@ -161,7 +155,7 @@ void main() {
     #endif
 
     //ambient
-    vec3 ambient = vec3(0.03) * albedo * ssao;
+    vec3 ambient = vec3(0.03) * albedo * l.color * ssao;
     lc += ambient;
 
     #ifdef SHADOWMAP_ENABLED
