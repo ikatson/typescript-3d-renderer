@@ -26,9 +26,6 @@ function main() {
                 onChange: ui.funcRef(),
             },
             sun: {
-                ambient: {value: 0.2, min: 0, step: 0.1, onChange: ui.funcRef()},
-                diffuse: {value: 0.5, min: 0, step: 0.1, onChange: ui.funcRef()},
-                specular: {value: 0.5, min: 0, step: 0.1, onChange: ui.funcRef()},
                 intensity: {value: 1., min: 0, step: 0.1, onChange: ui.funcRef()},
             },
             'new': {
@@ -89,16 +86,10 @@ function main() {
                 albedo: {
                     value: '#ff0000', onChange: ui.funcRef(),
                 },
-                specular: {
-                    value: '#ffffff', onChange: ui.funcRef(),
-                },
                 shininess: {value: 5, min: 0, step: 1, max: 256, onChange: ui.funcRef(),},
             },
             plane: {
                 albedo: {
-                    value: '#ffffff', onChange: ui.funcRef(),
-                },
-                specular: {
                     value: '#ffffff', onChange: ui.funcRef(),
                 },
                 shininess: {value: 3, min: 0, step: 1, max: 256, onChange: ui.funcRef(),},
@@ -106,9 +97,6 @@ function main() {
             aphrodite: {
                 albedo: {
                     value: '#ffdebd', onChange: ui.funcRef(),
-                },
-                specular: {
-                    value: '#616161', onChange: ui.funcRef(),
                 },
                 shininess: {value: 3, min: 0, step: 1, max: 256, onChange: ui.funcRef(),},
             }
@@ -159,9 +147,6 @@ function main() {
                         n('Light count', state.lighting.lightCount),
                     ),
                     ui.FormGroup('Sun',
-                        n('Ambient', state.lighting.sun.ambient),
-                        n('Diffuse', state.lighting.sun.diffuse),
-                        n('Specular', state.lighting.sun.specular),
                         n('Intensity', state.lighting.sun.intensity),
                     ),
                     ui.FormGroup('New lights',
@@ -172,17 +157,14 @@ function main() {
                     ),
                     ui.FormGroup('Car colors',
                         color('Albedo', state.materials.corvette.albedo),
-                        color('Specular', state.materials.corvette.specular),
                         n('Shininess', state.materials.corvette.shininess),
                     ),
                     ui.FormGroup('Aphrodite colors',
                         color('Albedo', state.materials.aphrodite.albedo),
-                        color('Specular', state.materials.aphrodite.specular),
                         n('Shininess', state.materials.aphrodite.shininess),
                     ),
                     ui.FormGroup('Plane colors',
                         color('Albedo', state.materials.plane.albedo),
-                        color('Specular', state.materials.plane.specular),
                         n('Shininess', state.materials.plane.shininess),
                     )
                 ),
@@ -222,18 +204,18 @@ function main() {
         stateRef.albedo.onChange.ref = (v) => {
             hexToRgb1(material.albedo, v);
         };
-        stateRef.specular.onChange.ref = (v) => {
-            hexToRgb1(material.specular, v);
-        };
-        stateRef.shininess.onChange.ref = v => {
-            material.shininess = v;
-        }
+        // stateRef.specular.onChange.ref = (v) => {
+        //     hexToRgb1(material.specular, v);
+        // };
+        // stateRef.shininess.onChange.ref = v => {
+        //     material.shininess = v;
+        // }
     };
 
     const makeMaterialFromState = (stateRef): Material => {
         // @ts-ignore
         return new Material()
-            .setSpecular(...hexToRgb1(tmpVec3, stateRef.specular.value))
+            // .setSpecular(...hexToRgb1(tmpVec3, stateRef.specular.value))
             .setAlbedo(...hexToRgb1(tmpVec3, stateRef.albedo.value))
             .setShininess(stateRef.shininess.value)
     };
@@ -332,9 +314,6 @@ function main() {
         const sun = new GameObjectBuilder("sun").setDirectionalLightComponent(new DirectionalLight()).build();
         sun.directionalLight.direction = vec3.normalize(sun.directionalLight.direction, [-1, -1, -1]);
         sun.directionalLight.intensity = state.lighting.sun.intensity.value;
-        sun.directionalLight.ambient = v3(state.lighting.sun.ambient.value);
-        sun.directionalLight.diffuse = v3(state.lighting.sun.diffuse.value);
-        sun.directionalLight.specular = v3(state.lighting.sun.specular.value);
 
         scene.directionalLights.push(sun.directionalLight);
 
@@ -511,15 +490,6 @@ function main() {
             renderer.recompileShaders();
         };
 
-        state.lighting.sun.ambient.onChange.ref = v => {
-            vec3.copy(sun.directionalLight.ambient, [v, v, v]);
-        };
-        state.lighting.sun.specular.onChange.ref = v => {
-            vec3.copy(sun.directionalLight.specular, [v, v, v]);
-        };
-        state.lighting.sun.diffuse.onChange.ref = v => {
-            vec3.copy(sun.directionalLight.diffuse, [v, v, v]);
-        };
         state.lighting.sun.intensity.onChange.ref = v => {
             sun.directionalLight.intensity = v;
         };

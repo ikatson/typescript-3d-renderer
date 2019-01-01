@@ -74,9 +74,7 @@ export class BoundingBoxComponent extends Component {
 }
 
 export class BaseLightComponent extends Component {
-    diffuse: vec3 = vec3.fromValues(1., 1., 1.);
-    specular: vec3 = vec3.fromValues(1., 1., 1.);
-    ambient: vec3 = vec3.fromValues(0., 0., 0.);
+    color: vec3 = vec3.fromValues(1., 1., 1.);
     intensity: number = 1.;
 }
 

@@ -1,4 +1,20 @@
-function fillWithEmptyTexture(gl: WebGL2RenderingContext) {
+import {vec3} from "gl-matrix";
+import {tmpVec4} from "./utils";
+
+function r1to255 (v: number): number {
+    return Math.trunc(v * 255);
+}
+
+export function vec3ToUnit8Array(v: vec3) {
+    const nv = tmpVec4;
+    nv[0] = r1to255(v[0]);
+    nv[1] = r1to255(v[1]);
+    nv[2] = r1to255(v[2]);
+    nv[3] = 255;
+    return new Uint8Array(nv);
+}
+
+export function fillWithEmptyTexture(gl: WebGL2RenderingContext, defaultColor: vec3) {
     const level = 0;
     const internalFormat = gl.RGBA;
     const width = 1;
@@ -6,7 +22,7 @@ function fillWithEmptyTexture(gl: WebGL2RenderingContext) {
     const border = 0;
     const srcFormat = gl.RGBA;
     const srcType = gl.UNSIGNED_BYTE;
-    const pixel = new Uint8Array([0, 0, 255, 255]);  // opaque blue
+    const pixel = vec3ToUnit8Array(defaultColor);
     gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
         width, height, border, srcFormat, srcType,
         pixel);
@@ -16,16 +32,12 @@ export class Texture {
     private img: HTMLImageElement;
     private promise: Promise<void>;
     private texture: WebGLTexture;
-    private unit: number;
 
-    constructor(gl: WebGL2RenderingContext, url: string, unit: number) {
+    constructor(gl: WebGL2RenderingContext, url: string, defaultColor: vec3) {
         this.texture = gl.createTexture();
-        this.unit = unit;
-
-        gl.activeTexture(unit);
 
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
-        fillWithEmptyTexture(gl);
+        fillWithEmptyTexture(gl, defaultColor);
 
         this.promise = new Promise((resolve, reject) => {
             this.img = new Image();
@@ -39,7 +51,6 @@ export class Texture {
     }
 
     private bind(gl: WebGL2RenderingContext) {
-        gl.activeTexture(this.unit);
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.img);
         gl.generateMipmap(gl.TEXTURE_2D);
@@ -48,10 +59,6 @@ export class Texture {
 
     getTexture() {
         return this.texture;
-    }
-
-    getShaderLocation(gl: WebGL2RenderingContext) {
-        return this.unit - gl.TEXTURE0;
     }
 
     getPromise() {

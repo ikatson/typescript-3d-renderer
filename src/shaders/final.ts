@@ -27,7 +27,7 @@ void main() {
 
     vec4 normal = GBUFFER_NORMAL(tx_pos);
     vec4 pos = GBUFFER_POSITION(tx_pos);
-    vec4 tcolor = GBUFFER_ALBEDO(tx_pos);
+    vec4 albedo = GBUFFER_ALBEDO(tx_pos);
     vec4 _specular = GBUFFER_SPECULAR(tx_pos);
     vec3 tspecular = _specular.xyz;
     float tshininess = _specular.a * 256.;
@@ -44,7 +44,7 @@ void main() {
     #endif
 
     #ifdef SHOW_COLORS
-    color = tcolor;
+    color = albedo;
     return;
     #endif
     
@@ -101,17 +101,11 @@ struct light {
     vec3 position;
     #endif
     
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
+    vec3 color;
     float intensity;
 };
 
-uniform vec3[5] u_lightData;
-
-float getSsaoBlurred() {
-    return texture(u_ssaoTx, tx_pos).r;
-}
+uniform vec3[3] u_lightData;
 
 light makeLight() {
     light l;
@@ -122,14 +116,12 @@ light makeLight() {
     
     #ifdef POINT_LIGHT
     l.position = (u_worldToCameraMatrix * vec4(u_lightData[0], 1.)).xyz;
-    l.radius = u_lightData[4].y;
-    l.attenuation = u_lightData[4].z;
+    l.radius = u_lightData[2].y;
+    l.attenuation = u_lightData[2].z;
     #endif
     
-    l.ambient = u_lightData[1];
-    l.diffuse = u_lightData[2];
-    l.specular = u_lightData[3];
-    l.intensity = u_lightData[4].x;
+    l.color = u_lightData[1];
+    l.intensity = u_lightData[2].x;
     
     return l;
 }
@@ -137,18 +129,17 @@ light makeLight() {
 void main() {
     vec4 normal = GBUFFER_NORMAL(tx_pos);
     vec4 pos = GBUFFER_POSITION(tx_pos);
-    vec4 tcolor = GBUFFER_ALBEDO(tx_pos);
-    vec4 _specular = GBUFFER_SPECULAR(tx_pos);
-    vec3 tspecular = _specular.xyz;
-    float tshininess = _specular.a * 256.;
+
+    vec4 albedo = GBUFFER_ALBEDO(tx_pos);
+    metallicRoughness = gbufferMetallicRoughness(tx_pos);
 
     // final color.
     vec3 c = vec3(0.);
 
     light l = makeLight();
 
-    vec3 colAmbient = tcolor.xyz * l.ambient;
-    vec3 colDiffuse = tcolor.xyz * l.diffuse;
+    vec3 colAmbient = albedo.xyz * l.ambient;
+    vec3 colDiffuse = albedo.xyz * l.diffuse;
     vec3 colSpecular = tspecular.xyz * l.specular;
     float shininess = tshininess;
 

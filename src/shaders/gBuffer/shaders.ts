@@ -33,20 +33,53 @@ in vec4 v_norm;
 in vec2 v_uv;
 
 uniform vec3 u_albedo;
-uniform vec3 u_specular;
-uniform float u_shininess;
+uniform boolean u_albedoHasTexture;
+uniform sampler2D u_albedoTexture;
+
+uniform float u_metallic;
+uniform boolean u_metallicHasTexture;
+uniform sampler2D u_metallicTexture;
+
+uniform float u_roughness;
+uniform boolean u_roughnessHasTexture;
+uniform sampler2D u_roughnessTexture;
+
+uniform boolean u_normalMapHasTexture;
+uniform sampler2D u_normalMapTx;
 
 layout(location = 0) out vec4 gbuf_position;
 layout(location = 1) out vec4 gbuf_normal;
 layout(location = 2) out vec4 gbuf_albedo;
-layout(location = 3) out vec4 gbuf_specular;
+layout(location = 3) out vec4 gbuf_metallic_roughness;
 
 void main() {
     gbuf_position = vec4(v_pos.xyz, 1.0);
+    
+    // TODO: use normal map here.
     gbuf_normal = vec4(v_norm.xyz * .5 + .5, 1.0);
     
-    gbuf_albedo = vec4(u_albedo, 1.);
-    gbuf_specular = vec4(u_specular, u_shininess / 256.0);
+    if (u_albedoHasTexture) {
+        gbuf_albedo = texture(u_albedoTexture, v_uv);
+    } else {
+        gbuf_albedo = vec4(u_albedo, 1.);
+    }
+    
+    float metallic;
+    float roughness;
+    
+    if (u_metallicHasTexture) {
+        metallic = texture(u_metallicTexture, v_uv).r;
+    } else {
+        metallic = u_metallic;
+    }
+    
+    if (u_roughnessHasTexture) {
+        roughness = texture(u_roughnessTexture, v_uv).r;
+    } else {
+        roughness = u_roughness;
+    }
+    
+    gbuf_metallic_roughness = vec4(metallic, roughness, 1., 1.);
 }
 `;
 
