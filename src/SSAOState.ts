@@ -25,12 +25,12 @@ export class SSAOState {
     tangentSpaceSamples: Float32Array;
     noiseTexture: WebGLTexture;
 
-    constructor(gl: WebGLRenderingContext, config: SSAOConfig) {
+    constructor(gl: WebGL2RenderingContext, config: SSAOConfig) {
         // Generate random samples.
         this.recalculate(gl, config);
     }
 
-    recalculate(gl: WebGLRenderingContext, config: SSAOConfig): SSAOState {
+    recalculate(gl: WebGL2RenderingContext, config: SSAOConfig): SSAOState {
         this.delete(gl);
         this.usedConfig = config.copy();
 
@@ -65,7 +65,7 @@ export class SSAOState {
         return this;
     }
 
-    delete(gl: WebGLRenderingContext) {
+    delete(gl: WebGL2RenderingContext) {
         if (this.noiseTexture) {
             gl.deleteTexture(this.noiseTexture);
         }

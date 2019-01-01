@@ -47,25 +47,25 @@ export class FullScreenQuad {
     private glArrayBuffer: GLArrayBuffer;
     vertexShader: VertexShader;
 
-    constructor(gl: WebGLRenderingContext, quadBuffer: GLArrayBuffer) {
+    constructor(gl: WebGL2RenderingContext, quadBuffer: GLArrayBuffer) {
         this.glArrayBuffer = quadBuffer;
         this.vertexShader = new VertexShader(gl, FULLSCREEN_QUAD_VS);
         // this object owns the shader, don't let others delete it recursively.
         this.vertexShader.setAutodelete(false);
     }
 
-    bind(gl: WebGLRenderingContext, vertexPositionLocation: number) {
+    bind(gl: WebGL2RenderingContext, vertexPositionLocation: number) {
         this.glArrayBuffer.bind(gl);
         this.glArrayBuffer.setupVertexPositionsPointer(gl, vertexPositionLocation);
     }
 
-    draw(gl: WebGLRenderingContext) {
+    draw(gl: WebGL2RenderingContext) {
         this.glArrayBuffer.draw(gl);
     }
 }
 
-export function initGL(canvas: HTMLCanvasElement): WebGLRenderingContext {
-    let gl = <WebGLRenderingContext>canvas.getContext("webgl2");
+export function initGL(canvas: HTMLCanvasElement): WebGL2RenderingContext {
+    let gl = <WebGL2RenderingContext>canvas.getContext("webgl2");
     gl.getExtension("EXT_color_buffer_float");
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
@@ -94,7 +94,7 @@ export function randFloat(min, max) {
     return lerp(v, 0, 1, min, max);
 }
 
-export function randVec3(min: number, max: number): Float32Array | number[] {
+export function randVec3(min: number, max: number): vec3 {
     return vec3.fromValues(randFloat(min, max), randFloat(min, max), randFloat(min, max));
 }
 
@@ -113,7 +113,7 @@ export const loadSphere = makeObjLoader('resources/sphere.obj');
 export const loadCube = makeObjLoader('resources/cube.obj');
 
 export const tmpMat4 = mat4.create();
-export const tmpVec3: number[] = vec3.create();
+export const tmpVec3 = vec3.create();
 export const tmpVec4 = vec4.create();
 export const tmpIdentityMatrix = (function () {
     const m = mat4.create();
@@ -138,10 +138,14 @@ export const makeWorldSpaceCameraFrustum = (camera: Camera, pointsOnly: boolean 
     const data = [];
 
     cubeVertices.iterData((i: GLArrayBufferDataIterResult) => {
-        let v = i.vertex;
-        if (v.length != 4) {
-            v = [...v, 1.];
+        const v = tmpVec4;
+
+        if (i.vertex.length != 4) {
+            vec4.copy(v, [...i.vertex, 1.]);
+        } else {
+            vec4.copy(v, <vec4> i.vertex);
         }
+
         vec4.transformMat4(v, v, tmpMat4);
         vec4.scale(v, v, 1. / v[3]);
         vec4.transformMat4(v, v, camToWorld);
@@ -152,7 +156,7 @@ export const makeWorldSpaceCameraFrustum = (camera: Camera, pointsOnly: boolean 
     return new GLArrayBufferData(new Float32Array(data), cubeVertices.params);
 };
 
-export const makeDirectionalLightWorldToCameraMatrix = (direction: number[] | Float32Array): any => {
+export const makeDirectionalLightWorldToCameraMatrix = (direction: vec3): any => {
     // A new "camera" IS NOT needed here, but we only need the world to camera matrix from it.
     let tempCamera = new Camera();
     tempCamera.forward = direction;
@@ -228,7 +232,7 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: Dire
 };
 
 
-export function hexToRgb1(out: number[], hex: string) {
+export function hexToRgb1(out: vec3, hex: string): vec3 {
     const bigint = parseInt(hex.slice(1, hex.length), 16);
     const r = (bigint >> 16) & 255;
     const g = (bigint >> 8) & 255;

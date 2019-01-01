@@ -231,11 +231,12 @@ function main() {
     };
 
     const makeMaterialFromState = (stateRef): Material => {
+        // @ts-ignore
         return new Material()
             .setSpecular(...hexToRgb1(tmpVec3, stateRef.specular.value))
             .setAlbedo(...hexToRgb1(tmpVec3, stateRef.albedo.value))
             .setShininess(stateRef.shininess.value)
-    }
+    };
 
     Promise.all([
         fetchObject('resources/aphrodite/aphrodite.obj', onHeaders).then(parser => {
@@ -249,9 +250,9 @@ function main() {
                     makeMaterialFromState(state.materials.aphrodite)
                 ))
                 .build();
-            aphrodite.transform.scale = [1 / 3, 1 / 3, 1 / 3];
-            aphrodite.transform.rotation = [0, -Math.PI / 2.0, 0];
-            aphrodite.transform.position = [0, 1., 0];
+            vec3.copy(aphrodite.transform.scale, [1 / 3, 1 / 3, 1 / 3]);
+            vec3.copy(aphrodite.transform.rotation, [0, -Math.PI / 2.0, 0]);
+            vec3.copy(aphrodite.transform.position, [0, 1., 0]);
             aphrodite.transform.update();
             onColorChanges(state.materials.aphrodite, aphrodite.material.material);
             return aphrodite;
@@ -270,7 +271,7 @@ function main() {
                     //    .setReflective(true)
                 ))
                 .build();
-            corvette.transform.position = [0, -1., 0];
+            vec3.copy(corvette.transform.position,[0, -1., 0]);
             corvette.transform.update();
 
             onColorChanges(state.materials.corvette, corvette.material.material);
@@ -326,7 +327,7 @@ function main() {
         const renderer = new DeferredRenderer(gl, rendererConfig, fb, sphereMesh, ssaoState);
         const scene = new Scene();
 
-        const v3 = v => [v, v, v];
+        const v3 = v => vec3.fromValues(v, v, v);
 
         const sun = new GameObjectBuilder("sun").setDirectionalLightComponent(new DirectionalLight()).build();
         sun.directionalLight.direction = vec3.normalize(sun.directionalLight.direction, [-1, -1, -1]);
@@ -357,8 +358,8 @@ function main() {
             ))
             .build();
         plane.mesh.setShadowCaster(false);
-        plane.transform.position = [0, -0.8, 0];
-        plane.transform.scale = [50, 50, 50];
+        vec3.copy(plane.transform.position,[0, -0.8, 0]);
+        vec3.copy(plane.transform.scale, [50, 50, 50]);
         plane.transform.update();
         onColorChanges(state.materials.plane, plane.material.material);
 
@@ -511,13 +512,13 @@ function main() {
         };
 
         state.lighting.sun.ambient.onChange.ref = v => {
-            sun.directionalLight.ambient = [v, v, v];
+            vec3.copy(sun.directionalLight.ambient, [v, v, v]);
         };
         state.lighting.sun.specular.onChange.ref = v => {
-            sun.directionalLight.specular = [v, v, v];
+            vec3.copy(sun.directionalLight.specular, [v, v, v]);
         };
         state.lighting.sun.diffuse.onChange.ref = v => {
-            sun.directionalLight.diffuse = [v, v, v];
+            vec3.copy(sun.directionalLight.diffuse, [v, v, v]);
         };
         state.lighting.sun.intensity.onChange.ref = v => {
             sun.directionalLight.intensity = v;

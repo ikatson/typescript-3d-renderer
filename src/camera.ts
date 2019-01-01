@@ -20,7 +20,7 @@ export class Camera {
     far: number;
     fov: number;
     aspect: number;
-    private _right: Float32Array = vec3.create();
+    private _right: vec3 = vec3.create();
     private _projectionMatrix: any;
     private _worldToCamera: any;
 
@@ -43,35 +43,35 @@ export class Camera {
         this._cameraToWorld = mat4.create();
     }
 
-    private _position: Float32Array | number[] | vec3;
+    private _position: vec3;
 
-    get position(): Float32Array | number[] | vec3 {
+    get position(): vec3 {
         return this._position;
     }
 
-    set position(value: Float32Array | number[] | vec3) {
+    set position(value: vec3) {
         this._position = value;
         this.update();
     }
 
-    private _forward: Float32Array | number[] | vec3;
+    private _forward: vec3;
 
-    get forward(): Float32Array | number[] | vec3 {
+    get forward(): vec3 {
         return this._forward;
     }
 
-    set forward(value: Float32Array | number[] | vec3) {
+    set forward(value: vec3) {
         this._forward = value;
         this.update();
     }
 
-    private _up: Float32Array | number[] | vec3;
+    private _up: vec3;
 
-    get up(): Float32Array | number[] | vec3 {
+    get up(): vec3 {
         return this._up;
     }
 
-    set up(value: Float32Array | number[] | vec3) {
+    set up(value: vec3) {
         this._up = value;
         this.update();
     }

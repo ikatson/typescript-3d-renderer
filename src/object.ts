@@ -25,7 +25,7 @@ export class MeshComponent extends Component {
         this.arrayBuffer = buf;
     }
 
-    replaceBuf(gl: WebGLRenderingContext, newBuf: GLArrayBuffer) {
+    replaceBuf(gl: WebGL2RenderingContext, newBuf: GLArrayBuffer) {
         if (this.arrayBuffer) {
             this.arrayBuffer.delete(gl);
         }
@@ -47,11 +47,11 @@ export class MeshComponent extends Component {
         return this;
     }
 
-    prepareMeshVertexAndShaderDataForRendering(gl: WebGLRenderingContext, program?: ShaderProgram, normals?: boolean, uv?: boolean) {
+    prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext, program?: ShaderProgram, normals?: boolean, uv?: boolean) {
         this.arrayBuffer.prepareMeshVertexAndShaderDataForRendering(gl, program, normals, uv);
     }
 
-    draw(gl: WebGLRenderingContext) {
+    draw(gl: WebGL2RenderingContext) {
         this.arrayBuffer.draw(gl, this.forceRenderMode);
     }
 }
@@ -65,7 +65,7 @@ export class BoundingBoxComponent extends Component {
         this.box = box;
     }
 
-    asArrayBuffer(gl: WebGLRenderingContext): GLArrayBuffer {
+    asArrayBuffer(gl: WebGL2RenderingContext): GLArrayBuffer {
         if (!this.glArrayBuffer) {
             this.glArrayBuffer = new GLArrayBuffer(gl, this.box.asWireFrameBuffer());
         }
@@ -74,14 +74,14 @@ export class BoundingBoxComponent extends Component {
 }
 
 export class BaseLightComponent extends Component {
-    diffuse: number[] | Float32Array = [1., 1., 1.];
-    specular: number[] | Float32Array = [1., 1., 1.];
-    ambient: number[] | Float32Array = [0., 0., 0.];
+    diffuse: vec3 = vec3.fromValues(1., 1., 1.);
+    specular: vec3 = vec3.fromValues(1., 1., 1.);
+    ambient: vec3 = vec3.fromValues(0., 0., 0.);
     intensity: number = 1.;
 }
 
 export class DirectionalLight extends BaseLightComponent {
-    direction: number[] | Float32Array = [0, -1, 0];
+    direction: vec3 = vec3.fromValues(0, -1, 0);
     castsShadows: boolean;
 }
 
@@ -91,9 +91,9 @@ export class PointLightComponent extends BaseLightComponent {
 }
 
 export class TransformComponent extends Component {
-    position: number[] | Float32Array | vec3;
-    rotation: number[] | Float32Array | vec3;
-    scale: number[] | Float32Array | vec3;
+    position: vec3;
+    rotation: vec3;
+    scale: vec3;
     object: GameObject;
 
     private modelToWorld = mat4.create();
@@ -102,9 +102,9 @@ export class TransformComponent extends Component {
     constructor(object: GameObject) {
         super();
         this.object = object;
-        this.position = [0, 0, 0];
-        this.rotation = [0, 0, 0];
-        this.scale = [1, 1, 1];
+        this.position = vec3.fromValues(0, 0, 0);
+        this.rotation = vec3.fromValues(0, 0, 0);
+        this.scale = vec3.fromValues(1, 1, 1);
         this.computeModelToParent();
         this.computeModelToWorld();
     }

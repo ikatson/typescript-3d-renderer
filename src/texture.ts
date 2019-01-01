@@ -1,4 +1,4 @@
-function fillWithEmptyTexture(gl: WebGLRenderingContext) {
+function fillWithEmptyTexture(gl: WebGL2RenderingContext) {
     const level = 0;
     const internalFormat = gl.RGBA;
     const width = 1;
@@ -17,8 +17,8 @@ export class Texture {
     private promise: Promise<void>;
     private texture: WebGLTexture;
     private unit: number;
-    
-    constructor(gl: WebGLRenderingContext, url: string, unit: number) {
+
+    constructor(gl: WebGL2RenderingContext, url: string, unit: number) {
         this.texture = gl.createTexture();
         this.unit = unit;
 
@@ -38,7 +38,7 @@ export class Texture {
         });
     }
 
-    private bind(gl: WebGLRenderingContext) {
+    private bind(gl: WebGL2RenderingContext) {
         gl.activeTexture(this.unit);
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.img);
@@ -50,7 +50,7 @@ export class Texture {
         return this.texture;
     }
 
-    getShaderLocation(gl: WebGLRenderingContext) {
+    getShaderLocation(gl: WebGL2RenderingContext) {
         return this.unit - gl.TEXTURE0;
     }
 

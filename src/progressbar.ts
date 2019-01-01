@@ -9,7 +9,7 @@ export class ProgressBarCommon {
     posLoc: number
     percentLoc: WebGLUniformLocation
 
-    constructor(gl: WebGLRenderingContext, fullScreenBuffer: FullScreenQuad) {
+    constructor(gl: WebGL2RenderingContext, fullScreenBuffer: FullScreenQuad) {
         this.fullScreenBuffer = fullScreenBuffer;
         this.vs = new VertexShader(gl, `
         precision highp float;
@@ -42,25 +42,25 @@ export class ProgressBarCommon {
         this.percentLoc = this.program.getUniformLocation(gl, "percent")
     }
 
-    bind(gl: WebGLRenderingContext) {
+    bind(gl: WebGL2RenderingContext) {
         gl.useProgram(this.program.getProgram());
         this.fullScreenBuffer.bind(gl, this.posLoc);
     }
 
-    delete(gl: WebGLRenderingContext) {
+    delete(gl: WebGL2RenderingContext) {
         this.fs.delete(gl);
     }
 }
 
 export class ProgressBar {
     common: ProgressBarCommon;
-    constructor(gl: WebGLRenderingContext, common: ProgressBarCommon) {
+    constructor(gl: WebGL2RenderingContext, common: ProgressBarCommon) {
         this.common = common;
     }
-    prepare(gl: WebGLRenderingContext) {
+    prepare(gl: WebGL2RenderingContext) {
         this.common.bind(gl);
     }
-    render(gl: WebGLRenderingContext, percent: number) {
+    render(gl: WebGL2RenderingContext, percent: number) {
         gl.uniform1f(this.common.percentLoc, percent);
         this.common.fullScreenBuffer.draw(gl);
     }

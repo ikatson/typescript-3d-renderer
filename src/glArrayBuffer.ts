@@ -10,11 +10,11 @@ const UV_SIZE = 2;
 const tmpVec4 = vec4.create();
 
 export enum ArrayBufferDataType {
-    TRIANGLES = WebGLRenderingContext.TRIANGLES,
-    LINES = WebGLRenderingContext.LINES,
-    LINE_STRIP = WebGLRenderingContext.LINE_STRIP,
-    POINTS = WebGLRenderingContext.POINTS,
-    TRIANGLE_STRIP = WebGLRenderingContext.TRIANGLE_STRIP,
+    TRIANGLES = WebGL2RenderingContext.TRIANGLES,
+    LINES = WebGL2RenderingContext.LINES,
+    LINE_STRIP = WebGL2RenderingContext.LINE_STRIP,
+    POINTS = WebGL2RenderingContext.POINTS,
+    TRIANGLE_STRIP = WebGL2RenderingContext.TRIANGLE_STRIP,
 }
 
 export function ArrayBufferDataTypeToGL(a: ArrayBufferDataType) {
@@ -104,7 +104,7 @@ export class GLArrayBufferData {
         this.params = params;
     }
 
-    intoGLArrayBuffer(gl: WebGLRenderingContext): GLArrayBuffer {
+    intoGLArrayBuffer(gl: WebGL2RenderingContext): GLArrayBuffer {
         return new GLArrayBuffer(gl, this);
     }
 
@@ -115,8 +115,10 @@ export class GLArrayBufferData {
             let l = v.length;
             let transform = vec4.transformMat4;
             if (l === 3) {
+                // @ts-ignore
                 transform = vec3.transformMat4;
             }
+            // @ts-ignore
             transform(tmpVec4, v, matrix);
             result.push(...tmpVec4.slice(0, l));
 
@@ -155,7 +157,7 @@ export class GLArrayBuffer {
      */
     // REMOVE_ME_DATA: GLArrayBufferData;
 
-    constructor(gl: WebGLRenderingContext, data: GLArrayBufferData, usage?: number, defaultRenderMode?: GLenum) {
+    constructor(gl: WebGL2RenderingContext, data: GLArrayBufferData, usage?: number, defaultRenderMode?: GLenum) {
         if (usage === undefined) {
             usage = gl.STATIC_DRAW;
         }
@@ -167,7 +169,7 @@ export class GLArrayBuffer {
         gl.bufferData(gl.ARRAY_BUFFER, data.buf, usage);
     }
 
-    bind(gl: WebGLRenderingContext) {
+    bind(gl: WebGL2RenderingContext) {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
     }
 
@@ -196,15 +198,15 @@ export class GLArrayBuffer {
         gl.vertexAttribPointer(attribLocation, this.params.uvSize, gl.FLOAT, false, this.params.computeStrideInBytes(), this.params.computeUVOffset());
     }
 
-    draw(gl: WebGLRenderingContext, renderMode?: number) {
+    draw(gl: WebGL2RenderingContext, renderMode?: number) {
         gl.drawArrays(renderMode || ArrayBufferDataTypeToGL(this.params.dataType), 0, this.params.vertexCount)
     }
 
-    delete(gl: WebGLRenderingContext) {
+    delete(gl: WebGL2RenderingContext) {
         gl.deleteBuffer(this.buffer);
     }
 
-    prepareMeshVertexAndShaderDataForRendering(gl: WebGLRenderingContext, program?: ShaderProgram, normals?: boolean, uv?: boolean) {
+    prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext, program?: ShaderProgram, normals?: boolean, uv?: boolean) {
         program.use(gl);
         this.bind(gl);
 

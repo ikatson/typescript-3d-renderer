@@ -6,7 +6,7 @@ export function randomPointLight(posScale: number, intensity?: number) {
     intensity = intensity || 1.;
     const l = new GameObjectBuilder("a light").setPointLightComponent(new PointLightComponent()).build();
     l.transform.position = randVec3(-posScale, posScale);
-    l.transform.scale = [0.1, 0.1, 0.1];
+    l.transform.scale = vec3.fromValues(0.1, 0.1, 0.1);
     l.transform.update();
 
     l.pointLight.specular = vec3.normalize(l.pointLight.specular, randVec3(0., 1.));

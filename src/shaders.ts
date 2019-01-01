@@ -18,7 +18,7 @@ class RawShader {
     private shader: WebGLShader;
     private autodelete = false;
 
-    constructor(gl: WebGLRenderingContext, type: number, source: string) {
+    constructor(gl: WebGL2RenderingContext, type: number, source: string) {
         source = '#version 300 es\n' + source;
         let shader = gl.createShader(type);
         gl.shaderSource(shader, source);
@@ -46,7 +46,7 @@ class RawShader {
         return this.shader;
     }
 
-    delete(gl: WebGLRenderingContext) {
+    delete(gl: WebGL2RenderingContext) {
         gl.deleteShader(this.shader);
         this.shader = null;
     }
@@ -59,7 +59,7 @@ export class ShaderProgram {
     private vs: VertexShader;
     private fs: FragmentShader;
 
-    constructor(gl: WebGLRenderingContext, vs: VertexShader, fs: FragmentShader) {
+    constructor(gl: WebGL2RenderingContext, vs: VertexShader, fs: FragmentShader) {
         this.program = gl.createProgram();
         gl.attachShader(this.program, vs.getShader());
         gl.attachShader(this.program, fs.getShader());
@@ -75,7 +75,7 @@ export class ShaderProgram {
         }
     }
 
-    use(gl: WebGLRenderingContext): ShaderProgram {
+    use(gl: WebGL2RenderingContext): ShaderProgram {
         gl.useProgram(this.getProgram());
         return this;
     }
@@ -84,7 +84,7 @@ export class ShaderProgram {
         return this.program;
     }
 
-    deleteAll(gl: WebGLRenderingContext) {
+    deleteAll(gl: WebGL2RenderingContext) {
         this.delete(gl);
         if (this.fs.shouldAutodelete()) {
             this.fs.delete(gl);
@@ -94,11 +94,11 @@ export class ShaderProgram {
         }
     }
 
-    delete(gl: WebGLRenderingContext) {
+    delete(gl: WebGL2RenderingContext) {
         gl.deleteProgram(this.program);
     }
 
-    getAttribLocation(gl: WebGLRenderingContext, name: string): number {
+    getAttribLocation(gl: WebGL2RenderingContext, name: string): number {
         if (this._attribs.get(name) !== undefined) {
             return this._attribs.get(name);
         }
@@ -107,7 +107,7 @@ export class ShaderProgram {
         return loc;
     }
 
-    getUniformLocation(gl: WebGLRenderingContext, name: string): WebGLUniformLocation {
+    getUniformLocation(gl: WebGL2RenderingContext, name: string): WebGLUniformLocation {
         const existing = this._uniforms.get(name);
         if (existing !== undefined) {
             return existing;
@@ -119,13 +119,13 @@ export class ShaderProgram {
 }
 
 export class FragmentShader extends RawShader {
-    constructor(gl: WebGLRenderingContext, source: string) {
+    constructor(gl: WebGL2RenderingContext, source: string) {
         super(gl, gl.FRAGMENT_SHADER, source);
     }
 }
 
 export class VertexShader extends RawShader {
-    constructor(gl: WebGLRenderingContext, source: string) {
+    constructor(gl: WebGL2RenderingContext, source: string) {
         super(gl, gl.VERTEX_SHADER, source);
     }
 }
