@@ -221,7 +221,7 @@ void main() {
     
     lc += CookTorranceBRDF(
         albedo.xyz, roughness, metallic, 
-        normalize(pos.xyz), normal.xyz, lightDir, radiance
+        -normalize(pos.xyz), normal.xyz, -lightDir, radiance
     );
 
     c += lc;

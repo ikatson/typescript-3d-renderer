@@ -7,11 +7,10 @@ float UE4Falloff(float distance, float lightRadius) {
     return nominator * nominator / (distance * distance + 1.);
 }
 
-float DistributionGGX(vec3 N, vec3 H, float roughness)
+float UE4NDF(float NdotH, float roughness)
 {
     float a      = roughness*roughness;
     float a2     = a*a;
-    float NdotH  = max(dot(N, H), 0.0);
     float NdotH2 = NdotH*NdotH;
 	
     float num   = a2;
@@ -21,8 +20,7 @@ float DistributionGGX(vec3 N, vec3 H, float roughness)
     return num / denom;
 }
 
-float GeometrySchlickGGX(float NdotV, float roughness)
-{
+float GeometrySchlickGGX(float NdotV, float roughness) {
     float r = (roughness + 1.0);
     float k = (r*r) / 8.0;
 
@@ -31,49 +29,47 @@ float GeometrySchlickGGX(float NdotV, float roughness)
 	
     return num / denom;
 }
-float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
-{
-    float NdotV = max(dot(N, V), 0.0);
-    float NdotL = max(dot(N, L), 0.0);
+
+float GeometrySmith(float NdotV, float NdotL, float roughness) {
     float ggx2  = GeometrySchlickGGX(NdotV, roughness);
     float ggx1  = GeometrySchlickGGX(NdotL, roughness);
-	
     return ggx1 * ggx2;
 }
 
-vec3 fresnelSchlick(float cosTheta, vec3 F0)
-{
+vec3 fresnelSchlick(float cosTheta, vec3 F0) {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }  
 
 
 vec3 CookTorranceBRDF(
     vec3 albedo, float roughness, float metallic, 
-    vec3 view, vec3 normal, vec3 lightDir, vec3 radiance
+    vec3 V, vec3 normal, vec3 L, vec3 radiance
 ) {
-    vec3 V = view;
-    vec3 L = lightDir;
     vec3 H = normalize(V + L);
     vec3 N = normal;
+    
+    float NdotL = max(dot(N, L), 0.);
+    float NdotH = max(dot(N, H), 0.);
+    float NdotV = max(dot(N, V), 0.);
+    float HdotV = max(dot(H, V), 0.);
 
     vec3 F0 = vec3(0.04); 
     F0 = mix(F0, albedo, metallic);
 
-    // cook-torrance brdf
-    float NDF = DistributionGGX(N, H, roughness);        
-    float G   = GeometrySmith(N, V, L, roughness);      
-    vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);       
+    float NDF = UE4NDF(NdotH, roughness);
+    // return NDF * radiance * NdotL;
     
-    vec3 kS = F;
-    vec3 kD = vec3(1.0) - kS;
+    float G = GeometrySmith(NdotV, NdotL, roughness);      
+    vec3 F = fresnelSchlick(HdotV, F0);       
+    
+    vec3 kD = vec3(1.0) - F;
     kD *= 1.0 - metallic;	  
     
     vec3 numerator    = NDF * G * F;
-    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
+    float denominator = 4.0 * NdotV * NdotL;
     vec3 specular     = numerator / max(denominator, 0.001);
         
     // add to outgoing radiance Lo
-    float NdotL = max(dot(N, L), 0.0);                
     return (kD * albedo.xyz / PI + specular) * radiance * NdotL; 
 }
 
