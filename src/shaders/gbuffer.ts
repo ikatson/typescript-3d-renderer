@@ -72,6 +72,11 @@ void main() {
     } else {
         gbuf_albedo = u_albedo;
     }
+
+    if (gbuf_albedo.a == 0.) {
+        discard;
+        return;
+    }
     
     float metallic;
     float roughness;
