@@ -2,8 +2,9 @@ export const PBR_INCLUDE = `
 const float PI = 3.14159265359;
 
 // https://blog.selfshadow.com/publications/s2013-shading-course/karis/s2013_pbs_epic_notes_v2.pdf
+
 float UE4Falloff(float distance, float lightRadius) {
-    float nominator = clamp(0., 1., 1. - pow(distance / lightRadius, 4.)); 
+    float nominator = clamp(1. - pow(distance / lightRadius, 4.), 0., 1.); 
     return nominator * nominator / (distance * distance + 1.);
 }
 

@@ -148,7 +148,7 @@ void main() {
     
     #ifdef POINT_LIGHT
     vec3 lightDir = normalize(pos.xyz - l.position);
-    float distanceForAttenuation    = length(l.position - pos.xyz);
+    float distanceForAttenuation = length(l.position - pos.xyz);
     float attenuation = UE4Falloff(distanceForAttenuation, l.radius);
     
     // color = vec4(1.);
