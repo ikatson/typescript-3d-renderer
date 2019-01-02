@@ -335,7 +335,7 @@ function main() {
         const renderer = new DeferredRenderer(gl, rendererConfig, fb, sphereMesh, ssaoState);
         let scene = new Scene();
 
-        loadSceneFromGLTF(gl, "/glTF-Sample-Models/2.0/Sponza/glTF/Sponza.gltf").then(newScene => {
+        loadSceneFromGLTF(gl, "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Sponza/glTF/Sponza.gltf").then(newScene => {
             scene = newScene;
             scene.directionalLights.push(sun.directionalLight);
             camera.far = 50;
