@@ -65,8 +65,10 @@ void main() {
             
             // c = vec3(distance);
             if (abs(minDistance) < 0.05) {
-                float howFar = clamp(length(sampleVS - posVS.xyz) * 2. / (float(SSR_STEPS) * SSR_STEP_SIZE), 0., 1.);
-                c = texture(u_lightedSceneTx, minPosSS.xy * 0.5 + 0.5).xyz * (1. - howFar);
+
+                float howFar = clamp(length(sampleVS - posVS.xyz) / (float(SSR_STEPS) * SSR_STEP_SIZE), 0., 1.);
+                float attenuation = (1. - howFar) * (1. - smoothstep(.7, .95, abs(sampleSS.x))) * (1. - smoothstep(.7, .95, abs(sampleSS.y)));
+                c = texture(u_lightedSceneTx, minPosSS.xy * 0.5 + 0.5).xyz * attenuation;
             }
             
             break;
