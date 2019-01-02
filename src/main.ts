@@ -338,6 +338,7 @@ function main() {
         loadSceneFromGLTF(gl, "/glTF-Sample-Models/2.0/Sponza/glTF/Sponza.gltf").then(newScene => {
             scene = newScene;
             scene.directionalLights.push(sun.directionalLight);
+            camera.far = 50;
         }, (err) => {
             console.error(err);
             state.pause.checked = true;
