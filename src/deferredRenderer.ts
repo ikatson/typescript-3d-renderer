@@ -641,8 +641,8 @@ export class LightingRenderer {
         // No stencil clearing too as it may contain important information in bits other than TEMP.
         gl.clear(gl.COLOR_BUFFER_BIT);
 
-        if (this.config.showLayer != ShowLayer.Final) {
-            if (this.config.showLayer == ShowLayer.ShadowMap) {
+        if (!(this.config.showLayer === ShowLayer.Final || this.config.showLayer === ShowLayer.SSR)) {
+            if (this.config.showLayer === ShowLayer.ShadowMap) {
                 this.shadowMapRenderer.render(gl, computeDirectionalLightCameraWorldToProjectionMatrix(
                     scene.directionalLights[0], camera, scene
                 ), scene);
@@ -917,7 +917,7 @@ class SSRRenderer {
         const s = this.shader;
         s.use(gl);
 
-        bindUniformTx(gl, s, "u_lightedSceneTx", this.lightingRenderer.resultTX, 5);
+        bindUniformTx(gl, s, "u_lightedSceneTx", this.lightingRenderer.resultTX, 0);
         bindUniformTx(gl, s, "gbuf_normal", this.gbuffer.normalTX, 1);
         bindUniformTx(gl, s, "gbuf_position", this.gbuffer.posTx, 2);
         bindUniformTx(gl, s, "gbuf_metallic_roughness", this.gbuffer.metallicRoughnessTX, 3);
@@ -953,7 +953,7 @@ class CopierShader {
 }
 
 class TextureToFbCopier {
-    private tx: WebGLTexture;
+    tx: WebGLTexture;
     private targetFB: GLint;
     private fsq: FullScreenQuad;
     private shader: CopierShader;
@@ -1047,12 +1047,12 @@ export class DeferredRenderer {
                 case ShowLayer.Final:
                     gl.enable(gl.BLEND);
                     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-                    // gl.blendFunc(gl.ONE, gl.ZERO);
                     this.ssrToDefaultFB.copy(gl);
                     break;
                 case ShowLayer.SSR:
                     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
                     gl.disable(gl.BLEND);
+                    gl.clearColor(0, 0, 0, 1);
                     gl.clear(gl.COLOR_BUFFER_BIT);
                     this.ssrToDefaultFB.copy(gl);
                     break;

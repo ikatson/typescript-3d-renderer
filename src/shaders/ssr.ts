@@ -19,7 +19,6 @@ void main() {
     GBUFFER_MR(tx_pos, metallic, roughness);
     
     vec3 reflectRay = reflect(normalize(posVS.xyz - eye), normalVS.xyz);
-    color = vec4(reflectRay, 1.0);
     
     vec3 c = vec3(0.);
     
@@ -75,7 +74,7 @@ void main() {
         
     }
 
-    color = vec4(c, 1. - roughness);
+    color = vec4(c * (1. - roughness), 1);
 }
 `);
 
