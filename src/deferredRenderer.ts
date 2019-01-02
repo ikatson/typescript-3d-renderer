@@ -464,6 +464,8 @@ export class ShadowMapRenderer {
         gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_lightCameraWorldToProjectionMatrix"), false, lightCameraWorldToProjectionMatrix.matrix);
 
         const drawObject = (o: GameObject) => {
+            o.children.forEach(drawObject);
+
             if (!o.mesh) {
                 return;
             }
@@ -475,7 +477,6 @@ export class ShadowMapRenderer {
 
             o.mesh.prepareMeshVertexAndShaderDataForRendering(gl, s, false, false);
             o.mesh.draw(gl);
-            o.children.forEach(drawObject);
         };
 
         withViewport(gl, this._shadowMapWidth, this._shadowMapHeight, () => {
