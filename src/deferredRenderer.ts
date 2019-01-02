@@ -766,7 +766,7 @@ export class LightingRenderer {
 
                 // 2 is because the sphere mesh is of size 1.
                 // 2.1 is to round the imperfect sphere shape, as it is very low poly.
-                const scale = (light.radius + light.attenuation) * 2.1;
+                const scale = (light.radius) * 2.1;
                 tc.scale = vec3.fromValues(scale, scale, scale);
                 vec3.copy(tc.position, light.object.transform.position);
                 tc.update();

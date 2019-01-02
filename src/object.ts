@@ -85,7 +85,6 @@ export class DirectionalLight extends BaseLightComponent {
 
 export class PointLightComponent extends BaseLightComponent {
     radius: number = 1.;
-    attenuation: number = 0.2;
 }
 
 export class TransformComponent extends Component {

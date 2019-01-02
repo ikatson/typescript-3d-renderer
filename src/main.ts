@@ -22,6 +22,7 @@ function main() {
             lightCount: {
                 value: 1,
                 min: 0,
+                max: 1000,
                 step: 1,
                 onChange: ui.funcRef(),
             },
@@ -29,10 +30,9 @@ function main() {
                 intensity: {value: 1., min: 0, step: 0.1, onChange: ui.funcRef()},
             },
             'new': {
-                radius: {value: 1.5, min: 0, step: 0.1, onChange: ui.funcRef()},
-                posScale: {value: 1.5, min: 0, step: 0.1, onChange: ui.funcRef()},
-                attenuation: {value: 0.15, min: 0, step: 0.1, onChange: ui.funcRef()},
-                intensity: {value: 1., min: 0, step: 0.1, onChange: ui.funcRef()},
+                radius: {value: 1.5, min: 0, max: 100, step: 0.1, onChange: ui.funcRef()},
+                posScale: {value: 1.5, min: 0, max: 100, step: 0.1, onChange: ui.funcRef()},
+                intensity: {value: 1., min: 0, max: 100, step: 0.1, onChange: ui.funcRef()},
             }
         },
         ssr: {
@@ -166,7 +166,6 @@ function main() {
                     ui.FormGroup('New lights',
                         n('Radius', state.lighting.new.radius),
                         n('Pos scale', state.lighting.new.posScale),
-                        n('Attenuation', state.lighting.new.attenuation),
                         n('Intensity', state.lighting.new.intensity),
                     ),
                     ui.FormGroup('Car colors',
@@ -522,7 +521,7 @@ function main() {
             sun.directionalLight.intensity = v;
         };
         state.lighting.lightCount.onChange.ref = v => {
-            v = clip(v, 1, 500);
+            v = clip(v, 0, 500);
             console.log(scene.pointLights.length);
             const diff = scene.pointLights.length - v;
             if (diff > 0) {
@@ -533,7 +532,6 @@ function main() {
                 for (let index = 0; index < -diff; index++) {
                     const l = randomPointLight(state.lighting.new.posScale.value, state.lighting.new.intensity.value);
                     l.radius = state.lighting.new.radius.value;
-                    l.attenuation = state.lighting.new.attenuation.value;
                     scene.pointLights.push(l)
                 }
             }
