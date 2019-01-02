@@ -181,8 +181,8 @@ function main() {
                     ),
                     ui.FormGroup('Plane colors',
                         color('Albedo', state.materials.plane.albedo),
-                        slider('Metallic', state.materials.aphrodite.metallic),
-                        slider('Roughness', state.materials.aphrodite.roughness),
+                        slider('Metallic', state.materials.plane.metallic),
+                        slider('Roughness', state.materials.plane.roughness),
                     )
                 ),
             ),
