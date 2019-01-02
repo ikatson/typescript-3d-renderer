@@ -32,7 +32,9 @@ in vec4 v_pos;
 in vec4 v_norm;
 in vec2 v_uv;
 
-uniform vec3 u_albedo;
+uniform vec4 u_albedo;
+uniform vec4 u_albedoFactor;
+uniform bool u_albedoHasFactor;
 uniform bool u_albedoHasTexture;
 uniform sampler2D u_albedoTexture;
 
@@ -52,6 +54,10 @@ layout(location = 1) out vec4 gbuf_normal;
 layout(location = 2) out vec4 gbuf_albedo;
 layout(location = 3) out vec4 gbuf_metallic_roughness;
 
+vec4 srgb(vec4 color) {
+    return vec4(pow(color.rgb, vec3(2.2)), color.a);
+}
+
 void main() {
     gbuf_position = vec4(v_pos.xyz, 1.0);
     
@@ -59,16 +65,19 @@ void main() {
     gbuf_normal = vec4(normalize(v_norm.xyz), 1.0);
     
     if (u_albedoHasTexture) {
-        gbuf_albedo = texture(u_albedoTexture, v_uv);
+        gbuf_albedo = srgb(texture(u_albedoTexture, v_uv));
+        if (u_albedoHasFactor) {
+            gbuf_albedo *= u_albedoFactor;
+        }
     } else {
-        gbuf_albedo = vec4(u_albedo, 1.);
+        gbuf_albedo = u_albedo;
     }
     
     float metallic;
     float roughness;
     
     if (u_metallicHasTexture) {
-        metallic = texture(u_metallicTexture, v_uv).r;
+        metallic = texture(u_metallicTexture, v_uv).b;
     } else {
         metallic = u_metallic;
     }

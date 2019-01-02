@@ -232,7 +232,7 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: Dire
 };
 
 
-export function hexToRgb1(out: vec3, hex: string): vec3 {
+export function hexToRgb1(out: vec4, hex: string): vec4 {
     const bigint = parseInt(hex.slice(1, hex.length), 16);
     const r = (bigint >> 16) & 255;
     const g = (bigint >> 8) & 255;
@@ -241,6 +241,7 @@ export function hexToRgb1(out: vec3, hex: string): vec3 {
     out[0] = r / 256;
     out[1] = g / 256;
     out[2] = b / 256;
+    out[3] = 1.;
     return out;
 }
 

@@ -165,19 +165,27 @@ export class GBuffer {
                     const valueName = prefix;
                     const hasTxName = prefix + "HasTexture";
                     const txName = prefix + "Texture";
+                    const hasFactorName = prefix + "HasFactor";
+                    const factorName = prefix + "Factor";
 
                     // can't just call it, chrome complains.
                     gl[uniformFunc.name](s.getUniformLocation(gl, valueName), txOrValue.value);
 
-                    const has = txOrValue.hasTexture();
-                    gl.uniform1i(s.getUniformLocation(gl, hasTxName), has ? 1 : 0);
+                    const hasTexture = txOrValue.hasTexture();
+                    gl.uniform1i(s.getUniformLocation(gl, hasTxName), hasTexture ? 1 : 0);
 
-                    if (has) {
+                    if (hasTexture) {
                         bindUniformTx(gl, s, txName, txOrValue.texture.getTexture(), index);
+                    }
+
+                    const hasFactor = txOrValue.hasFactor();
+                    gl.uniform1i(s.getUniformLocation(gl, hasFactorName), hasFactor ? 1 : 0);
+                    if (hasFactor) {
+                        gl[uniformFunc.name](s.getUniformLocation(gl, factorName), txOrValue.factor);
                     }
                 }
 
-                bindValueOrTx("u_albedo", material.albedo, gl.uniform3fv, 1);
+                bindValueOrTx("u_albedo", material.albedo, gl.uniform4fv, 1);
                 bindValueOrTx("u_metallic", material.metallic, gl.uniform1f, 2);
                 bindValueOrTx("u_roughness", material.roughness, gl.uniform1f, 3);
 
@@ -588,7 +596,7 @@ export class LightingRenderer {
                     .define('SCREEN_HEIGHT', gl.canvas.height.toString())
                     .define('SHADOW_MAP_WIDTH', `${this.shadowMapRenderer.shadowMapWidth}.`)
                     .define('SHADOW_MAP_HEIGHT', `${this.shadowMapRenderer.shadowMapHeight}.`)
-                    .define('AMBIENT_CONSTANT_HACK', '0.005')
+                    .define('AMBIENT_CONSTANT_HACK', '0.03')
                     .define('DIRECTIONAL_LIGHT', '')
                     .defineIfTrue('SSAO_ENABLED', this.config.ssao.isEnabled())
                     .defineIfTrue('SHADOWMAP_ENABLED', this.config.shadowMap.enabled)
@@ -608,7 +616,7 @@ export class LightingRenderer {
                     .define('SCREEN_HEIGHT', gl.canvas.height.toString())
                     .define('SHADOW_MAP_WIDTH', `${this.shadowMapRenderer.shadowMapWidth}.`)
                     .define('SHADOW_MAP_HEIGHT', `${this.shadowMapRenderer.shadowMapHeight}.`)
-                    .define('AMBIENT_CONSTANT_HACK', '0.01')
+                    .define('AMBIENT_CONSTANT_HACK', '0.03')
                     .define('POINT_LIGHT', '')
                     .defineIfTrue('SSAO_ENABLED', this.config.ssao.isEnabled())
                     // .defineIfTrue('SHADOWMAP_ENABLED', this.config.shadowMap.enabled)

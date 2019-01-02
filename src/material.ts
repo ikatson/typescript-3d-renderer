@@ -1,12 +1,14 @@
-import {vec3} from "gl-matrix";
+import {vec3, vec4} from "gl-matrix";
 import {Texture} from "./texture";
 
 export class TextureOrValue<T> {
     value: T;
     texture: Texture = null;
+    factor: T;
 
-    constructor(value: T, texture?: Texture) {
+    constructor(value: T, texture?: Texture, factor?: T) {
         this.value = value;
+        this.factor = factor;
         if (texture) {
             this.texture = texture;
         }
@@ -17,8 +19,17 @@ export class TextureOrValue<T> {
         return this;
     }
 
+    setFactor(value: T): TextureOrValue<T> {
+        this.factor = value;
+        return this;
+    }
+
     hasTexture(): boolean {
         return !!this.texture;
+    }
+
+    hasFactor(): boolean {
+        return this.factor !== undefined && this.factor !== null;
     }
 
     setTexture(texture: Texture): TextureOrValue<T> {
@@ -28,16 +39,16 @@ export class TextureOrValue<T> {
 }
 
 export class Material {
-    albedo: TextureOrValue<vec3> = new TextureOrValue(vec3.fromValues(1, 1, 1));
+    albedo: TextureOrValue<vec4> = new TextureOrValue(vec4.fromValues(1, 1, 1, 1));
     metallic: TextureOrValue<number> = new TextureOrValue(0);
     roughness: TextureOrValue<number> = new TextureOrValue(0.5);
     normalMap: Texture;
 
     isReflective: boolean = false;
 
-    constructor(albedo?: vec3, metallic?: number, roughness?: number) {
+    constructor(albedo?: vec4, metallic?: number, roughness?: number) {
         if (albedo) {
-            vec3.copy(this.albedo.value, albedo);
+            vec4.copy(this.albedo.value, albedo);
         }
         if (metallic !== undefined) {
             this.metallic.value = metallic;
@@ -47,10 +58,11 @@ export class Material {
         }
     }
 
-    setAlbedo(r, g, b): Material {
+    setAlbedo(r, g, b, a): Material {
         this.albedo.value[0] = r;
         this.albedo.value[1] = g;
         this.albedo.value[2] = b;
+        this.albedo.value[3] = a;
         return this;
     }
 

@@ -165,7 +165,7 @@ void main() {
     #endif
     
     //ambient
-    vec3 ambient = vec3(AMBIENT_CONSTANT_HACK) * albedo.rgb * l.color * ssao * attenuation;
+    vec3 ambient = vec3(AMBIENT_CONSTANT_HACK) * albedo.rgb * l.color * ssao * attenuation * l.intensity;
     c += ambient;
 
     #ifdef SHADOWMAP_ENABLED

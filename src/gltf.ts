@@ -1,6 +1,6 @@
 import {Scene} from "./scene";
 import {GltfLoader} from "gltf-loader-ts";
-import {vec3} from "gl-matrix";
+import {vec3, vec4} from "gl-matrix";
 import {Texture} from "./texture";
 import {Material} from "./material";
 import {MeshPrimitive} from "gltf-loader-ts/lib/gltf";
@@ -122,23 +122,43 @@ export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename
             const nm = new Material();
             const m = g.materials[id];
 
-            if (m.pbrMetallicRoughness.baseColorFactor) {
-                vec3.copy(nm.albedo.value, m.pbrMetallicRoughness.baseColorFactor);
+            const mr = m.pbrMetallicRoughness;
+
+            // albedo
+            if (mr.baseColorFactor) {
+                if (mr.baseColorTexture) {
+                    // @ts-ignore
+                    nm.albedo.setFactor(vec4.fromValues(...mr.baseColorFactor))
+                } else {
+                    vec4.copy(nm.albedo.value, mr.baseColorFactor);
+                }
             }
-            if (m.pbrMetallicRoughness.baseColorTexture) {
-                nm.albedo.setTexture(loadTexture(m.pbrMetallicRoughness.baseColorTexture.index));
+            if (mr.baseColorTexture) {
+                nm.albedo.setTexture(loadTexture(mr.baseColorTexture.index));
             }
-            if (m.pbrMetallicRoughness.metallicFactor) {
-                nm.metallic.value = m.pbrMetallicRoughness.metallicFactor;
+
+            // metallic
+            if (mr.metallicFactor) {
+                if (mr.metallicRoughnessTexture) {
+                    nm.metallic.factor = mr.metallicFactor;
+                } else {
+                    nm.metallic.value = mr.metallicFactor;
+                }
             }
-            if (m.pbrMetallicRoughness.metallicRoughnessTexture) {
-                nm.metallic.texture = loadTexture(m.pbrMetallicRoughness.metallicRoughnessTexture.index);
+            if (mr.metallicRoughnessTexture) {
+                nm.metallic.texture = loadTexture(mr.metallicRoughnessTexture.index);
             }
-            if (m.pbrMetallicRoughness.roughnessFactor) {
-                nm.roughness.value = m.pbrMetallicRoughness.roughnessFactor;
+
+            // roughness
+            if (mr.roughnessFactor) {
+                if (mr.metallicRoughnessTexture) {
+                    nm.roughness.factor = mr.roughnessFactor;
+                } else {
+                    nm.roughness.value = mr.roughnessFactor;
+                }
             }
-            if (m.pbrMetallicRoughness.metallicRoughnessTexture) {
-                nm.roughness.texture = loadTexture(m.pbrMetallicRoughness.metallicRoughnessTexture.index);
+            if (mr.metallicRoughnessTexture) {
+                nm.roughness.texture = loadTexture(mr.metallicRoughnessTexture.index);
             }
             if (m.normalTexture) {
                 nm.setNormalMap(loadTexture(m.normalTexture.index));

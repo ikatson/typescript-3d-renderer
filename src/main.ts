@@ -1,5 +1,5 @@
 import {fetchObject} from "./objparser";
-import {clip, FullScreenQuad, hexToRgb1, initGL, QuadArrayBufferData, tmpVec3} from "./utils";
+import {clip, FullScreenQuad, hexToRgb1, initGL, QuadArrayBufferData, tmpVec3, tmpVec4} from "./utils";
 import {ProgressBar, ProgressBarCommon} from "./progressbar";
 import {BoundingBoxComponent, DirectionalLight, GameObjectBuilder, MaterialComponent, MeshComponent} from "./object";
 import {Camera} from "./camera";
@@ -28,7 +28,7 @@ function main() {
                 onChange: ui.funcRef(),
             },
             sun: {
-                intensity: {value: 1., min: 0, step: 0.1, onChange: ui.funcRef()},
+                intensity: {value: 7., min: 0, step: 0.1, onChange: ui.funcRef()},
             },
             'new': {
                 radius: {value: 1.5, min: 0, max: 100, step: 0.1, onChange: ui.funcRef()},
@@ -230,9 +230,9 @@ function main() {
     };
 
     const makeMaterialFromState = (stateRef): Material => {
-        const albedo = hexToRgb1(tmpVec3, stateRef.albedo.value);
+        const albedo = hexToRgb1(tmpVec4, stateRef.albedo.value);
         return new Material()
-            .setAlbedo(albedo[0], albedo[1], albedo[2])
+            .setAlbedo(albedo[0], albedo[1], albedo[2], 1.)
             .setRoughness(stateRef.roughness.value)
             .setMetallic(stateRef.metallic.value)
     };
@@ -338,8 +338,6 @@ function main() {
         loadSceneFromGLTF(gl, "/glTF-Sample-Models/2.0/Sponza/glTF/Sponza.gltf").then(newScene => {
             scene = newScene;
             scene.directionalLights.push(sun.directionalLight);
-            camera.far = 1000.;
-            camera.near = 0.5;
         }, (err) => {
             console.error(err);
             state.pause.checked = true;
