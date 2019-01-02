@@ -2,7 +2,7 @@ const path = require('path');
 
 module.exports = {
     entry: './src/main.ts',
-    devtool: 'inline-source-map',
+    devtool: 'source-map',
     module: {
         rules: [
             {
@@ -12,7 +12,8 @@ module.exports = {
                 options: {
                     // transpileOnly: true
                 }
-            }
+            },
+            { enforce: "pre", test: /\.js$/, loader: "source-map-loader" }
         ]
     },
     resolve: {
@@ -22,6 +23,6 @@ module.exports = {
         filename: 'bundle.js',
         path: path.resolve(__dirname, 'dist')
     },
-    mode: 'development',
+    mode: 'production',
     watch: true
 };
