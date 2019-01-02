@@ -168,7 +168,7 @@ export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename
     };
 
     async function loadPrimitive(p: MeshPrimitive): Promise<GLArrayBufferI> {
-        if (p.mode != GLTF.TRIANGLES) {
+        if (p.mode !== undefined && p.mode != GLTF.TRIANGLES) {
             throw new Error(`Not trianges: ${p.mode}`);
         }
         return await Promise.all([
