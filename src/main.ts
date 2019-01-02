@@ -86,17 +86,22 @@ function main() {
                 albedo: {
                     value: '#ff0000', onChange: ui.funcRef(),
                 },
-                // shininess: {value: 5, min: 0, step: 1, max: 256, onChange: ui.funcRef(),},
+                metallic: {value: 1., min: 0, max: 1, step: 0.01, onChange: ui.funcRef()},
+                roughness: {value: 0.1, min: 0, max: 1, step: 0.01, onChange: ui.funcRef()},
             },
             plane: {
                 albedo: {
                     value: '#ffffff', onChange: ui.funcRef(),
                 },
+                metallic: {value: 0., min: 0, max: 1, step: 0.01, onChange: ui.funcRef()},
+                roughness: {value: 0.5, min: 0, max: 1, step: 0.01, onChange: ui.funcRef()},
             },
             aphrodite: {
                 albedo: {
                     value: '#ffdebd', onChange: ui.funcRef(),
                 },
+                metallic: {value: 0., min: 0, max: 1, step: 0.01, onChange: ui.funcRef()},
+                roughness: {value: 0.8, min: 0, max: 1, step: 0.01, onChange: ui.funcRef()},
             }
         }
     };
@@ -107,6 +112,10 @@ function main() {
 
     const color = (label: string, props: any) => {
         return ui.ColorInput(label, props, props.onChange);
+    };
+
+    const slider = (label: string, props: any) => {
+        return ui.SliderInput(label, props, props.onChange);
     };
 
     document.getElementById('app').appendChild(
@@ -155,12 +164,18 @@ function main() {
                     ),
                     ui.FormGroup('Car colors',
                         color('Albedo', state.materials.corvette.albedo),
+                        slider('Metallic', state.materials.corvette.metallic),
+                        slider('Roughness', state.materials.corvette.roughness),
                     ),
                     ui.FormGroup('Aphrodite colors',
                         color('Albedo', state.materials.aphrodite.albedo),
+                        slider('Metallic', state.materials.aphrodite.metallic),
+                        slider('Roughness', state.materials.aphrodite.roughness),
                     ),
                     ui.FormGroup('Plane colors',
                         color('Albedo', state.materials.plane.albedo),
+                        slider('Metallic', state.materials.aphrodite.metallic),
+                        slider('Roughness', state.materials.aphrodite.roughness),
                     )
                 ),
             ),
@@ -199,18 +214,20 @@ function main() {
         stateRef.albedo.onChange.ref = (v) => {
             hexToRgb1(material.albedo.value, v);
         };
-        // stateRef.specular.onChange.ref = (v) => {
-        //     hexToRgb1(material.specular, v);
-        // };
-        // stateRef.shininess.onChange.ref = v => {
-        //     material.shininess = v;
-        // }
+        stateRef.metallic.onChange.ref = v => {
+            material.setMetallic(v);
+        };
+        stateRef.roughness.onChange.ref = v => {
+            material.setRoughness(v);
+        };
     };
 
     const makeMaterialFromState = (stateRef): Material => {
         const albedo = hexToRgb1(tmpVec3, stateRef.albedo.value);
         return new Material()
             .setAlbedo(albedo[0], albedo[1], albedo[2])
+            .setRoughness(stateRef.roughness.value)
+            .setMetallic(stateRef.metallic.value)
     };
 
     Promise.all([

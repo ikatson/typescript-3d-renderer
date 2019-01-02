@@ -116,6 +116,23 @@ export const NumberInput = (label: string, props: Props, onChange: (number) => v
     )
 };
 
+export const SliderInput = (label: string, props: Props, onChange: (number) => void) => {
+    const id = nextId();
+    return [
+        e('label', {for: id.toString()}, label),
+        e('input', {
+            ...props,
+            className: 'form-control-range',
+            type: 'range',
+            id: id.toString(),
+            onChange: (ev) => {
+                props.value = ev.target.value;
+                onChange(ev.target.value);
+            },
+        }),
+    ]
+};
+
 
 export const ColorInput = (label: string, props: Props, onChange: (string) => void) => {
     const valueLabel = e('div', c('color-label'), props.value.toString());
