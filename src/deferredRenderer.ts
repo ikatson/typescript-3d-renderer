@@ -891,6 +891,7 @@ export class LightingRenderer {
 
 class SSRRenderer {
     private gbuffer: GBuffer;
+    blendShader: ShaderProgram;
     get resultTX(): WebGLTexture {
         return this._resultTX;
     }
@@ -922,6 +923,22 @@ class SSRRenderer {
                 .build()
             ),
         )
+
+        this.blendShader = new ShaderProgram(
+            gl,
+            fullScreenQuad.vertexShader,
+            new FragmentShader(gl, new ShaderSourceBuilder().addTopChunk(QUAD_FRAGMENT_INPUTS).addChunk(`
+            uniform sampler2D u_lightedSceneTx;
+            uniform sampler2D u_ssrTx;
+            out vec4 color;
+            void main() {
+                vec4 l = texture(u_lightedSceneTx, tx_pos);
+                vec4 s = texture(u_ssrTx, tx_pos);
+                // color = vec4(max(l.rgb, s.rgb), l.a);
+                color = vec4(mix(l.rgb, max(s.rgb * s.a, l.rgb), s.a), l.a);
+            }
+            `).build())
+        )
     }
 
     render(gl: WebGL2RenderingContext, scene: Scene, camera: Camera) {
@@ -950,6 +967,18 @@ class SSRRenderer {
         this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
         this.fullScreenQuad.draw(gl);
     }
+
+    blend(gl: WebGL2RenderingContext, targetFB: WebGLFramebuffer) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, targetFB);
+        const s = this.blendShader;
+        s.use(gl);
+
+        bindUniformTx(gl, s, "u_lightedSceneTx", this.lightingRenderer.resultTX, 0);
+        bindUniformTx(gl, s, "u_ssrTx", this.resultTX, 1);
+
+        this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
+        this.fullScreenQuad.draw(gl);
+    }
 }
 
 class CopierShader {
@@ -972,6 +1001,7 @@ class CopierShader {
         );
     }
 }
+
 
 class TextureToFbCopier {
     tx: WebGLTexture;
@@ -1061,23 +1091,29 @@ export class DeferredRenderer {
         }
 
         // TODO: move "show layers" to the end here, not to the lighting shader.
-        this.finalToDefaultFB.copy(gl);
+        // this.finalToDefaultFB.copy(gl);
 
-        if (this.config.ssr.enabled) {
-            switch (this.config.showLayer) {
-                case ShowLayer.Final:
-                    gl.enable(gl.BLEND);
-                    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-                    this.ssrToDefaultFB.copy(gl);
-                    break;
-                case ShowLayer.SSR:
-                    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-                    gl.disable(gl.BLEND);
-                    gl.clearColor(0, 0, 0, 1);
-                    gl.clear(gl.COLOR_BUFFER_BIT);
-                    this.ssrToDefaultFB.copy(gl);
-                    break;
-            }
+        switch (this.config.ssr.enabled) {
+            case true:
+                switch (this.config.showLayer) {
+                    case ShowLayer.Final:
+                        gl.disable(gl.BLEND);
+                        this.ssr.blend(gl, null);
+                        // gl.clearColor(0, 0, 0, 1);
+                        // gl.clear(gl.COLOR_BUFFER_BIT);
+                        break;
+                    case ShowLayer.SSR:
+                        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                        gl.disable(gl.BLEND);
+                        gl.clearColor(0, 0, 0, 1);
+                        gl.clear(gl.COLOR_BUFFER_BIT);
+                        this.ssrToDefaultFB.copy(gl);
+                        break;
+                }
+                break;
+            case false:
+                this.finalToDefaultFB.copy(gl);
+                break;
         }
     }
 

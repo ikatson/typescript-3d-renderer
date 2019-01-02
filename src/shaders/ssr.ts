@@ -19,6 +19,13 @@ void main() {
     GBUFFER_MR(tx_pos, metallic, roughness);
     
     vec3 reflectRay = reflect(normalize(posVS.xyz - eye), normalVS.xyz);
+
+    // float strength = (1. - roughness) * metallic;
+    float strength = (1. - roughness);
+    if (strength < 0.01) {
+        color = vec4(vec3(0.), 0.);
+        return;
+    }
     
     vec3 c = vec3(0.);
     
@@ -76,7 +83,7 @@ void main() {
         
     }
 
-    color = vec4(c * (1. - roughness), 1);
+    color = vec4(c, strength);
 }
 `);
 

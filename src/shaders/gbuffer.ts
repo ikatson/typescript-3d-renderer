@@ -67,7 +67,7 @@ void main() {
     if (u_albedoHasTexture) {
         gbuf_albedo = srgb(texture(u_albedoTexture, v_uv));
         if (u_albedoHasFactor) {
-            gbuf_albedo *= u_albedoFactor;
+           gbuf_albedo *= u_albedoFactor;
         }
     } else {
         gbuf_albedo = u_albedo;
