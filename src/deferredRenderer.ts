@@ -803,7 +803,7 @@ export class LightingRenderer {
             gl.cullFace(gl.BACK);
         };
 
-        renderPointLights();
+        // renderPointLights();
 
         // if (this.config.showLayer === ShowLayer.Final) {
         //     this.renderLightVolumes(gl, camera, scene);

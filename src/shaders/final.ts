@@ -145,7 +145,6 @@ void main() {
     vec3 c = vec3(0.);
 
     light l = makeLight();
-    vec3 lc = vec3(0.);
     
     #ifdef POINT_LIGHT
     vec3 lightDir = normalize(pos.xyz - l.position);
@@ -169,7 +168,7 @@ void main() {
     
     //ambient
     vec3 ambient = vec3(0.03) * albedo.rgb * l.color * ssao * attenuation;
-    lc += ambient;
+    c += ambient;
 
     #ifdef SHADOWMAP_ENABLED
     float bias = u_shadowMapFixedBias + u_shadowMapNormalBias * (1.0 - abs(dot(normal.xyz, -lightDir)));
@@ -219,12 +218,12 @@ void main() {
     // calculate per-light radiance
     vec3 radiance = l.color * attenuation * l.intensity;
     
-    lc += CookTorranceBRDF(
+    c += CookTorranceBRDF(
         albedo.xyz, roughness, metallic, 
         -normalize(pos.xyz), normal.xyz, -lightDir, radiance
     );
 
-    c += lc;
+    c = toneMap(c);
 
     color = vec4(c.xyz, 1.);
 }

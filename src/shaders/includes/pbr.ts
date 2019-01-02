@@ -73,4 +73,10 @@ vec3 CookTorranceBRDF(
     return (kD * albedo.xyz / PI + specular) * radiance * NdotL; 
 }
 
+vec3 toneMap(vec3 color) {
+    color = color / (color + vec3(1.0));
+    color = pow(color, vec3(1.0/2.2));
+    return color; 
+}
+
 `;
