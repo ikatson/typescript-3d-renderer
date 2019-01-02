@@ -1,7 +1,7 @@
 import {mat4, vec3} from "gl-matrix"
 import {ShaderProgram} from "./shaders";
 import {AxisAlignedBox} from "./axisAlignedBox";
-import {ArrayBufferDataTypeToGL, GLArrayBuffer} from "./glArrayBuffer";
+import {GLArrayBufferV1, GLArrayBufferI} from "./glArrayBuffer";
 import {Material} from "./material";
 
 export abstract class Component {
@@ -14,18 +14,18 @@ export abstract class Component {
 }
 
 export class MeshComponent extends Component {
-    arrayBuffer: GLArrayBuffer;
+    arrayBuffer: GLArrayBufferI;
     object: GameObject = null;
     shadowCaster: boolean = true;
     shadowReceiver: boolean = true;
     private forceRenderMode: GLenum = undefined;
 
-    constructor(buf: GLArrayBuffer) {
+    constructor(buf: GLArrayBufferI) {
         super();
         this.arrayBuffer = buf;
     }
 
-    replaceBuf(gl: WebGL2RenderingContext, newBuf: GLArrayBuffer) {
+    replaceBuf(gl: WebGL2RenderingContext, newBuf: GLArrayBufferI) {
         if (this.arrayBuffer) {
             this.arrayBuffer.delete(gl);
         }
@@ -59,15 +59,15 @@ export class MeshComponent extends Component {
 export class BoundingBoxComponent extends Component {
     box: AxisAlignedBox;
     visible: boolean = false;
-    private glArrayBuffer: GLArrayBuffer;
+    private glArrayBuffer: GLArrayBufferI;
     constructor(box: AxisAlignedBox) {
         super();
         this.box = box;
     }
 
-    asArrayBuffer(gl: WebGL2RenderingContext): GLArrayBuffer {
+    asArrayBuffer(gl: WebGL2RenderingContext): GLArrayBufferI {
         if (!this.glArrayBuffer) {
-            this.glArrayBuffer = new GLArrayBuffer(gl, this.box.asWireFrameBuffer());
+            this.glArrayBuffer = new GLArrayBufferV1(gl, this.box.asWireFrameBuffer());
         }
         return this.glArrayBuffer;
     }
@@ -173,6 +173,19 @@ export class GameObject {
     addChild(o: GameObject) {
         this.children.push(o);
         o.parent = this;
+        console.log(`added ${o.name} as child of ${this.fqdn()}`);
+    }
+
+    fqdn() {
+        const name = [];
+        let o: GameObject = this;
+
+        while (o) {
+            name.push(o.name);
+            o = o.parent;
+        }
+        name.reverse();
+        return name.join(' / ')
     }
 }
 

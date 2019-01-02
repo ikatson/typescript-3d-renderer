@@ -35,5 +35,7 @@ export class Scene {
     addChild(o: GameObject) {
         this.children.push(o);
         o.parent = null;
+
+        console.log(`added ${o.fqdn()} to scene`)
     }
 }

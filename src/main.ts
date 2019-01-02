@@ -7,10 +7,11 @@ import {Camera} from "./camera";
 import {vec3} from "gl-matrix";
 import {randomPointLight, Scene} from "./scene";
 import {DeferredRenderer, DeferredRendererConfig, ShadowMapConfig, ShowLayer, SSRConfig} from "./deferredRenderer";
-import {GLArrayBuffer} from "./glArrayBuffer";
+import {GLArrayBufferV1, GLArrayBufferI} from "./glArrayBuffer";
 import * as ui from "./ui";
 import {SSAOConfig, SSAOState} from "./SSAOState";
 import {Material} from "./material";
+import {loadSceneFromGLTF} from "./gltf";
 
 
 const originZero = vec3.create();
@@ -193,7 +194,7 @@ function main() {
     // canvas.height = window.innerHeight;
     const gl = initGL(canvas);
 
-    const quadArrayBuffer = new GLArrayBuffer(gl, QuadArrayBufferData);
+    const quadArrayBuffer: GLArrayBufferI = new GLArrayBufferV1(gl, QuadArrayBufferData);
     const fb = new FullScreenQuad(gl, quadArrayBuffer);
     const progressBarCommon = new ProgressBarCommon(gl, fb);
     const progressBar = new ProgressBar(gl, progressBarCommon);
@@ -332,7 +333,15 @@ function main() {
         rendererConfig.showLayer = state.showLayer.value;
 
         const renderer = new DeferredRenderer(gl, rendererConfig, fb, sphereMesh, ssaoState);
-        const scene = new Scene();
+        let scene = new Scene();
+
+        loadSceneFromGLTF(gl, "/glTF-Sample-Models/2.0/Sponza/glTF/Sponza.gltf").then(newScene => {
+            scene = newScene;
+            scene.directionalLights.push(sun.directionalLight);
+        }, (err) => {
+            console.error(err);
+            state.pause.checked = true;
+        });
 
         const v3 = v => vec3.fromValues(v, v, v);
 

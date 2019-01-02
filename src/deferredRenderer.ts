@@ -10,7 +10,7 @@ import {VISUALIZE_LIGHTS_SHADERS} from "./shaders/visualize-lights";
 import {SSAOConfig, SSAOState} from "./SSAOState";
 import {computeDirectionalLightCameraWorldToProjectionMatrix, FullScreenQuad, tmpMat4,} from "./utils";
 import {SHADOWMAP_SHADERS} from "./shaders/shadowMap";
-import {GLArrayBuffer} from "./glArrayBuffer";
+import {GLArrayBufferI} from "./glArrayBuffer";
 import {Material, TextureOrValue} from "./material";
 import {SSR_SHADERS} from "./shaders/ssr";
 import {QUAD_FRAGMENT_INPUTS} from "./shaders/includes/common";
@@ -173,7 +173,7 @@ export class GBuffer {
                     gl.uniform1i(s.getUniformLocation(gl, hasTxName), has ? 1 : 0);
 
                     if (has) {
-                        bindUniformTx(gl, s, txName, txOrValue.texture, index);
+                        bindUniformTx(gl, s, txName, txOrValue.texture.getTexture(), index);
                     }
                 }
 
@@ -515,7 +515,7 @@ export class LightingRenderer {
                 gBuffer: GBuffer,
                 ssaoRenderer: SSAORenderer,
                 shadowMapRenderer: ShadowMapRenderer,
-                sphereMesh: GLArrayBuffer) {
+                sphereMesh: GLArrayBufferI) {
         this.fullScreenQuad = fullScreenQuad;
         this.gBuffer = gBuffer;
         this.ssaoRenderer = ssaoRenderer;
@@ -740,7 +740,6 @@ export class LightingRenderer {
             gl.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
             gl.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE);
 
-            this.sphereObject.mesh.arrayBuffer.bind(gl);
             this.sphereObject.mesh.prepareMeshVertexAndShaderDataForRendering(gl, s, false, false);
 
             // Shadow map stuff
@@ -988,7 +987,7 @@ export class DeferredRenderer {
     private finalToDefaultFB: TextureToFbCopier;
     private ssrToDefaultFB: TextureToFbCopier;
 
-    constructor(gl: WebGL2RenderingContext, config: DeferredRendererConfig, fullScreenQuad: FullScreenQuad, sphere: GLArrayBuffer, ssaoState?: SSAOState) {
+    constructor(gl: WebGL2RenderingContext, config: DeferredRendererConfig, fullScreenQuad: FullScreenQuad, sphere: GLArrayBufferI, ssaoState?: SSAOState) {
         this.gl = gl;
         this._config = config;
         this.gbuffer = new GBuffer(gl);
