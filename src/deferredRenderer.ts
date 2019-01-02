@@ -30,6 +30,10 @@ export class DeferredRendererConfig {
     ssao = new SSAOConfig();
     shadowMap = new ShadowMapConfig();
     ssr = new SSRConfig();
+
+    showLayerAmong(...values: ShowLayer[]) {
+        return showLayerAmong(this.showLayer, ...values);
+    }
 }
 
 export enum ShowLayer {
@@ -42,6 +46,14 @@ export enum ShowLayer {
     ShadowMap,
     Metallic,
     Roughness
+}
+
+export const showLayerAmong = (value: ShowLayer, ...among: ShowLayer[]) => {
+    for (let i = 0; i < among.length; i++) {
+        if (value === among[i]) {
+            return true;
+        }
+    }
 }
 
 export enum StencilValues {
@@ -649,11 +661,12 @@ export class LightingRenderer {
         // No stencil clearing too as it may contain important information in bits other than TEMP.
         gl.clear(gl.COLOR_BUFFER_BIT);
 
-        if (!(this.config.showLayer === ShowLayer.Final || this.config.showLayer === ShowLayer.SSR)) {
+        if (!this.config.showLayerAmong(ShowLayer.Final, ShowLayer.SSR)) {
             if (this.config.showLayer === ShowLayer.ShadowMap) {
                 this.shadowMapRenderer.render(gl, computeDirectionalLightCameraWorldToProjectionMatrix(
                     scene.directionalLights[0], camera, scene
                 ), scene);
+                gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
             }
             const s = this.showBuffersShader.use(gl);
             this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
@@ -1042,7 +1055,7 @@ export class DeferredRenderer {
 
         this.lightingRenderer.render(gl, scene, camera);
 
-        if (this.config.ssr.enabled) {
+        if (this.config.ssr.enabled && this._config.showLayerAmong(ShowLayer.Final, ShowLayer.SSR)) {
             this.ssr.render(gl, scene, camera);
         }
 
