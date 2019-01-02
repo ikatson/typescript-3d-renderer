@@ -48,8 +48,8 @@ function main() {
                 checked: true,
             },
             bias: {
-                fixed: {value: 0.01, min: 0, step: 0.0001, onChange: ui.funcRef()},
-                normal: {value: 0.02, min: 0, step: 0.0001, onChange: ui.funcRef()},
+                fixed: {value: 0.005, min: 0, step: 0.0001, onChange: ui.funcRef()},
+                normal: {value: 0.001, min: 0, step: 0.0001, onChange: ui.funcRef()},
             }
         },
         ssao: {
