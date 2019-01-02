@@ -28,7 +28,7 @@ function main() {
                 onChange: ui.funcRef(),
             },
             sun: {
-                intensity: {value: 25., min: 0, step: 0.1, onChange: ui.funcRef()},
+                intensity: {value: 60., min: 0, step: 0.1, onChange: ui.funcRef()},
             },
             'new': {
                 radius: {value: 1.5, min: 0, max: 100, step: 0.1, onChange: ui.funcRef()},
@@ -432,7 +432,7 @@ function main() {
                 corvette.transform.update();
 
                 sun.directionalLight.direction = vec3.normalize(sun.directionalLight.direction,
-                    [0.1, -0.95, Math.sin(start / 2000) * 0.5]
+                    [-0.5, -0.95, Math.sin(start / 8000) * 0.5]
                 );
             }
 
