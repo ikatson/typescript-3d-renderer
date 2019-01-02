@@ -14,6 +14,10 @@ void main() {
     vec4 posVS = GBUFFER_POSITION(tx_pos);
     vec4 normalVS = GBUFFER_NORMAL(tx_pos);
     
+    float metallic;
+    float roughness;
+    GBUFFER_MR(tx_pos, metallic, roughness);
+    
     vec3 reflectRay = reflect(normalize(posVS.xyz - eye), normalVS.xyz);
     color = vec4(reflectRay, 1.0);
     
@@ -64,22 +68,14 @@ void main() {
             if (abs(minDistance) < 0.05) {
                 float howFar = clamp(length(sampleVS - posVS.xyz) * 2. / (float(SSR_STEPS) * SSR_STEP_SIZE), 0., 1.);
                 c = texture(u_lightedSceneTx, minPosSS.xy * 0.5 + 0.5).xyz * (1. - howFar);
-                // c = texture(u_lightedSceneTx, minPosSS.xy * 0.5 + 0.5).xyz;
             }
-            
             
             break;
         }
         
-        // float distance = -(sampleVS.z - resultVS.z);
-        // if (distance > 0. && distance < 0.02) {
-        //     // c = vec3(1. / float(i + 1));
-        //     c = texture(u_lightedSceneTx, sampleSS.xy * 0.5 + 0.5).xyz;
-        //     break;
-        // }
     }
-    // c = vec3(float(i) / float(SSR_STEPS));
-    color = vec4(c, 1.);
+
+    color = vec4(c, 1. - roughness);
 }
 `);
 

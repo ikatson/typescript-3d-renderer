@@ -30,7 +30,9 @@ void main() {
     vec4 pos = GBUFFER_POSITION(tx_pos);
     vec4 albedo = GBUFFER_ALBEDO(tx_pos);
     
-    metallicRoughness mr = gbufferMetallicRoughness(tx_pos);
+    float metallic;
+    float roughness;
+    GBUFFER_MR(tx_pos, metallic, roughness);
 
     #ifdef SHOW_NORMALS
     // color = vec4(normal.xyz * .5 + .5, normal.a);
@@ -135,11 +137,7 @@ void main() {
 
     float metallic;
     float roughness;
-    {
-        metallicRoughness mr = gbufferMetallicRoughness(tx_pos);
-        metallic = mr.metallic;
-        roughness = mr.roughness;
-    }
+    GBUFFER_MR(tx_pos, metallic, roughness);
 
     // final color.
     vec3 c = vec3(0.);

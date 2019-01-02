@@ -21,10 +21,15 @@ export class ShadowMapConfig {
     normalBias: number = 0.001;
 }
 
+export class SSRConfig {
+    enabled: boolean
+}
+
 export class DeferredRendererConfig {
     showLayer: ShowLayer = ShowLayer.Final;
     ssao = new SSAOConfig();
     shadowMap = new ShadowMapConfig();
+    ssr = new SSRConfig();
 }
 
 export enum ShowLayer {
@@ -33,6 +38,7 @@ export enum ShowLayer {
     Normals,
     Color,
     SSAO,
+    SSR,
     ShadowMap,
     Metallic,
     Roughness
@@ -902,18 +908,19 @@ class SSRRenderer {
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.disable(gl.DEPTH_TEST);
-        gl.enable(gl.STENCIL_TEST);
-        gl.stencilMask(0x00);
+        // gl.enable(gl.STENCIL_TEST);
+        // gl.stencilMask(0x00);
 
-        gl.stencilFunc(gl.EQUAL, StencilValues.SSR,0x0f);
-        gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
+        // gl.stencilFunc(gl.EQUAL, StencilValues.SSR,0x0f);
+        // gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
 
         const s = this.shader;
         s.use(gl);
 
-        bindUniformTx(gl, s, "u_lightedSceneTx", this.lightingRenderer.resultTX, 0);
+        bindUniformTx(gl, s, "u_lightedSceneTx", this.lightingRenderer.resultTX, 5);
         bindUniformTx(gl, s, "gbuf_normal", this.gbuffer.normalTX, 1);
         bindUniformTx(gl, s, "gbuf_position", this.gbuffer.posTx, 2);
+        bindUniformTx(gl, s, "gbuf_metallic_roughness", this.gbuffer.metallicRoughnessTX, 3);
         gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
         gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_cameraToWorldMatrix"), false, camera.getCameraToWorld());
         gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix().matrix);
@@ -1028,15 +1035,28 @@ export class DeferredRenderer {
 
         this.lightingRenderer.render(gl, scene, camera);
 
-        this.ssr.render(gl, scene, camera);
+        if (this.config.ssr.enabled) {
+            this.ssr.render(gl, scene, camera);
+        }
 
+        // TODO: move "show layers" to the end here, not to the lighting shader.
         this.finalToDefaultFB.copy(gl);
 
-        if (this.config.showLayer == ShowLayer.Final) {
-            gl.enable(gl.BLEND);
-            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-            // gl.blendFunc(gl.ONE, gl.ZERO);
-            this.ssrToDefaultFB.copy(gl);
+        if (this.config.ssr.enabled) {
+            switch (this.config.showLayer) {
+                case ShowLayer.Final:
+                    gl.enable(gl.BLEND);
+                    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+                    // gl.blendFunc(gl.ONE, gl.ZERO);
+                    this.ssrToDefaultFB.copy(gl);
+                    break;
+                case ShowLayer.SSR:
+                    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                    gl.disable(gl.BLEND);
+                    gl.clear(gl.COLOR_BUFFER_BIT);
+                    this.ssrToDefaultFB.copy(gl);
+                    break;
+            }
         }
     }
 

@@ -6,7 +6,7 @@ import {Camera} from "./camera";
 
 import {vec3} from "gl-matrix";
 import {randomPointLight, Scene} from "./scene";
-import {DeferredRenderer, DeferredRendererConfig, ShadowMapConfig, ShowLayer} from "./deferredRenderer";
+import {DeferredRenderer, DeferredRendererConfig, ShadowMapConfig, ShowLayer, SSRConfig} from "./deferredRenderer";
 import {GLArrayBuffer} from "./glArrayBuffer";
 import * as ui from "./ui";
 import {SSAOConfig, SSAOState} from "./SSAOState";
@@ -33,6 +33,12 @@ function main() {
                 posScale: {value: 1.5, min: 0, step: 0.1, onChange: ui.funcRef()},
                 attenuation: {value: 0.15, min: 0, step: 0.1, onChange: ui.funcRef()},
                 intensity: {value: 1., min: 0, step: 0.1, onChange: ui.funcRef()},
+            }
+        },
+        ssr: {
+            enable: {
+                onChange: ui.funcRef(),
+                checked: true,
             }
         },
         shadowMap: {
@@ -71,6 +77,7 @@ function main() {
                 {label: 'Shadow Map', value: ShowLayer.ShadowMap},
                 {label: 'Metallic', value: ShowLayer.Metallic},
                 {label: 'Roughness', value: ShowLayer.Roughness},
+                {label: 'SSR', value: ShowLayer.SSR},
             ]
         },
         shouldRotate: {
@@ -140,7 +147,7 @@ function main() {
                     ),
                     ui.FormGroup('Other',
                         ui.CheckBoxInput('Should rotate', state.shouldRotate, state.shouldRotate.onChange),
-
+                        ui.CheckBoxInput('Enable SSR', state.ssr.enable, state.ssr.enable.onChange),
                         ui.CheckBoxInput('Pause', state.pause, state.pause.onChange),
                     ),
                 ),
@@ -287,6 +294,7 @@ function main() {
         // const renderer = new ForwardRenderer(gl);
         const ssaoConfig = new SSAOConfig();
         const shadowMapConfig = new ShadowMapConfig();
+        const ssrConfig = new SSRConfig();
 
         const updateSSAOConfig = () => {
             const c = ssaoConfig;
@@ -312,10 +320,16 @@ function main() {
         };
         updateShadowMapConfig();
 
+        const updateSSRConfig = () => {
+            ssrConfig.enabled = state.ssr.enable.checked;
+        };
+        updateSSRConfig();
+
         const ssaoState = new SSAOState(gl, ssaoConfig);
         const rendererConfig = new DeferredRendererConfig();
         rendererConfig.ssao = ssaoConfig;
         rendererConfig.shadowMap = shadowMapConfig;
+        rendererConfig.ssr = ssrConfig;
         rendererConfig.showLayer = state.showLayer.value;
 
         const renderer = new DeferredRenderer(gl, rendererConfig, fb, sphereMesh, ssaoState);
@@ -468,6 +482,8 @@ function main() {
 
             event.preventDefault();
         };
+
+        state.ssr.enable.onChange.ref = updateSSRConfig;
 
         const onSSSAOStateParamsChange = () => {
             updateSSAOConfig();

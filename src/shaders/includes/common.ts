@@ -16,17 +16,17 @@ struct metallicRoughness {
     float roughness;
 };
 
-metallicRoughness gbufferMetallicRoughness(vec2 coord) {
-    metallicRoughness r;
+void gbufferMetallicRoughness(vec2 coord, out float metallic, out float roughness) {
     vec4 tx = texture(gbuf_metallic_roughness, coord);
-    r.metallic = tx.r;
-    r.roughness = tx.g;
-    return r;
+    metallic = tx.r;
+    roughness = tx.g;
+    return;
 }
 
 #define GBUFFER_POSITION(coord) (texture(gbuf_position, coord))
 #define GBUFFER_NORMAL(coord) (read_gbuffer_normal(coord))
 #define GBUFFER_ALBEDO(coord) (texture(gbuf_colormap, coord))
+#define GBUFFER_MR(coord, metallic, roughness)     gbufferMetallicRoughness(coord, metallic, roughness)
 `;
 
 export const QUAD_FRAGMENT_INPUTS = `
