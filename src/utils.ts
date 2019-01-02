@@ -13,6 +13,12 @@ import {Camera, ProjectionMatrix} from "./camera";
 import {AxisAlignedBox} from "./axisAlignedBox";
 import {Scene} from "./scene";
 import {DirectionalLight, GameObject} from "./object";
+// import {GltfLoader} from "../node_modules/gltf-loader-ts/dist/gltf-loader.js";
+import {GltfLoader} from "gltf-loader-ts";
+import {Texture} from "./texture";
+import {Material} from "./material";
+import {MeshPrimitive} from "gltf-loader-ts/lib/gltf";
+import {GLTF} from "./gltf-enums";
 
 export const QuadVertices = new Float32Array([
     -1.0, 1.0,
@@ -246,4 +252,113 @@ export function hexToRgb1(out: vec3, hex: string): vec3 {
 
 export function rgbToHex(r, g, b) {
     return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
+export function mapComputeIfAbsent<K, V>(m: Map<K, V>, key: K, callback: (K) => V): V {
+    if (m.has(key)) {
+        return m.get(key);
+    }
+    const v = callback(key);
+    m.set(key, v);
+    return v;
+}
+
+export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, filename: string): Promise<Scene> {
+    const loader = new GltfLoader();
+    const scene = new Scene();
+
+    let asset = await loader.load(filename);
+    let g = asset.gltf;
+
+    const images = new Map();
+    const textures = new Map();
+    const materials = new Map();
+    const white = vec3.fromValues(1, 1, 1);
+
+    const loadImage = (id: number): Promise<HTMLImageElement> => {
+        return mapComputeIfAbsent(images, id, (id) => {
+            console.log('loading image with id ', id);
+            return asset.imageData.get(id);
+        });
+
+    };
+
+    const loadTexture = (id: number): Texture => {
+        return mapComputeIfAbsent(textures, id, () => {
+            const t = g.textures[id];
+            const img = loadImage(t.source);
+            return new Texture(gl, img, white);
+        });
+    };
+
+    const loadMaterial = (id: number) => {
+        return mapComputeIfAbsent(materials, id, () => {
+            const nm = new Material();
+            const m = g.materials[id];
+
+            if (m.pbrMetallicRoughness.baseColorFactor) {
+                vec3.copy(nm.albedo.value, m.pbrMetallicRoughness.baseColorFactor);
+            }
+            if (m.pbrMetallicRoughness.baseColorTexture) {
+                nm.albedo.setTexture(loadTexture(m.pbrMetallicRoughness.baseColorTexture.index));
+            }
+            if (m.pbrMetallicRoughness.metallicFactor) {
+                nm.metallic.value = m.pbrMetallicRoughness.metallicFactor;
+            }
+            if (m.pbrMetallicRoughness.metallicRoughnessTexture) {
+                nm.metallic.texture = loadTexture(m.pbrMetallicRoughness.metallicRoughnessTexture.index);
+            }
+            if (m.pbrMetallicRoughness.roughnessFactor) {
+                nm.roughness.value = m.pbrMetallicRoughness.roughnessFactor;
+            }
+            if (m.pbrMetallicRoughness.metallicRoughnessTexture) {
+                nm.roughness.texture = loadTexture(m.pbrMetallicRoughness.metallicRoughnessTexture.index);
+            }
+            if (m.normalTexture) {
+                nm.setNormalMap(loadTexture(m.normalTexture.index));
+            }
+            return nm;
+        })
+    };
+
+    const loadPrimitive = (p: MeshPrimitive): Promise<GLArrayBufferData> => {
+        return new Promise((resolve, reject) => {
+            if (p.mode != GLTF.TRIANGLES) {
+                throw new Error(`Not trianges: ${p.mode}`);
+            }
+
+            Promise.all([
+                asset.accessorData(p.indices),
+                asset.accessorData(p.attributes.POSITION),
+                asset.accessorData(p.attributes.TEXCOORD_0),
+                asset.accessorData(p.attributes.NORMAL),
+                asset.accessorData(p.attributes.TANGENT)
+            ]).then(([indices, positionUint, uvUint, normalUint, tangentUint]) => {
+                const pos = new Float32Array(positionUint.buffer);
+                const uv = new Float32Array(uvUint.buffer);
+                const normal = new Float32Array(normalUint.buffer);
+                const tangent = new Float32Array(tangentUint.buffer);
+            })
+        });
+    };
+
+    g.scenes[g.scene].nodes.forEach(nodeId => {
+        const node = g.nodes[nodeId];
+        const go = new GameObject(node.name || nodeId.toString());
+        if (node.scale) {
+            vec3.copy(go.transform.scale, node.scale);
+        }
+
+        if (node.mesh !== undefined) {
+            const mesh = g.meshes[node.mesh];
+            const allPrimitives = [];
+            mesh.primitives.forEach(p => {
+                const pgo = new GameObject("");
+                const accessor = g.accessors[p.indices];
+                p.material
+            })
+        }
+    });
+
+    return scene;
 }

@@ -28,33 +28,36 @@ export function fillWithEmptyTexture(gl: WebGL2RenderingContext, defaultColor: v
         pixel);
 }
 
+export function loadImage(uri: string): Promise<HTMLImageElement> {
+    return <Promise<HTMLImageElement>>new Promise((resolve, reject) => {
+        const img = new Image();
+        img.src = uri;
+
+        img.addEventListener('load', () => {
+            resolve(img);
+        })
+    });
+}
+
 export class Texture {
-    private img: HTMLImageElement;
     private promise: Promise<void>;
     private texture: WebGLTexture;
 
-    constructor(gl: WebGL2RenderingContext, url: string, defaultColor: vec3) {
+    constructor(gl: WebGL2RenderingContext, data: Promise<HTMLImageElement>, defaultColor: vec3) {
         this.texture = gl.createTexture();
 
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
         fillWithEmptyTexture(gl, defaultColor);
 
-        this.promise = new Promise((resolve, reject) => {
-            this.img = new Image();
-            this.img.src = url;
-
-            this.img.addEventListener('load', () => {
-                this.bind(gl);
-                resolve();
-            })
+        data.then(img => {
+            this.bind(gl, img);
         });
     }
 
-    private bind(gl: WebGL2RenderingContext) {
+    private bind(gl: WebGL2RenderingContext, img: HTMLImageElement) {
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.img);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
         gl.generateMipmap(gl.TEXTURE_2D);
-        this.img = null;
     }
 
     getTexture() {

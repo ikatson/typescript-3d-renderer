@@ -862,7 +862,7 @@ export class LightingRenderer {
         let result: number[] = [];
         result.push(...l.object.transform.position);
         result.push(...l.color);
-        result.push(...[l.intensity, l.radius, l.attenuation]);
+        result.push(...[l.intensity, l.radius, 0]);
         return new Float32Array(result);
     }
 }

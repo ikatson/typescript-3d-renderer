@@ -74,7 +74,7 @@ void main() {
     }
     
     if (u_roughnessHasTexture) {
-        roughness = texture(u_roughnessTexture, v_uv).r;
+        roughness = texture(u_roughnessTexture, v_uv).g;
     } else {
         roughness = u_roughness;
     }
