@@ -2,6 +2,8 @@ import {ShaderProgram} from "./shaders";
 import {AxisAlignedBox} from "./axisAlignedBox";
 import {mat4, vec3, vec4} from "gl-matrix";
 import {Accessor} from "gltf-loader-ts/lib/gltf";
+import {GLTF_COMPONENT_TYPE_ARRAYS} from "gltf-loader-ts";
+import {GLTF} from "./gltf-enums";
 
 const FLOAT_BYTES = 4;
 const VEC3 = 3;
@@ -91,8 +93,8 @@ export const computeBoundingBox = (objects: DataOrBoundingBox[], invertZ: boolea
         }
     });
 
-    b.min = min;
-    b.max = max;
+    b.setMin(min);
+    b.setMax(max);
 
     return b;
 };
@@ -172,10 +174,10 @@ export class ArrayWebGLBufferWrapper implements WebGLBufferI {
         return this._buf;
     }
     private _buf: WebGLBuffer;
-    constructor(gl: WebGL2RenderingContext, data: Uint8Array) {
+    constructor(gl: WebGL2RenderingContext, data: ArrayBuffer) {
         this._buf = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, this._buf);
-        gl.bufferData(gl.ARRAY_BUFFER, data.buffer, gl.STATIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
     }
     delete(gl: WebGL2RenderingContext) {
         gl.deleteBuffer(this._buf);
@@ -194,10 +196,10 @@ export interface WebGLBufferI {
 
 export class ElementArrayWebGLBufferWrapper implements WebGLBufferI {
     private _buf: WebGLBuffer;
-    constructor(gl: WebGL2RenderingContext, data: Uint8Array) {
+    constructor(gl: WebGL2RenderingContext, data: ArrayBuffer) {
         this._buf = gl.createBuffer();
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._buf);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data.buffer, gl.STATIC_DRAW);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data, gl.STATIC_DRAW);
     }
     buf() {
         return this._buf;
@@ -255,7 +257,11 @@ export class GLTFAccessor<T extends WebGLBufferI> {
         return this.data.buf.buf();
     }
 
-    size(): GLint {
+    componentTypeToGlType(): GLint {
+        return GLTF.COMPONENT_TYPES_TO_GL_TYPE[this._accessor.componentType];
+    }
+
+    numberOfComponents(): GLint {
         switch (this._accessor.type) {
             case "SCALAR":
                 return 1;
@@ -304,6 +310,15 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
     }
 
     draw(gl: WebGL2RenderingContext, renderMode?: number): void {
+        if (this.indices) {
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indices.webGlBuf);
+            gl.drawElements(
+                gl.TRIANGLES,
+                this.indices.accessor.count,
+                this.indices.componentTypeToGlType(),
+                this.indices.accessor.byteOffset
+            );
+        }
     }
 
     prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext, program?: ShaderProgram, normals?: boolean, uv?: boolean): void {
@@ -331,8 +346,8 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
         gl.enableVertexAttribArray(attribLocation);
         gl.vertexAttribPointer(
             attribLocation,
-            this.normal.size(),
-            gl.FLOAT,
+            this.normal.numberOfComponents(),
+            this.normal.componentTypeToGlType(),
             this.normal.accessor.normalized || false,
             this.normal.data.byteStride,
             (this.normal.data.byteOffset || 0) + (this.normal.accessor.byteOffset || 0),
@@ -344,8 +359,8 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
         gl.enableVertexAttribArray(attribLocation);
         gl.vertexAttribPointer(
             attribLocation,
-            this.position.size(),
-            gl.FLOAT,
+            this.position.numberOfComponents(),
+            this.position.componentTypeToGlType(),
             this.position.accessor.normalized || false,
             this.position.data.byteStride,
             (this.position.data.byteOffset || 0) + (this.position.accessor.byteOffset || 0),
@@ -357,8 +372,8 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
         gl.enableVertexAttribArray(attribLocation);
         gl.vertexAttribPointer(
             attribLocation,
-            this.uv.size(),
-            gl.FLOAT,
+            this.uv.numberOfComponents(),
+            this.uv.componentTypeToGlType(),
             this.uv.accessor.normalized || false,
             this.uv.data.byteStride,
             (this.uv.data.byteOffset || 0) + (this.uv.accessor.byteOffset || 0),

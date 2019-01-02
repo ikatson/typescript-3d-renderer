@@ -173,6 +173,7 @@ export class GameObject {
     addChild(o: GameObject) {
         this.children.push(o);
         o.parent = this;
+        o.transform.update();
         console.log(`added ${o.name} as child of ${this.fqdn()}`);
     }
 

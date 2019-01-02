@@ -1,8 +1,19 @@
 import {ArrayBufferDataType, GLArrayBufferData, GLArrayBufferDataParams} from "./glArrayBuffer";
+import {vec3} from "gl-matrix";
 
 export class AxisAlignedBox {
-    min: number[] | Float32Array = new Float32Array([-1, -1, -1]);
-    max: number[] | Float32Array = new Float32Array([1, 1, 1]);
+    min = vec3.fromValues(-1, -1, -1);
+    max = vec3.fromValues(1, 1, 1);
+
+    setMin(v: vec3 | number[]): AxisAlignedBox {
+        vec3.copy(this.min, v);
+        return this;
+    }
+
+    setMax(v: vec3 | number[]): AxisAlignedBox {
+        vec3.copy(this.max, v);
+        return this;
+    }
 
     uniqueVertices(): Array<number[]> {
         const x = 0;

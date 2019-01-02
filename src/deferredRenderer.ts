@@ -184,7 +184,7 @@ export class GBuffer {
                 // TODO: use these.
                 gl.uniform1i(s.getUniformLocation(gl, "u_normalMapHasTexture"), (!!material.normalMap) ? 1 : 0);
                 if (material.normalMap) {
-                    bindUniformTx(gl, s, "u_normalMapTx", material.normalMap, 4);
+                    bindUniformTx(gl, s, "u_normalMapTx", material.normalMap.getTexture(), 4);
                 }
 
                 let stencilValue = StencilValues.NORMAL;

@@ -51,12 +51,12 @@ void main() {
     #endif
     
     #ifdef SHOW_METALLIC
-    color = vec4(vec3(mr.metallic), pos.a);
+    color = vec4(vec3(metallic), pos.a);
     return;
     #endif
     
     #ifdef SHOW_ROUGHNESS
-    color = vec4(vec3(mr.roughness), pos.a);
+    color = vec4(vec3(roughness), pos.a);
     return;
     #endif
 
