@@ -37,10 +37,16 @@ float GeometrySmith(float NdotV, float NdotL, float roughness) {
     return ggx1 * ggx2;
 }
 
-vec3 fresnelSchlick(float cosTheta, vec3 F0) {
-    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+vec3 fresnelSchlick(float HdotV, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(1.0 - HdotV, 5.0);
 }  
 
+vec3 fresnelSchlick(vec3 albedo, float metallic, float HdotV) {
+    vec3 F0 = vec3(0.04); 
+    F0 = mix(F0, albedo, metallic);
+
+    return fresnelSchlick(HdotV, F0);
+}
 
 vec3 CookTorranceBRDF(
     vec3 albedo, float roughness, float metallic, 
@@ -54,14 +60,11 @@ vec3 CookTorranceBRDF(
     float NdotV = max(dot(N, V), 0.);
     float HdotV = max(dot(H, V), 0.);
 
-    vec3 F0 = vec3(0.04); 
-    F0 = mix(F0, albedo, metallic);
-
     float NDF = UE4NDF(NdotH, roughness);
     // return NDF * radiance * NdotL;
     
     float G = GeometrySmith(NdotV, NdotL, roughness);      
-    vec3 F = fresnelSchlick(HdotV, F0);       
+    vec3 F = fresnelSchlick(albedo, metallic, HdotV);       
     
     vec3 kD = vec3(1.0) - F;
     kD *= 1.0 - metallic;	  
