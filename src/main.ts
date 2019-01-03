@@ -86,6 +86,10 @@ function main() {
             onChange: ui.funcRef(),
             checked: true
         },
+        normalMapsEnabled: {
+            onChange: ui.funcRef(),
+            checked: true
+        },
         pause: {
             onChange: ui.funcRef(),
             checked: false,
@@ -149,6 +153,7 @@ function main() {
                     ),
                     ui.FormGroup('Other',
                         ui.CheckBoxInput('Should rotate', state.shouldRotate, state.shouldRotate.onChange),
+                        ui.CheckBoxInput('Enable normal maps', state.normalMapsEnabled, state.normalMapsEnabled.onChange),
                         ui.CheckBoxInput('Enable SSR', state.ssr.enable, state.ssr.enable.onChange),
                         ui.CheckBoxInput('Pause', state.pause, state.pause.onChange),
                     ),
@@ -332,9 +337,14 @@ function main() {
         rendererConfig.shadowMap = shadowMapConfig;
         rendererConfig.ssr = ssrConfig;
         rendererConfig.showLayer = state.showLayer.value;
+        rendererConfig.normalMapsEnabled = state.normalMapsEnabled.checked;
 
         const renderer = new DeferredRenderer(gl, rendererConfig, fb, sphereMesh, ssaoState);
         let scene = new Scene();
+
+        state.normalMapsEnabled.onChange.ref = v => {
+            rendererConfig.normalMapsEnabled = v;
+        };
 
         loadSceneFromGLTF(gl, SAMPLE_GLTF_SPONZA).then(newScene => {
             scene = newScene;

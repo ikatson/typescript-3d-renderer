@@ -40,6 +40,7 @@ export class SSRConfig {
 
 export class DeferredRendererConfig {
     showLayer: ShowLayer = ShowLayer.Final;
+    normalMapsEnabled: boolean = true;
     ssao = new SSAOConfig();
     shadowMap = new ShadowMapConfig();
     ssr = new SSRConfig();
@@ -139,8 +140,10 @@ export class GBuffer {
     ATTACHMENT_NORMAL = WebGL2RenderingContext.COLOR_ATTACHMENT0 + 1;
     ATTACHMENT_ALBEDO = WebGL2RenderingContext.COLOR_ATTACHMENT0 + 2;
     ATTACHMENT_METALLIC_ROUGHNESS = WebGL2RenderingContext.COLOR_ATTACHMENT0 + 3;
+    private config: DeferredRendererConfig;
 
-    constructor(gl: WebGL2RenderingContext) {
+    constructor(gl: WebGL2RenderingContext, rendererConfig: DeferredRendererConfig) {
+        this.config = rendererConfig;
         this.setupGBuffer(gl);
         this.compileShader(gl);
     }
@@ -214,7 +217,7 @@ export class GBuffer {
                 bindValueOrTx("u_metallic", material.metallic, gl.uniform1f, 2);
                 bindValueOrTx("u_roughness", material.roughness, gl.uniform1f, 3);
 
-                const hasNormalMap = !!material.normalMap;
+                const hasNormalMap = !!material.normalMap && this.config.normalMapsEnabled;
                 gl.uniform1i(s.getUniformLocation(gl, "u_normalMapHasTexture"), (hasNormalMap) ? 1 : 0);
                 gl.uniform1i(s.getUniformLocation(gl, "u_hasTangent"), o.mesh.arrayBuffer.hasTangent() ? 1 : 0);
                 if (hasNormalMap) {
@@ -1060,7 +1063,7 @@ export class DeferredRenderer {
     constructor(gl: WebGL2RenderingContext, config: DeferredRendererConfig, fullScreenQuad: FullScreenQuad, sphere: GLArrayBufferI, ssaoState?: SSAOState) {
         this.gl = gl;
         this._config = config;
-        this.gbuffer = new GBuffer(gl);
+        this.gbuffer = new GBuffer(gl, config);
         this.ssaoRenderer = new SSAORenderer(gl, ssaoState, this._config.ssao, this.gbuffer, fullScreenQuad);
         this.shadowMap = new ShadowMapRenderer(gl);
         this.lightingRenderer = new LightingRenderer(
