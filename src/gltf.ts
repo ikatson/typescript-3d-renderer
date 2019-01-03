@@ -101,6 +101,9 @@ export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename
     };
 
     const loadAccessorArrays = (id: number): Promise<GLTFAccessor<ArrayWebGLBufferWrapper>> => {
+        if (id === null || id === undefined) {
+            return Promise.resolve(undefined);
+        }
         return mapComputeIfAbsent(accessorsArrays, id, id => {
             const accessor = g.accessors[id];
             return loadBufferViewArray(accessor.bufferView).then(bv => {
@@ -176,10 +179,10 @@ export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename
             loadAccessorArrays(p.attributes.POSITION),
             loadAccessorArrays(p.attributes.TEXCOORD_0),
             loadAccessorArrays(p.attributes.NORMAL),
-            // asset.accessorData(p.attributes.TANGENT)
-        ]).then(([indices, pos, uv, normal]) => {
+            loadAccessorArrays(p.attributes.TANGENT)
+        ]).then(([indices, pos, uv, normal, tangent]) => {
             return new GLArrayBufferGLTF(
-                indices, pos, uv, normal, null
+                indices, pos, uv, normal, tangent
             );
         });
     }

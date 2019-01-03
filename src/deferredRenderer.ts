@@ -14,6 +14,19 @@ import {GLArrayBufferI} from "./glArrayBuffer";
 import {Material, TextureOrValue} from "./material";
 import {SSR_SHADERS} from "./shaders/ssr";
 import {QUAD_FRAGMENT_INPUTS} from "./shaders/includes/common";
+import {
+    ATTRIBUTE_POSITION,
+    UNIFORM_CAMERA_POSITION,
+    UNIFORM_CAMERA_TO_WORLD_MAT4,
+    UNIFORM_GBUF_ALBEDO,
+    UNIFORM_GBUF_MR,
+    UNIFORM_GBUF_NORMAL,
+    UNIFORM_GBUF_POSITION,
+    UNIFORM_MODEL_VIEW_MATRIX,
+    UNIFORM_MODEL_WORLD_MATRIX,
+    UNIFORM_PERSPECTIVE_MATRIX,
+    UNIFORM_WORLD_TO_CAMERA_MAT4
+} from "./constants";
 
 export class ShadowMapConfig {
     enabled: boolean;
@@ -146,9 +159,9 @@ export class GBuffer {
         const s = this.gBufferShader;
         s.use(gl);
 
-        gl.uniform3fv(s.getUniformLocation(gl, "u_cameraPos"), camera.position);
-        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
-        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix().matrix);
+        gl.uniform3fv(s.getUniformLocation(gl, UNIFORM_CAMERA_POSITION), camera.position);
+        gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_WORLD_TO_CAMERA_MAT4), false, camera.getWorldToCamera());
+        gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_PERSPECTIVE_MATRIX), false, camera.projectionMatrix().matrix);
 
         gl.drawBuffers([
             this.ATTACHMENT_POSITION,
@@ -169,8 +182,8 @@ export class GBuffer {
 
                 o.mesh.prepareMeshVertexAndShaderDataForRendering(gl, s);
 
-                gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelViewMatrix"), false, modelViewMatrix);
-                gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelWorldMatrix"), false, modelWorldMatrix);
+                gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_MODEL_VIEW_MATRIX), false, modelViewMatrix);
+                gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_MODEL_WORLD_MATRIX), false, modelWorldMatrix);
 
                 function bindValueOrTx<T>(prefix: string, txOrValue: TextureOrValue<T>, uniformFunc: Function, index: number) {
 
@@ -341,11 +354,11 @@ export class SSAORenderer {
             gl.clearColor(0., 0, 0, 1.);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-            this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
+            this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, ATTRIBUTE_POSITION));
 
             // Common uniforms
-            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
-            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix().matrix);
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_WORLD_TO_CAMERA_MAT4), false, camera.getWorldToCamera());
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_PERSPECTIVE_MATRIX), false, camera.projectionMatrix().matrix);
 
             // SSAOState
             gl.uniform1f(s.getUniformLocation(gl, "u_ssaoRadius"), this.ssaoConfig.radius);
@@ -356,8 +369,8 @@ export class SSAORenderer {
                 [this.width / this.ssaoConfig.noiseScale, this.height / this.ssaoConfig.noiseScale]
             );
 
-            bindUniformTx(gl, this.firstPassShader, "gbuf_position", this.gBuffer.posTx, 0);
-            bindUniformTx(gl, this.firstPassShader, "gbuf_normal", this.gBuffer.normalTX, 1);
+            bindUniformTx(gl, this.firstPassShader, UNIFORM_GBUF_POSITION, this.gBuffer.posTx, 0);
+            bindUniformTx(gl, this.firstPassShader, UNIFORM_GBUF_NORMAL, this.gBuffer.normalTX, 1);
             bindUniformTx(gl, this.firstPassShader, "u_ssaoNoise", this.ssaoState.noiseTexture, 2);
 
             // Draw
@@ -374,11 +387,11 @@ export class SSAORenderer {
             gl.clearColor(0., 0, 0, 1.);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-            this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
+            this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, ATTRIBUTE_POSITION));
 
             // Common uniforms
-            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
-            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix().matrix);
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_WORLD_TO_CAMERA_MAT4), false, camera.getWorldToCamera());
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_PERSPECTIVE_MATRIX), false, camera.projectionMatrix().matrix);
 
             // SSAOState
             gl.uniform1f(s.getUniformLocation(gl, "u_ssaoStrength"), this.ssaoConfig.strength);
@@ -392,8 +405,8 @@ export class SSAORenderer {
                 [gl.canvas.width / this.ssaoConfig.noiseScale, gl.canvas.height / this.ssaoConfig.noiseScale]
             );
 
-            bindUniformTx(gl, this.blurShader, "gbuf_position", this.gBuffer.posTx, 0);
-            bindUniformTx(gl, this.blurShader, "gbuf_normal", this.gBuffer.normalTX, 1);
+            bindUniformTx(gl, this.blurShader, UNIFORM_GBUF_POSITION, this.gBuffer.posTx, 0);
+            bindUniformTx(gl, this.blurShader, UNIFORM_GBUF_NORMAL, this.gBuffer.normalTX, 1);
             bindUniformTx(gl, this.blurShader, "u_ssaoNoise", this.ssaoState.noiseTexture, 2);
             bindUniformTx(gl, this.blurShader, "u_ssaoFirstPassTx", this._ssaoFirstPassTx, 3);
 
@@ -473,7 +486,7 @@ export class ShadowMapRenderer {
                 return;
             }
 
-            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelWorldMatrix"), false, o.transform.getModelToWorld());
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_MODEL_WORLD_MATRIX), false, o.transform.getModelToWorld());
 
             o.mesh.prepareMeshVertexAndShaderDataForRendering(gl, s, false, false);
             o.mesh.draw(gl);
@@ -637,10 +650,10 @@ export class LightingRenderer {
             )
         );
         this.pointLightShader.use(gl);
-        bindUniformTx(gl, this.pointLightShader, "gbuf_position", this.gBuffer.posTx, 0);
-        bindUniformTx(gl, this.pointLightShader, "gbuf_normal", this.gBuffer.normalTX, 1);
-        bindUniformTx(gl, this.pointLightShader, "gbuf_colormap", this.gBuffer.albedoTX, 2);
-        bindUniformTx(gl, this.pointLightShader, "gbuf_metallic_roughness", this.gBuffer.metallicRoughnessTX, 3);
+        bindUniformTx(gl, this.pointLightShader, UNIFORM_GBUF_POSITION, this.gBuffer.posTx, 0);
+        bindUniformTx(gl, this.pointLightShader, UNIFORM_GBUF_NORMAL, this.gBuffer.normalTX, 1);
+        bindUniformTx(gl, this.pointLightShader, UNIFORM_GBUF_ALBEDO, this.gBuffer.albedoTX, 2);
+        bindUniformTx(gl, this.pointLightShader, UNIFORM_GBUF_MR, this.gBuffer.metallicRoughnessTX, 3);
         bindUniformTx(gl, this.pointLightShader, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
         bindUniformTx(gl, this.pointLightShader, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
 
@@ -670,11 +683,11 @@ export class LightingRenderer {
                 gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
             }
             const s = this.showBuffersShader.use(gl);
-            this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
-            bindUniformTx(gl, this.showBuffersShader, "gbuf_position", this.gBuffer.posTx, 0);
-            bindUniformTx(gl, this.showBuffersShader, "gbuf_normal", this.gBuffer.normalTX, 1);
-            bindUniformTx(gl, this.showBuffersShader, "gbuf_colormap", this.gBuffer.albedoTX, 2);
-            bindUniformTx(gl, this.showBuffersShader, "gbuf_metallic_roughness", this.gBuffer.metallicRoughnessTX, 3);
+            this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, ATTRIBUTE_POSITION));
+            bindUniformTx(gl, this.showBuffersShader, UNIFORM_GBUF_POSITION, this.gBuffer.posTx, 0);
+            bindUniformTx(gl, this.showBuffersShader, UNIFORM_GBUF_NORMAL, this.gBuffer.normalTX, 1);
+            bindUniformTx(gl, this.showBuffersShader, UNIFORM_GBUF_ALBEDO, this.gBuffer.albedoTX, 2);
+            bindUniformTx(gl, this.showBuffersShader, UNIFORM_GBUF_MR, this.gBuffer.metallicRoughnessTX, 3);
             bindUniformTx(gl, this.showBuffersShader, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
             bindUniformTx(gl, this.showBuffersShader, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
             this.fullScreenQuad.draw(gl);
@@ -715,17 +728,17 @@ export class LightingRenderer {
             let s = this.directionalLightShader;
             s.use(gl);
 
-            this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
+            this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, ATTRIBUTE_POSITION));
 
             // Shadow map stuff
             gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapFixedBias"), this.config.shadowMap.fixedBias);
             gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapNormalBias"), this.config.shadowMap.normalBias);
 
             // Common uniforms
-            gl.uniform3fv(s.getUniformLocation(gl, "u_cameraPos"), camera.position);
-            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
-            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix().matrix);
-            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_cameraToWorldMatrix"), false, camera.getCameraToWorld());
+            gl.uniform3fv(s.getUniformLocation(gl, UNIFORM_CAMERA_POSITION), camera.position);
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_WORLD_TO_CAMERA_MAT4), false, camera.getWorldToCamera());
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_PERSPECTIVE_MATRIX), false, camera.projectionMatrix().matrix);
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_CAMERA_TO_WORLD_MAT4), false, camera.getCameraToWorld());
 
             const cameraViewSpaceToLightCamera = tmpMat4;
             mat4.multiply(cameraViewSpaceToLightCamera, lightCameraWorldToProjectionMatrix.matrix, camera.getCameraToWorld());
@@ -735,10 +748,10 @@ export class LightingRenderer {
 
             gl.uniform3fv(s.getUniformLocation(gl, "u_lightData"), this.generateDirectionalLightData(light));
 
-            bindUniformTx(gl, s, "gbuf_position", this.gBuffer.posTx, 0);
-            bindUniformTx(gl, s, "gbuf_normal", this.gBuffer.normalTX, 1);
-            bindUniformTx(gl, s, "gbuf_colormap", this.gBuffer.albedoTX, 2);
-            bindUniformTx(gl, s, "gbuf_metallic_roughness", this.gBuffer.metallicRoughnessTX, 3);
+            bindUniformTx(gl, s, UNIFORM_GBUF_POSITION, this.gBuffer.posTx, 0);
+            bindUniformTx(gl, s, UNIFORM_GBUF_NORMAL, this.gBuffer.normalTX, 1);
+            bindUniformTx(gl, s, UNIFORM_GBUF_ALBEDO, this.gBuffer.albedoTX, 2);
+            bindUniformTx(gl, s, UNIFORM_GBUF_MR, this.gBuffer.metallicRoughnessTX, 3);
             bindUniformTx(gl, s, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
             bindUniformTx(gl, s, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
 
@@ -769,15 +782,15 @@ export class LightingRenderer {
             gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapNormalBias"), this.config.shadowMap.normalBias);
 
             // Common uniforms
-            gl.uniform3fv(s.getUniformLocation(gl, "u_cameraPos"), camera.position);
-            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
-            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix().matrix);
-            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_cameraToWorldMatrix"), false, camera.getCameraToWorld());
+            gl.uniform3fv(s.getUniformLocation(gl, UNIFORM_CAMERA_POSITION), camera.position);
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_WORLD_TO_CAMERA_MAT4), false, camera.getWorldToCamera());
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_PERSPECTIVE_MATRIX), false, camera.projectionMatrix().matrix);
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_CAMERA_TO_WORLD_MAT4), false, camera.getCameraToWorld());
 
-            bindUniformTx(gl, s, "gbuf_position", this.gBuffer.posTx, 0);
-            bindUniformTx(gl, s, "gbuf_normal", this.gBuffer.normalTX, 1);
-            bindUniformTx(gl, s, "gbuf_colormap", this.gBuffer.albedoTX, 2);
-            bindUniformTx(gl, s, "gbuf_metallic_roughness", this.gBuffer.metallicRoughnessTX, 3);
+            bindUniformTx(gl, s, UNIFORM_GBUF_POSITION, this.gBuffer.posTx, 0);
+            bindUniformTx(gl, s, UNIFORM_GBUF_NORMAL, this.gBuffer.normalTX, 1);
+            bindUniformTx(gl, s, UNIFORM_GBUF_ALBEDO, this.gBuffer.albedoTX, 2);
+            bindUniformTx(gl, s, UNIFORM_GBUF_MR, this.gBuffer.metallicRoughnessTX, 3);
             bindUniformTx(gl, s, "u_shadowmapTx", this.shadowMapRenderer.shadowMapTx, 4);
             bindUniformTx(gl, s, "u_ssaoTx", this.ssaoRenderer.ssaoTx, 5);
 
@@ -794,8 +807,8 @@ export class LightingRenderer {
 
                 mat4.multiply(modelView, camera.getWorldToCamera(), tc.getModelToWorld());
 
-                gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelViewMatrix"), false, modelView);
-                gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
+                gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_MODEL_VIEW_MATRIX), false, modelView);
+                gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_WORLD_TO_CAMERA_MAT4), false, camera.getWorldToCamera());
 
                 // https://kayru.org/articles/deferred-stencil/
 
@@ -843,8 +856,8 @@ export class LightingRenderer {
     //     const s = this.visualizeLightsShader;
     //     gl.useProgram(s.getProgram());
     //
-    //     gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
-    //     gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix().matrix);
+    //     gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_WORLD_TO_CAMERA_MAT4), false, camera.getWorldToCamera());
+    //     gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_PERSPECTIVE_MATRIX), false, camera.projectionMatrix().matrix);
     //
     //     this.sphereMesh.prepareMeshVertexAndShaderDataForRendering(gl, s);
     //
@@ -863,8 +876,8 @@ export class LightingRenderer {
     //
     //         gl.uniform3fv(s.getUniformLocation(gl, "u_color"), light.light.diffuse);
     //         gl.uniform1f(s.getUniformLocation(gl, "u_intensity"), light.light.intensity);
-    //         gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelViewMatrix"), false, modelViewMatrix);
-    //         gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_modelWorldMatrix"), false, modelWorldMatrix);
+    //         gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_MODEL_VIEW_MATRIX), false, modelViewMatrix);
+    //         gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_MODEL_WORLD_MATRIX), false, modelWorldMatrix);
     //
     //         this.sphereMesh.draw(gl);
     //     })
@@ -956,15 +969,15 @@ class SSRRenderer {
         s.use(gl);
 
         bindUniformTx(gl, s, "u_lightedSceneTx", this.lightingRenderer.resultTX, 0);
-        bindUniformTx(gl, s, "gbuf_normal", this.gbuffer.normalTX, 1);
-        bindUniformTx(gl, s, "gbuf_position", this.gbuffer.posTx, 2);
-        bindUniformTx(gl, s, "gbuf_metallic_roughness", this.gbuffer.metallicRoughnessTX, 3);
-        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_worldToCameraMatrix"), false, camera.getWorldToCamera());
-        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_cameraToWorldMatrix"), false, camera.getCameraToWorld());
-        gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_perspectiveMatrix"), false, camera.projectionMatrix().matrix);
+        bindUniformTx(gl, s, UNIFORM_GBUF_NORMAL, this.gbuffer.normalTX, 1);
+        bindUniformTx(gl, s, UNIFORM_GBUF_POSITION, this.gbuffer.posTx, 2);
+        bindUniformTx(gl, s, UNIFORM_GBUF_MR, this.gbuffer.metallicRoughnessTX, 3);
+        gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_WORLD_TO_CAMERA_MAT4), false, camera.getWorldToCamera());
+        gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_CAMERA_TO_WORLD_MAT4), false, camera.getCameraToWorld());
+        gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_PERSPECTIVE_MATRIX), false, camera.projectionMatrix().matrix);
 
         // full screen quad final draw
-        this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
+        this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, ATTRIBUTE_POSITION));
         this.fullScreenQuad.draw(gl);
     }
 
@@ -976,7 +989,7 @@ class SSRRenderer {
         bindUniformTx(gl, s, "u_lightedSceneTx", this.lightingRenderer.resultTX, 0);
         bindUniformTx(gl, s, "u_ssrTx", this.resultTX, 1);
 
-        this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, "a_pos"));
+        this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, ATTRIBUTE_POSITION));
         this.fullScreenQuad.draw(gl);
     }
 }
@@ -1020,7 +1033,7 @@ class TextureToFbCopier {
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.targetFB);
         const s = this.shader.shader;
         s.use(gl);
-        this.fsq.bind(gl, s.getAttribLocation(gl, "a_pos"));
+        this.fsq.bind(gl, s.getAttribLocation(gl, ATTRIBUTE_POSITION));
         bindUniformTx(gl, s, "tx", this.tx, 0);
         this.fsq.draw(gl);
     }
