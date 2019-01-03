@@ -67,7 +67,7 @@ export const showLayerAmong = (value: ShowLayer, ...among: ShowLayer[]) => {
             return true;
         }
     }
-}
+};
 
 export enum StencilValues {
     NORMAL = 1,
@@ -214,12 +214,17 @@ export class GBuffer {
                 bindValueOrTx("u_metallic", material.metallic, gl.uniform1f, 2);
                 bindValueOrTx("u_roughness", material.roughness, gl.uniform1f, 3);
 
-                // TODO: use these.
-                gl.uniform1i(s.getUniformLocation(gl, "u_normalMapHasTexture"), (!!material.normalMap) ? 1 : 0);
-                if (material.normalMap) {
+                const hasNormalMap = !!material.normalMap;
+                gl.uniform1i(s.getUniformLocation(gl, "u_normalMapHasTexture"), (hasNormalMap) ? 1 : 0);
+                gl.uniform1i(s.getUniformLocation(gl, "u_hasTangent"), o.mesh.arrayBuffer.hasTangent() ? 1 : 0);
+                if (hasNormalMap) {
                     bindUniformTx(gl, s, "u_normalMapTx", material.normalMap.getTexture(), 4);
                 }
 
+                /**
+                 * TODO: remove stencils? Not sure, maybe there will be some use for it later.
+                 * @deprecated
+                 */
                 let stencilValue = StencilValues.NORMAL;
                 if (material.isReflective) {
                     stencilValue = StencilValues.SSR;
@@ -935,7 +940,7 @@ class SSRRenderer {
                 .define('SSR_BINARY_SEARCH_STEPS', '10')
                 .build()
             ),
-        )
+        );
 
         this.blendShader = new ShaderProgram(
             gl,
@@ -1122,6 +1127,8 @@ export class DeferredRenderer {
                         gl.clear(gl.COLOR_BUFFER_BIT);
                         this.ssrToDefaultFB.copy(gl);
                         break;
+                    default:
+                        this.finalToDefaultFB.copy(gl);
                 }
                 break;
             case false:

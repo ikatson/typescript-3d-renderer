@@ -12,3 +12,5 @@ export const UNIFORM_GBUF_POSITION = "gbuf_position";
 export const UNIFORM_GBUF_NORMAL = "gbuf_normal";
 export const UNIFORM_GBUF_ALBEDO = "gbuf_colormap";
 export const UNIFORM_GBUF_MR = "gbuf_metallic_roughness";
+
+export const SAMPLE_GLTF_SPONZA = "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Sponza/glTF/Sponza.gltf";

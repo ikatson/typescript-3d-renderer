@@ -4,6 +4,7 @@ precision highp float;
 in vec4 a_pos;
 in vec3 a_norm;
 in vec2 a_uv;
+in vec4 a_tangent;
 
 uniform mat4 u_modelViewMatrix;
 uniform mat4 u_modelWorldMatrix;
@@ -13,14 +14,15 @@ uniform mat4 u_perspectiveMatrix;
 out vec4 v_pos;
 out vec4 v_norm;
 out vec2 v_uv;
+out vec4 v_tangent;
 
 void main() {
-    mat4 modelToCamera = u_worldToCameraMatrix * u_modelWorldMatrix; 
-    v_pos = modelToCamera * a_pos;
+    v_pos = u_modelViewMatrix * a_pos;
     gl_Position = u_perspectiveMatrix * u_modelViewMatrix * a_pos;
 
-    v_norm = normalize(modelToCamera * vec4(a_norm, 0.));
+    v_norm = normalize(u_modelViewMatrix * vec4(a_norm, 0.));
     v_uv = a_uv;
+    v_tangent = a_tangent;
     gl_PointSize = 2.;    
 }
 `;
@@ -30,8 +32,10 @@ precision highp float;
 
 in vec4 v_pos;
 in vec4 v_norm;
+in vec4 v_tangent;
 in vec2 v_uv;
 
+uniform mat4 u_modelViewMatrix;
 uniform vec4 u_albedo;
 uniform vec4 u_albedoFactor;
 uniform bool u_albedoHasFactor;
@@ -47,6 +51,7 @@ uniform bool u_roughnessHasTexture;
 uniform sampler2D u_roughnessTexture;
 
 uniform bool u_normalMapHasTexture;
+uniform bool u_hasTangent;
 uniform sampler2D u_normalMapTx;
 
 layout(location = 0) out vec4 gbuf_position;
@@ -61,8 +66,19 @@ vec4 srgb(vec4 color) {
 void main() {
     gbuf_position = vec4(v_pos.xyz, 1.0);
     
-    // TODO: use normal map here.
-    gbuf_normal = vec4(normalize(v_norm.xyz), 1.0);
+    if (u_normalMapHasTexture && u_hasTangent) {
+        vec3 normalMap = normalize(texture(u_normalMapTx, v_uv).xyz * 2. - 1.);
+        vec3 tangent = normalize(u_modelViewMatrix * vec4(v_tangent.xyz, 0.)).xyz;
+        vec3 bitangent = cross(v_norm.xyz, tangent) * v_tangent.w;
+        mat3 tangentToView = mat3(
+            tangent,
+            bitangent,
+            v_norm.xyz
+        );
+        gbuf_normal = vec4(normalize(tangentToView * normalMap), 1.);
+    } else {
+        gbuf_normal = vec4(normalize(v_norm.xyz), 1.0);
+    }
     
     if (u_albedoHasTexture) {
         gbuf_albedo = srgb(texture(u_albedoTexture, v_uv));

@@ -48,10 +48,7 @@ float ssao(vec3 normalVS, vec4 posVS, vec2 tx_pos) {
         if (absSampleSS.x >= 1. || absSampleSS.y >= 1.) {
             continue;
         }
-        if (sampleSS.a < 0.00001) {
-            continue;
-        }
-
+        
         vec4 storedPosVS = GBUFFER_POSITION(sampleSS.xy * 0.5 + 0.5);
         float storedDepthVS = storedPosVS.z;
 
@@ -97,6 +94,7 @@ float getSsaoBlurred(vec4 posVS, vec3 normalVS) {
 
     int samples = 1;
     float occlusion = texture(u_ssaoFirstPassTx, tx_pos).r;
+    // return occlusion;
     
     for (int i = -SSAO_NOISE_SCALE / 2; i < SSAO_NOISE_SCALE / 2; i++) {
         for (int j = -SSAO_NOISE_SCALE / 2; j < SSAO_NOISE_SCALE / 2; j++) {

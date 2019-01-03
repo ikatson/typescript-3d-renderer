@@ -6,7 +6,7 @@ uniform sampler2D gbuf_metallic_roughness;
 
 vec4 read_gbuffer_normal(vec2 pos) {
     vec4 val = texture(gbuf_normal, pos);
-    val.z = sqrt(1. - val.x * val.x - val.y * val.y);
+    val.z = sqrt(1. - val.x * val.x - val.y * val.y + 0.001);
     val.a = 1.;
     return val;
 }

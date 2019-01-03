@@ -156,19 +156,18 @@ export class GLArrayBufferData {
 export interface GLArrayBufferI {
     buffer: WebGLBuffer;
 
+    hasNormals(): boolean;
+    hasUV(): boolean;
+    hasTangent(): boolean;
+
     setupVertexPositionsPointer(gl, attribLocation): void;
-
     setupVertexNormalsPointer(gl, attribLocation): void;
-
     setupVertexUVPointer(gl, attribLocation): void;
+    setupTangentPointer(gl: WebGL2RenderingContext, attribLocation: number);
 
     draw(gl: WebGL2RenderingContext, renderMode?: number): void;
-
     delete(gl: WebGL2RenderingContext): void;
-
     prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext, program?: ShaderProgram, normals?: boolean, uv?: boolean, tangent?: boolean): void;
-
-    setupTangentPointer(gl: WebGL2RenderingContext, attribLocation: number);
 }
 
 
@@ -286,6 +285,9 @@ export class GLTFAccessor<T extends WebGLBufferI> {
     }
 
     setupVertexPointer(gl: WebGL2RenderingContext, attribLocation: number) {
+        if (attribLocation === -1) {
+            return;
+        }
         gl.bindBuffer(gl.ARRAY_BUFFER, this.webGlBuf);
         gl.enableVertexAttribArray(attribLocation);
         gl.vertexAttribPointer(
@@ -379,6 +381,18 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
     setupTangentPointer(gl: WebGL2RenderingContext, attribLocation: number) {
         this.tangent.setupVertexPointer(gl, attribLocation);
     }
+
+    hasNormals(): boolean {
+        return !!this.normal;
+    }
+
+    hasTangent(): boolean {
+        return !!this.tangent;
+    }
+
+    hasUV(): boolean {
+        return !!this.uv;
+    }
 }
 
 export class GLArrayBufferV1 implements GLArrayBufferI {
@@ -389,7 +403,7 @@ export class GLArrayBufferV1 implements GLArrayBufferI {
      */
     // REMOVE_ME_DATA: GLArrayBufferData;
 
-    constructor(gl: WebGL2RenderingContext, data: GLArrayBufferData, usage?: number, defaultRenderMode?: GLenum) {
+    constructor(gl: WebGL2RenderingContext, data: GLArrayBufferData, usage?: number) {
         if (usage === undefined) {
             usage = gl.STATIC_DRAW;
         }
@@ -466,5 +480,17 @@ export class GLArrayBufferV1 implements GLArrayBufferI {
 
     setupTangentPointer(gl: WebGL2RenderingContext, attribLocation: number) {
         throw new Error("not implemented");
+    }
+
+    hasNormals(): boolean {
+        return this.params.hasNormals;
+    }
+
+    hasTangent(): boolean {
+        return false;
+    }
+
+    hasUV(): boolean {
+        return this.params.hasUVs;
     }
 }

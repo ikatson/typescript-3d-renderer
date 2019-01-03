@@ -12,6 +12,7 @@ import * as ui from "./ui";
 import {SSAOConfig, SSAOState} from "./SSAOState";
 import {Material} from "./material";
 import {loadSceneFromGLTF} from "./gltf";
+import {SAMPLE_GLTF_SPONZA} from "./constants";
 
 
 const originZero = vec3.create();
@@ -335,7 +336,7 @@ function main() {
         const renderer = new DeferredRenderer(gl, rendererConfig, fb, sphereMesh, ssaoState);
         let scene = new Scene();
 
-        loadSceneFromGLTF(gl, "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Sponza/glTF/Sponza.gltf").then(newScene => {
+        loadSceneFromGLTF(gl, SAMPLE_GLTF_SPONZA).then(newScene => {
             scene = newScene;
             scene.directionalLights.push(sun.directionalLight);
             camera.far = 50;
