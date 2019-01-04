@@ -24,6 +24,6 @@ module.exports = {
         path: path.resolve(__dirname, 'dist')
     },
     optimization: {usedExports: true, sideEffects: true},
-    mode: 'development',
+    mode: 'production',
     watch: true
 };

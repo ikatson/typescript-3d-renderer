@@ -130,12 +130,12 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: Dire
     // Also we need to LIMIT the resulting bounding box to camera frustum.
     // makeWorldSpaceCameraFrustum(cameraClone, true)
 
-    const bbBuf = new Float32Array(8 * 3);
+    const tmpBoundingBoxVerticesBuf = new Float32Array(8 * 3);
     const tmpBoundingBox = new AxisAlignedBox();
-    const tmpArr = new Array(1);
-    let bb: AxisAlignedBox = null;
+    const tmpVec1 = new Array(1);
+    let allObjLSBoundingBox: AxisAlignedBox = null;
 
-    scene.children.forEach(o => {
+    scene.children.forEach((o, i) => {
         const bboxForObjInLightScreenSpace = (o: GameObject) => {
             o.children.forEach(c => {
                 bboxForObjInLightScreenSpace(c);
@@ -147,42 +147,41 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: Dire
 
             mat4.mul(tmpMat4, worldToLightViewSpace, o.transform.getModelToWorld());
 
-            const lightViewSpaceBbox = o.boundingBox.box.asVerticesBuffer(true)
-                .translateTo(tmpMat4, bbBuf)
+            const objLSBoundingBox = o.boundingBox.box.asVerticesBuffer(true)
+                .translateTo(tmpMat4, tmpBoundingBoxVerticesBuf)
                 .computeBoundingBox(tmpBoundingBox);
 
-            if (bb === null) {
-                bb = new AxisAlignedBox();
-                bb.setMin(lightViewSpaceBbox.min);
-                bb.setMax(lightViewSpaceBbox.max);
+            if (allObjLSBoundingBox === null) {
+                allObjLSBoundingBox = new AxisAlignedBox();
+                allObjLSBoundingBox.setMin(objLSBoundingBox.min);
+                allObjLSBoundingBox.setMax(objLSBoundingBox.max);
             } else {
-                tmpArr[0] = lightViewSpaceBbox;
-                bb = computeBoundingBox(tmpArr, false, bb, bb);
+                tmpVec1[0] = objLSBoundingBox;
+                allObjLSBoundingBox = computeBoundingBox(tmpVec1, false, allObjLSBoundingBox, allObjLSBoundingBox);
             }
         };
 
         bboxForObjInLightScreenSpace(o);
     });
 
-    if (bb === null) {
-        bb = new AxisAlignedBox();
+    if (allObjLSBoundingBox === null) {
+        allObjLSBoundingBox = tmpBoundingBox;
     }
 
     const lightClipSpaceMatrix = tmpMat4;
     const result = mat4.create();
 
-    let left, right, bottom, top, near, far: number;
     const [x, y, z] = [0, 1, 2];
 
-    left = bb.min[x];
-    right = bb.max[x];
+    const left = allObjLSBoundingBox.min[x];
+    const right = allObjLSBoundingBox.max[x];
 
-    bottom = bb.min[y];
-    top = bb.max[y];
+    const bottom = allObjLSBoundingBox.min[y];
+    const top = allObjLSBoundingBox.max[y];
 
     // note Z is reversed here
-    near = bb.min[z];
-    far = bb.max[z];
+    const near = allObjLSBoundingBox.min[z];
+    const far = allObjLSBoundingBox.max[z];
 
     myOrtho(lightClipSpaceMatrix, left, right, bottom, top, near, far);
     mat4.multiply(result, lightClipSpaceMatrix, worldToLightViewSpace);
