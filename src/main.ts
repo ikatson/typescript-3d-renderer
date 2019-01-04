@@ -394,15 +394,22 @@ function main() {
         corvette.addChild(aphrodite);
 
         let delta = 1000. / 60;
-        let start = new Date().getTime();
+        let lastStart = null;
 
-        function processFrame() {
+        function processFrame(timestamp: DOMHighResTimeStamp) {
             if (state.pause.checked) {
                 return;
             }
 
+            if (lastStart === null) {
+                delta = 1000 / 60;
+            } else {
+                delta = timestamp - lastStart;
+                lastStart = timestamp;
+            }
+
             pressedKeys.forEach((v, k) => {
-                const moveSpeed = delta * 0.0015;
+                const moveSpeed = delta * 0.003;
                 switch (k) {
                     case 'e':
                         vec3.scale(tmpVec3, camera.up, moveSpeed);
@@ -442,15 +449,11 @@ function main() {
                 corvette.transform.update();
 
                 vec3.normalize(sun.directionalLight.direction,
-                    [-0.5, -0.95, Math.sin(start / 8000) * 0.5]
+                    [-0.5, -0.95, Math.sin(timestamp / 8000) * 0.25]
                 );
             }
 
             renderer.render(scene, camera);
-
-            const end = new Date().getTime();
-            delta = end - start;
-            start = end;
 
             requestAnimationFrame(processFrame);
         }
@@ -573,11 +576,12 @@ function main() {
 
         state.pause.onChange.ref = isPaused => {
             if (!isPaused) {
+                lastStart = null;
                 requestAnimationFrame(processFrame);
             }
         };
 
-        processFrame()
+        requestAnimationFrame(processFrame)
 
     }, e => console.error(e));
 }
