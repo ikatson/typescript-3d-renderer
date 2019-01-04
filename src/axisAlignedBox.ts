@@ -14,7 +14,6 @@ export class AxisAlignedBox {
     private _cacheNeedsUpdate = false;
     private _vertexBufferCache: GLArrayBufferData = null;
 
-
     setMin(v: vec3 | number[]): AxisAlignedBox {
         vec3.copy(this._min, v);
         this._cacheNeedsUpdate = true;

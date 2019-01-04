@@ -66,34 +66,42 @@ export class GLArrayBufferDataParams {
 
 type DataOrBoundingBox = GLArrayBufferData | AxisAlignedBox;
 
-export const computeBoundingBox = (objects: DataOrBoundingBox[], invertZ: boolean = false, target: AxisAlignedBox): AxisAlignedBox => {
-    const b = target || new AxisAlignedBox();
-    const min = [Infinity, Infinity, Infinity];
-    const max = [-Infinity, -Infinity, -Infinity];
+export const computeBoundingBox = (() => {
+    const tmpVec3_2 = vec3.create();
     const compareAndSet = (out: number[] | Float32Array, inp: number[] | Float32Array, f: (v: number, v1: number) => (number)) => {
         for (let i = 0; i < out.length; i++) {
             out[i] = f(out[i], inp[i]);
         }
     };
-
-    objects.forEach(o => {
-        if (o instanceof GLArrayBufferData) {
-            o.iterData((vs: number, ve: number) => {
-                const vertexView = o.buf.subarray(vs, ve);
-                compareAndSet(min, vertexView, Math.min);
-                compareAndSet(max, vertexView, Math.max);
-            });
-        } else if (o instanceof AxisAlignedBox) {
-            compareAndSet(min, o.min, Math.min);
-            compareAndSet(max, o.max, Math.max);
+    return (objects: DataOrBoundingBox[], invertZ: boolean = false, target?: AxisAlignedBox, start?: AxisAlignedBox): AxisAlignedBox => {
+        target = target || new AxisAlignedBox();
+        const min = tmpVec3;
+        const max = tmpVec3_2;
+        if (start) {
+            vec3.copy(min, start.min);
+            vec3.copy(max, start.max);
+        } else {
+            vec3.set(min, Infinity, Infinity, Infinity);
+            vec3.set(max, -Infinity, -Infinity, -Infinity);
         }
-    });
+        objects.forEach(o => {
+            if (o instanceof GLArrayBufferData) {
+                o.iterData((vs: number, ve: number) => {
+                    const vertexView = o.buf.subarray(vs, ve);
+                    compareAndSet(min, vertexView, Math.min);
+                    compareAndSet(max, vertexView, Math.max);
+                });
+            } else if (o instanceof AxisAlignedBox) {
+                compareAndSet(min, o.min, Math.min);
+                compareAndSet(max, o.max, Math.max);
+            }
+        });
 
-    b.setMin(min);
-    b.setMax(max);
-
-    return b;
-};
+        target.setMin(min);
+        target.setMax(max);
+        return target;
+    };
+})();
 
 export class GLArrayBufferData {
     buf: Float32Array;

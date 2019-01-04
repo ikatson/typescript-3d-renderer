@@ -132,7 +132,7 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: Dire
 
     const bbBuf = new Float32Array(8 * 3);
     const tmpBoundingBox = new AxisAlignedBox();
-
+    const tmpArr = new Array(1);
     let bb: AxisAlignedBox = null;
 
     scene.children.forEach(o => {
@@ -152,9 +152,12 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: Dire
                 .computeBoundingBox(tmpBoundingBox);
 
             if (bb === null) {
-                bb = lightViewSpaceBbox;
+                bb = new AxisAlignedBox();
+                bb.setMin(lightViewSpaceBbox.min);
+                bb.setMax(lightViewSpaceBbox.max);
             } else {
-                bb = computeBoundingBox([bb, lightViewSpaceBbox], false, bb)
+                tmpArr[0] = lightViewSpaceBbox;
+                bb = computeBoundingBox(tmpArr, false, bb, bb);
             }
         };
 
