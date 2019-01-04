@@ -347,14 +347,14 @@ function main() {
             rendererConfig.normalMapsEnabled = v;
         };
 
-        // loadSceneFromGLTF(gl, SAMPLE_GLTF_SPONZA).then(newScene => {
-        //     scene = newScene;
-        //     scene.directionalLights.push(sun.directionalLight);
-        //     camera.far = 50;
-        // }, (err) => {
-        //     console.error(err);
-        //     state.pause.checked = true;
-        // });
+        loadSceneFromGLTF(gl, SAMPLE_GLTF_SPONZA).then(newScene => {
+            scene = newScene;
+            scene.directionalLights.push(sun.directionalLight);
+            camera.far = 50;
+        }, (err) => {
+            console.error(err);
+            state.pause.checked = true;
+        });
 
         const v3 = v => vec3.fromValues(v, v, v);
 

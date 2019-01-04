@@ -2,16 +2,28 @@ import {ArrayBufferDataType, GLArrayBufferData, GLArrayBufferDataParams} from ".
 import {vec3} from "gl-matrix";
 
 export class AxisAlignedBox {
-    min = vec3.fromValues(-1, -1, -1);
-    max = vec3.fromValues(1, 1, 1);
+    get max(): vec3 {
+        return this._max;
+    }
+    get min(): vec3 {
+        return this._min;
+    }
+    private _min = vec3.fromValues(-1, -1, -1);
+    private _max = vec3.fromValues(1, 1, 1);
+
+    private _cacheNeedsUpdate = false;
+    private _vertexBufferCache: GLArrayBufferData = null;
+
 
     setMin(v: vec3 | number[]): AxisAlignedBox {
-        vec3.copy(this.min, v);
+        vec3.copy(this._min, v);
+        this._cacheNeedsUpdate = true;
         return this;
     }
 
     setMax(v: vec3 | number[]): AxisAlignedBox {
-        vec3.copy(this.max, v);
+        vec3.copy(this._max, v);
+        this._cacheNeedsUpdate = true;
         return this;
     }
 
@@ -20,31 +32,36 @@ export class AxisAlignedBox {
         const y = 1;
         const z = 2;
 
-        const dlf = [this.min[x], this.min[y], this.max[z]];
-        const dlb = [this.min[x], this.min[y], this.min[z]];
+        const dlf = [this._min[x], this._min[y], this._max[z]];
+        const dlb = [this._min[x], this._min[y], this._min[z]];
 
-        const drf = [this.max[x], this.min[y], this.max[z]];
-        const drb = [this.max[x], this.min[y], this.min[z]];
+        const drf = [this._max[x], this._min[y], this._max[z]];
+        const drb = [this._max[x], this._min[y], this._min[z]];
 
-        const urf = [this.max[x], this.max[y], this.max[z]];
-        const urb = [this.max[x], this.max[y], this.min[z]];
+        const urf = [this._max[x], this._max[y], this._max[z]];
+        const urb = [this._max[x], this._max[y], this._min[z]];
 
-        const ulf = [this.min[x], this.max[y], this.max[z]];
-        const ulb = [this.min[x], this.max[y], this.min[z]];
+        const ulf = [this._min[x], this._max[y], this._max[z]];
+        const ulb = [this._min[x], this._max[y], this._min[z]];
 
         return [
             dlf, dlb, drf, drb, urf, urb, ulf, ulb
         ]
     }
 
-    asVerticesBuffer(): GLArrayBufferData {
+    asVerticesBuffer(allowCached: boolean = true): GLArrayBufferData {
+        if (allowCached && !this._cacheNeedsUpdate && !!this._vertexBufferCache) {
+            return this._vertexBufferCache;
+        }
         const params = new GLArrayBufferDataParams(false, false, 8, ArrayBufferDataType.POINTS);
         params.elementSize = 3;
         const data = [];
         this.uniqueVertices().forEach(v => {
             data.push(...v);
         });
-        return new GLArrayBufferData(new Float32Array(data), params);
+        this._vertexBufferCache = new GLArrayBufferData(new Float32Array(data), params);
+        this._cacheNeedsUpdate = false;
+        return this._vertexBufferCache;
     }
 
     asWireFrameBuffer(): GLArrayBufferData {

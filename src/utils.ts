@@ -131,6 +131,9 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: Dire
     // makeWorldSpaceCameraFrustum(cameraClone, true)
 
     const lightViewSpaceBoundingBoxes: AxisAlignedBox[] = [];
+    const bbBuf = new Float32Array(8 * 3);
+
+    let bb: AxisAlignedBox = null;
 
     scene.children.forEach(o => {
         const bboxForObjInLightScreenSpace = (o: GameObject) => {
@@ -144,17 +147,24 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: Dire
 
             mat4.mul(tmpMat4, worldToLightViewSpace, o.transform.getModelToWorld());
 
-            lightViewSpaceBoundingBoxes.push(
-                o.boundingBox.box.asVerticesBuffer()
-                    .translateInPlace(tmpMat4)
-                    .computeBoundingBox()
-            );
+            const lightViewSpaceBbox = o.boundingBox.box.asVerticesBuffer(true)
+                .translateTo(tmpMat4, bbBuf)
+                .computeBoundingBox();
+
+            if (bb === null) {
+                bb = lightViewSpaceBbox;
+            } else {
+                bb = computeBoundingBox([bb, lightViewSpaceBbox])
+            }
         };
 
         bboxForObjInLightScreenSpace(o);
     });
 
-    const bb = computeBoundingBox(lightViewSpaceBoundingBoxes);
+    if (bb === null) {
+        bb = new AxisAlignedBox();
+    }
+
     const lightClipSpaceMatrix = tmpMat4;
     const result = mat4.create();
 
