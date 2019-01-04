@@ -122,38 +122,33 @@ export class ObjParser {
     }
 }
 
-export function fetchObject(url: string, progressCallback?: Function, parser?: ObjParser): Promise<ObjParser> {
-    return fetch(url).then(response => {
-        if (progressCallback) {
-            progressCallback({ headers: response.headers });
+export async function fetchObject(url: string, progressCallback?: Function, parser?: ObjParser): Promise<ObjParser> {
+    const response = await fetch(url);
+    if (progressCallback) {
+        progressCallback({headers: response.headers});
+    }
+    // Chrome supports incremental fetching, this is more efficient.
+    if (response.body) {
+        const reader = response.body.getReader();
+        const objParser = parser || new ObjParser();
+        while (true) {
+            const {done, value} = await reader.read();
+            if (done) {
+                break;
+            }
+            objParser.feedByteChunk(value);
+            if (progressCallback) {
+                progressCallback({length: value.length});
+            }
         }
-
-        // Chrome supports incremental fetching, this is more efficient.
-        if (response.body) {
-            const reader = response.body.getReader();
-            const objParser = parser || new ObjParser();
-
-            return reader.read().then(function readChunk({ done, value }) {
-                if (done) {
-                    objParser.endParsing();
-                    console.log(`fetched object from ${url}`);
-                    return objParser;
-                }
-                objParser.feedByteChunk(value);
-
-                if (progressCallback) {
-                    progressCallback({ length: value.length });
-                }
-
-                return reader.read().then(readChunk);
-            });
-        } else {
-            const objParser = parser || new ObjParser();
-            return response.arrayBuffer().then(data => {
-                objParser.feedByteChunk(data);
-                objParser.endParsing();
-                return objParser;
-            })
-        }
-    });
+        objParser.endParsing();
+        console.log(`fetched object from ${url}`);
+        return objParser;
+    } else {
+        const objParser = parser || new ObjParser();
+        const data = await response.arrayBuffer();
+        objParser.feedByteChunk(data);
+        objParser.endParsing();
+        return objParser;
+    }
 }
