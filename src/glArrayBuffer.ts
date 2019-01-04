@@ -124,7 +124,7 @@ export class GLArrayBufferData {
             }
             // @ts-ignore
             transform(tmpVec4, v, matrix);
-            result.push(...tmpVec4.slice(0, l));
+            result.push(...tmpVec4.subarray(0, l));
 
             // TODO: translate normal
             result.push(...i.normal);
@@ -145,9 +145,9 @@ export class GLArrayBufferData {
             const uvoffset = this.params.hasNormals ? noffset + this.params.normalsSize : noffset;
 
             callback({
-                vertex: this.buf.slice(offset, offset + this.params.elementSize),
-                normal: this.buf.slice(noffset, this.params.hasNormals ? noffset + this.params.normalsSize : noffset),
-                uv: this.buf.slice(uvoffset, this.params.hasUVs ? uvoffset + this.params.uvSize : uvoffset),
+                vertex: this.buf.subarray(offset, offset + this.params.elementSize),
+                normal: this.buf.subarray(noffset, this.params.hasNormals ? noffset + this.params.normalsSize : noffset),
+                uv: this.buf.subarray(uvoffset, this.params.hasUVs ? uvoffset + this.params.uvSize : uvoffset),
             });
         }
     };

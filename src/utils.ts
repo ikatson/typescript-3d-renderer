@@ -150,7 +150,7 @@ export const makeWorldSpaceCameraFrustum = (camera: Camera, pointsOnly: boolean 
         vec4.scale(v, v, 1. / v[3]);
         vec4.transformMat4(v, v, camToWorld);
 
-        data.push(...v.slice(0, cubeVertices.params.elementSize));
+        data.push(...v.subarray(0, cubeVertices.params.elementSize));
     });
 
     return new GLArrayBufferData(new Float32Array(data), cubeVertices.params);
