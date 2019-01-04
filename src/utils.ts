@@ -130,8 +130,8 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: Dire
     // Also we need to LIMIT the resulting bounding box to camera frustum.
     // makeWorldSpaceCameraFrustum(cameraClone, true)
 
-    const lightViewSpaceBoundingBoxes: AxisAlignedBox[] = [];
     const bbBuf = new Float32Array(8 * 3);
+    const tmpBoundingBox = new AxisAlignedBox();
 
     let bb: AxisAlignedBox = null;
 
@@ -149,12 +149,12 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: Dire
 
             const lightViewSpaceBbox = o.boundingBox.box.asVerticesBuffer(true)
                 .translateTo(tmpMat4, bbBuf)
-                .computeBoundingBox();
+                .computeBoundingBox(tmpBoundingBox);
 
             if (bb === null) {
                 bb = lightViewSpaceBbox;
             } else {
-                bb = computeBoundingBox([bb, lightViewSpaceBbox])
+                bb = computeBoundingBox([bb, lightViewSpaceBbox], false, bb)
             }
         };
 

@@ -94,7 +94,7 @@ export class ObjParser {
         }
     }
 
-    feedByteChunk(data: Uint8Array) {
+    feedByteChunk(data: BufferSource) {
         const text = this.textDecoder.decode(data, { stream: true });
         const lines = text.split('\n');
         lines[0] = this.lineBuf + lines[0];
@@ -123,36 +123,37 @@ export class ObjParser {
 }
 
 export function fetchObject(url: string, progressCallback?: Function, parser?: ObjParser): Promise<ObjParser> {
-    return new Promise<ObjParser>((resolve, reject) => {
-        fetch(url).then(response => {
-            if (progressCallback) {
-                progressCallback({ headers: response.headers });
-            }
+    return fetch(url).then(response => {
+        if (progressCallback) {
+            progressCallback({ headers: response.headers });
+        }
 
+        // Chrome supports incremental fetching, this is more efficient.
+        if (response.body) {
             const reader = response.body.getReader();
             const objParser = parser || new ObjParser();
 
-            reader.read().then(function readChunk({ done, value }) {
-                try {
-                    if (done) {
-                        objParser.endParsing();
-                        console.log(`fetched object from ${url}`);
-                        resolve(objParser);
-                        return;
-                    }
-                    objParser.feedByteChunk(value);
-                } catch (e) {
-                    reject(e);
-                    reader.cancel();
-                    return;
+            return reader.read().then(function readChunk({ done, value }) {
+                if (done) {
+                    objParser.endParsing();
+                    console.log(`fetched object from ${url}`);
+                    return objParser;
                 }
+                objParser.feedByteChunk(value);
 
                 if (progressCallback) {
                     progressCallback({ length: value.length });
                 }
 
-                reader.read().then(readChunk, reject);
+                return reader.read().then(readChunk);
             });
-        }, reject);
+        } else {
+            const objParser = parser || new ObjParser();
+            return response.arrayBuffer().then(data => {
+                objParser.feedByteChunk(data);
+                objParser.endParsing();
+                return objParser;
+            })
+        }
     });
 }

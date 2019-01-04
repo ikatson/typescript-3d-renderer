@@ -66,8 +66,8 @@ export class GLArrayBufferDataParams {
 
 type DataOrBoundingBox = GLArrayBufferData | AxisAlignedBox;
 
-export const computeBoundingBox = (objects: DataOrBoundingBox[], invertZ: boolean = false): AxisAlignedBox => {
-    const b = new AxisAlignedBox();
+export const computeBoundingBox = (objects: DataOrBoundingBox[], invertZ: boolean = false, target: AxisAlignedBox): AxisAlignedBox => {
+    const b = target || new AxisAlignedBox();
     const min = [Infinity, Infinity, Infinity];
     const max = [-Infinity, -Infinity, -Infinity];
     const compareAndSet = (out: number[] | Float32Array, inp: number[] | Float32Array, f: (v: number, v1: number) => (number)) => {
@@ -143,8 +143,8 @@ export class GLArrayBufferData {
         return new GLArrayBufferData(new Float32Array(result), this.params);
     }
 
-    computeBoundingBox(): AxisAlignedBox {
-        return computeBoundingBox([this]);
+    computeBoundingBox(target?: AxisAlignedBox): AxisAlignedBox {
+        return computeBoundingBox([this], false, target);
     }
 
     iterData(callback: (vs: number, ve: number, ns: number, ne: number, us: number, ue: number) => void) {

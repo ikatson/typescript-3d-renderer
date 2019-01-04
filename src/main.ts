@@ -397,8 +397,6 @@ function main() {
         let start = new Date().getTime();
 
         function processFrame() {
-            // console.log({mat4, vec3})
-            // debugger;
             if (state.pause.checked) {
                 return;
             }
@@ -443,7 +441,7 @@ function main() {
                 corvette.transform.rotation[1] += delta / 2000;
                 corvette.transform.update();
 
-                sun.directionalLight.direction = vec3.normalize(sun.directionalLight.direction,
+                vec3.normalize(sun.directionalLight.direction,
                     [-0.5, -0.95, Math.sin(start / 8000) * 0.5]
                 );
             }
@@ -505,7 +503,7 @@ function main() {
                 camera.update()
             }
 
-            event.preventDefault();
+            ev.preventDefault();
         };
 
         state.ssr.enable.onChange.ref = updateSSRConfig;

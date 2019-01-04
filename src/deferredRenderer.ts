@@ -715,11 +715,12 @@ export class LightingRenderer {
         setStencilOnlyNormal();
 
         scene.directionalLights.forEach((light, i) => {
-            const lightCameraWorldToProjectionMatrix = computeDirectionalLightCameraWorldToProjectionMatrix(
-                light, camera, scene
-            );
+            let lightCameraWorldToProjectionMatrix = null;
 
             if (this.config.shadowMap.enabled) {
+                lightCameraWorldToProjectionMatrix = computeDirectionalLightCameraWorldToProjectionMatrix(
+                    light, camera, scene
+                );
                 gl.disable(gl.STENCIL_TEST);
                 this.shadowMapRenderer.render(gl, lightCameraWorldToProjectionMatrix, scene);
 
@@ -749,11 +750,13 @@ export class LightingRenderer {
             gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_PERSPECTIVE_MATRIX), false, camera.projectionMatrix().matrix);
             gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_CAMERA_TO_WORLD_MAT4), false, camera.getCameraToWorld());
 
-            const cameraViewSpaceToLightCamera = tmpMat4;
-            mat4.multiply(cameraViewSpaceToLightCamera, lightCameraWorldToProjectionMatrix.matrix, camera.getCameraToWorld());
-            gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_cameraViewSpaceToLightCamera"), false, cameraViewSpaceToLightCamera);
-            gl.uniform1f(s.getUniformLocation(gl, "u_lightNear"), lightCameraWorldToProjectionMatrix.near);
-            gl.uniform1f(s.getUniformLocation(gl, "u_lightFar"), lightCameraWorldToProjectionMatrix.far);
+            if (this.config.shadowMap.enabled) {
+                const cameraViewSpaceToLightCamera = tmpMat4;
+                mat4.multiply(cameraViewSpaceToLightCamera, lightCameraWorldToProjectionMatrix.matrix, camera.getCameraToWorld());
+                gl.uniformMatrix4fv(s.getUniformLocation(gl, "u_cameraViewSpaceToLightCamera"), false, cameraViewSpaceToLightCamera);
+                gl.uniform1f(s.getUniformLocation(gl, "u_lightNear"), lightCameraWorldToProjectionMatrix.near);
+                gl.uniform1f(s.getUniformLocation(gl, "u_lightFar"), lightCameraWorldToProjectionMatrix.far);
+            }
 
             gl.uniform3fv(s.getUniformLocation(gl, "u_lightData"), this.generateDirectionalLightData(light));
 
@@ -807,7 +810,7 @@ export class LightingRenderer {
                 // NO shadow map support yet.
                 gl.uniform3fv(s.getUniformLocation(gl, "u_lightData"), this.generatePointLightData(light));
 
-                // 2 is because the sphere mesh is of size 1.
+                // 2 is because the sphere mesh is of diameter 1 (radius 0.5), so we scale it to radius = 1.
                 // 2.1 is to round the imperfect sphere shape, as it is very low poly.
                 const scale = (light.radius) * 2.1;
                 tc.scale = vec3.fromValues(scale, scale, scale);
@@ -897,7 +900,7 @@ export class LightingRenderer {
         result.push(...l.direction);
         result.push(...l.color);
         // the 2 zeroes are unused.
-        result.push(...[l.intensity, 0, 0]);
+        result.push(l.intensity, 0, 0);
         return new Float32Array(result);
     }
 
@@ -905,7 +908,7 @@ export class LightingRenderer {
         let result: number[] = [];
         result.push(...l.object.transform.position);
         result.push(...l.color);
-        result.push(...[l.intensity, l.radius, 0]);
+        result.push(l.intensity, l.radius, 0);
         return new Float32Array(result);
     }
 }
