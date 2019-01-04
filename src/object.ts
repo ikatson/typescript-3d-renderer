@@ -174,7 +174,7 @@ export class GameObject {
         this.children.push(o);
         o.parent = this;
         o.transform.update();
-        console.log(`added ${o.name} as child of ${this.fqdn()}`);
+        // console.log(`added ${o.name} as child of ${this.fqdn()}`);
     }
 
     fqdn() {

@@ -36,6 +36,6 @@ export class Scene {
         this.children.push(o);
         o.parent = null;
         o.transform.update();
-        console.log(`added ${o.fqdn()} to scene`)
+        // console.log(`added ${o.fqdn()} to scene`)
     }
 }

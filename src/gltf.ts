@@ -51,7 +51,7 @@ export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename
 
     const loadImage = (id: number): Promise<HTMLImageElement> => {
         return mapComputeIfAbsent(images, id, (id) => {
-            console.log(`loading image ${id}`);
+            // console.log(`loading image ${id}`);
             const img = g.images[id];
             const uri = urlJoin(img.uri);
             return new Promise((resolve, reject) => {
@@ -75,9 +75,7 @@ export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename
         if (response.status != 200) {
             throw new Error(`Unexpected response: ${response.status}`);
         }
-        const buf = await response.arrayBuffer();
-        console.log('length', buf.byteLength);
-        return buf;
+        return await response.arrayBuffer();
     }
 
     const loadBuffer = (id: number): Promise<ArrayBuffer> => {
