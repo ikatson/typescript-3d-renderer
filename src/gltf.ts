@@ -1,9 +1,8 @@
 import {Scene} from "./scene";
-import {GltfLoader} from "gltf-loader-ts";
 import {vec3, vec4} from "gl-matrix";
 import {Texture} from "./texture";
 import {Material} from "./material";
-import {MeshPrimitive} from "gltf-loader-ts/lib/gltf";
+import {GlTf, MeshPrimitive} from "gltf-loader-ts/lib/gltf";
 import {
     ArrayWebGLBufferWrapper,
     BufferView,
@@ -25,11 +24,14 @@ export function constructUrlBase(url: string) {
 }
 
 export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename: string): Promise<Scene> {
-    const loader = new GltfLoader();
     const scene = new Scene();
 
-    let asset = await loader.load(gltfFilename);
-    let g = asset.gltf;
+    let g: GlTf = await fetch(gltfFilename).then(response => {
+        if (!response.ok) {
+            throw new Error(response.statusText);
+        }
+        return <Promise<GlTf>> response.json();
+    });
 
     const buffers = new Map();
     const bufferViewsIndices = new Map();
@@ -49,8 +51,21 @@ export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename
 
     const loadImage = (id: number): Promise<HTMLImageElement> => {
         return mapComputeIfAbsent(images, id, (id) => {
-            console.log('loading image with id ', id);
-            return asset.imageData.get(id);
+            console.log(`loading image ${id}`);
+            const img = g.images[id];
+            const uri = urlJoin(img.uri);
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.src = uri;
+                img.crossOrigin = "anonymous";
+                img.addEventListener('load', () => {
+                    resolve(img);
+                });
+                img.addEventListener('error', e => {
+                    console.log(`error loading image ${id}`);
+                    reject(e);
+                })
+            });
         });
     };
 
