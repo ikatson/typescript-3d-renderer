@@ -109,9 +109,17 @@ export class GLArrayBufferData {
 
     translate(matrix: mat4): GLArrayBufferData {
         const result = new Float32Array(this.buf.length);
+        return this.translateTo(matrix, result);
+    }
+
+    translateInPlace(matrix: mat4): GLArrayBufferData {
+        this.translateTo(matrix, this.buf);
+        return this;
+    }
+
+    translateTo(matrix: mat4, result: Float32Array): GLArrayBufferData {
         this.iterData((vs: number, ve: number, ns: number, ne: number, us: number, ue: number) => {
             let l = ve - vs;
-            let transform = vec4.transformMat4;
             if (l === 3) {
                 tmpVec3[0] = this.buf[vs];
                 tmpVec3[1] = this.buf[vs + 1];
@@ -128,7 +136,9 @@ export class GLArrayBufferData {
             }
 
             // TODO: translate normals. this just copies normals and uvs back
-            result.set(this.buf.subarray(ns, ue), ns);
+            for (let i = ns; i < ue; i++) {
+                result[i] = this.buf[i];
+            }
         });
         return new GLArrayBufferData(new Float32Array(result), this.params);
     }

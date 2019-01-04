@@ -142,10 +142,11 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: Dire
                 return;
             }
 
+            mat4.mul(tmpMat4, worldToLightViewSpace, o.transform.getModelToWorld());
+
             lightViewSpaceBoundingBoxes.push(
                 o.boundingBox.box.asVerticesBuffer()
-                    .translate(o.transform.getModelToWorld())
-                    .translate(worldToLightViewSpace)
+                    .translateInPlace(tmpMat4)
                     .computeBoundingBox()
             );
         };
