@@ -1,5 +1,5 @@
 import {FragmentShader, ShaderProgram, VertexShader} from "./shaders";
-import { FullScreenQuad } from "./utils";
+import { FullScreenQuad } from "./quad";
 
 export class ProgressBarCommon {
     fs: FragmentShader

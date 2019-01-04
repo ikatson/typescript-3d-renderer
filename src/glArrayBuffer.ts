@@ -2,9 +2,9 @@ import {ShaderProgram} from "./shaders";
 import {AxisAlignedBox} from "./axisAlignedBox";
 import {mat4, vec3, vec4} from "gl-matrix";
 import {Accessor} from "gltf-loader-ts/lib/gltf";
-import {GLTF_COMPONENT_TYPE_ARRAYS} from "gltf-loader-ts";
 import {GLTF} from "./gltf-enums";
 import {ATTRIBUTE_NORMALS, ATTRIBUTE_POSITION, ATTRIBUTE_TANGENT, ATTRIBUTE_UV} from "./constants";
+import {tmpVec3} from "./utils";
 
 const FLOAT_BYTES = 4;
 const VEC3 = 3;
@@ -64,12 +64,6 @@ export class GLArrayBufferDataParams {
     }
 }
 
-export type GLArrayBufferDataIterResult = {
-    vertex: Float32Array,
-    normal: Float32Array,
-    uv: Float32Array,
-}
-
 type DataOrBoundingBox = GLArrayBufferData | AxisAlignedBox;
 
 export const computeBoundingBox = (objects: DataOrBoundingBox[], invertZ: boolean = false): AxisAlignedBox => {
@@ -84,9 +78,10 @@ export const computeBoundingBox = (objects: DataOrBoundingBox[], invertZ: boolea
 
     objects.forEach(o => {
         if (o instanceof GLArrayBufferData) {
-            o.iterData((v: GLArrayBufferDataIterResult) => {
-                compareAndSet(min, v.vertex, Math.min);
-                compareAndSet(max, v.vertex, Math.max);
+            o.iterData((vs: number, ve: number) => {
+                const vertexView = o.buf.subarray(vs, ve);
+                compareAndSet(min, vertexView, Math.min);
+                compareAndSet(max, vertexView, Math.max);
             });
         } else if (o instanceof AxisAlignedBox) {
             compareAndSet(min, o.min, Math.min);
@@ -114,21 +109,28 @@ export class GLArrayBufferData {
 
     translate(matrix: mat4): GLArrayBufferData {
         const result = [];
-        this.iterData((i: GLArrayBufferDataIterResult) => {
-            let v = i.vertex;
-            let l = v.length;
+        this.iterData((vs: number, ve: number, ns: number, ne: number, us: number, ue: number) => {
+            let l = ve - vs;
             let transform = vec4.transformMat4;
             if (l === 3) {
-                // @ts-ignore
-                transform = vec3.transformMat4;
+                tmpVec3[0] = this.buf[vs];
+                tmpVec3[1] = this.buf[vs + 1];
+                tmpVec3[2] = this.buf[vs + 2];
+                vec3.transformMat4(tmpVec3, tmpVec3, matrix);
+                result.push(...tmpVec3);
+            } else {
+                tmpVec4[0] = this.buf[vs];
+                tmpVec4[1] = this.buf[vs + 1];
+                tmpVec4[2] = this.buf[vs + 2];
+                tmpVec4[3] = this.buf[vs + 3];
+                vec4.transformMat4(tmpVec4, tmpVec4, matrix);
+                result.push(...tmpVec4);
             }
-            // @ts-ignore
-            transform(tmpVec4, v, matrix);
-            result.push(...tmpVec4.subarray(0, l));
 
-            // TODO: translate normal
-            result.push(...i.normal);
-            result.push(...i.uv);
+            // TODO: translate normals. this just copies normals and uvs back
+            for (let i = ns; i < ue; i++) {
+                result.push(this.buf[i]);
+            }
         });
         return new GLArrayBufferData(new Float32Array(result), this.params);
     }
@@ -137,18 +139,18 @@ export class GLArrayBufferData {
         return computeBoundingBox([this]);
     }
 
-    iterData(callback: (GLArrayBufferDataIterResult) => void) {
+    iterData(callback: (vs: number, ve: number, ns: number, ne: number, us: number, ue: number) => void) {
         const stride = this.params.computeStrideInElements();
         for (let i = 0; i < this.params.vertexCount; i++) {
             const offset = i * stride;
             const noffset = offset + this.params.elementSize;
             const uvoffset = this.params.hasNormals ? noffset + this.params.normalsSize : noffset;
 
-            callback({
-                vertex: this.buf.subarray(offset, offset + this.params.elementSize),
-                normal: this.buf.subarray(noffset, this.params.hasNormals ? noffset + this.params.normalsSize : noffset),
-                uv: this.buf.subarray(uvoffset, this.params.hasUVs ? uvoffset + this.params.uvSize : uvoffset),
-            });
+            callback(
+                offset, offset + this.params.elementSize,
+                noffset, this.params.hasNormals ? noffset + this.params.normalsSize : noffset,
+                uvoffset, this.params.hasUVs ? uvoffset + this.params.uvSize : uvoffset,
+            );
         }
     };
 }

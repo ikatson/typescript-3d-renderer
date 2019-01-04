@@ -8,7 +8,7 @@ import {GBUFFER_SHADER_SOURCE} from "./shaders/gBuffer";
 import {SSAO_SHADER_SOURCE} from "./shaders/ssao";
 import {VISUALIZE_LIGHTS_SHADERS} from "./shaders/visualize-lights";
 import {SSAOConfig, SSAOState} from "./SSAOState";
-import {computeDirectionalLightCameraWorldToProjectionMatrix, FullScreenQuad, tmpMat4,} from "./utils";
+import {computeDirectionalLightCameraWorldToProjectionMatrix, tmpMat4,} from "./utils";
 import {SHADOWMAP_SHADERS} from "./shaders/shadowMap";
 import {GLArrayBufferI} from "./glArrayBuffer";
 import {Material, TextureOrValue} from "./material";
@@ -27,6 +27,7 @@ import {
     UNIFORM_PERSPECTIVE_MATRIX,
     UNIFORM_WORLD_TO_CAMERA_MAT4
 } from "./constants";
+import {FullScreenQuad} from "./quad";
 
 export class ShadowMapConfig {
     enabled: boolean;

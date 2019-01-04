@@ -1,5 +1,5 @@
 import {fetchObject} from "./objparser";
-import {clip, FullScreenQuad, hexToRgb1, initGL, QuadArrayBufferData, tmpVec3, tmpVec4} from "./utils";
+import {clip, hexToRgb1, initGL, tmpVec3, tmpVec4} from "./utils";
 import {ProgressBar, ProgressBarCommon} from "./progressbar";
 import {BoundingBoxComponent, DirectionalLight, GameObjectBuilder, MaterialComponent, MeshComponent} from "./object";
 import {Camera} from "./camera";
@@ -13,6 +13,7 @@ import {SSAOConfig, SSAOState} from "./SSAOState";
 import {Material} from "./material";
 import {loadSceneFromGLTF} from "./gltf";
 import {SAMPLE_GLTF_SPONZA} from "./constants";
+import {FullScreenQuad, QuadArrayBufferData} from "./quad";
 
 
 const originZero = vec3.create();

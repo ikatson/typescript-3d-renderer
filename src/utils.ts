@@ -1,68 +1,10 @@
 import {mat4, vec3, vec4} from "gl-matrix";
-import {VertexShader} from "./shaders";
 import {fetchObject, ObjParser} from "./objparser";
-import {
-    ArrayBufferDataType,
-    computeBoundingBox,
-    GLArrayBufferData,
-    GLArrayBufferDataIterResult,
-    GLArrayBufferDataParams,
-    GLArrayBufferI
-} from "./glArrayBuffer";
+import {computeBoundingBox, GLArrayBufferData} from "./glArrayBuffer";
 import {Camera, ProjectionMatrix} from "./camera";
 import {AxisAlignedBox} from "./axisAlignedBox";
 import {Scene} from "./scene";
 import {DirectionalLight, GameObject} from "./object";
-// import {GltfLoader} from "../node_modules/gltf-loader-ts/dist/gltf-loader.js";
-
-export const QuadVertices = new Float32Array([
-    -1.0, 1.0,
-    -1.0, -1.0,
-    1.0, 1.0,
-    1.0, -1.0,
-]);
-
-export const QuadArrayBufferData = (() => {
-    const params = new GLArrayBufferDataParams(
-        false, false, 4, ArrayBufferDataType.TRIANGLE_STRIP
-    );
-    params.elementSize = 2;
-    return new GLArrayBufferData(QuadVertices, params);
-})();
-
-export const FULLSCREEN_QUAD_VS = `
-precision highp float;
-
-in vec2 a_pos;
-out vec2 v_pos;
-out vec2 tx_pos;
-
-void main() {
-    gl_Position = vec4(a_pos, 0., 1.);
-    v_pos = a_pos;
-    tx_pos = v_pos.xy * 0.5 + 0.5;
-}
-`
-
-export class FullScreenQuad {
-    private glArrayBuffer: GLArrayBufferI;
-    vertexShader: VertexShader;
-
-    constructor(gl: WebGL2RenderingContext, quadBuffer: GLArrayBufferI) {
-        this.glArrayBuffer = quadBuffer;
-        this.vertexShader = new VertexShader(gl, FULLSCREEN_QUAD_VS);
-        // this object owns the shader, don't let others delete it recursively.
-        this.vertexShader.setAutodelete(false);
-    }
-
-    bind(gl: WebGL2RenderingContext, vertexPositionLocation: number) {
-        this.glArrayBuffer.setupVertexPositionsPointer(gl, vertexPositionLocation);
-    }
-
-    draw(gl: WebGL2RenderingContext) {
-        this.glArrayBuffer.draw(gl);
-    }
-}
 
 export function initGL(canvas: HTMLCanvasElement): WebGL2RenderingContext {
     let gl = <WebGL2RenderingContext>canvas.getContext("webgl2");
@@ -137,13 +79,16 @@ export const makeWorldSpaceCameraFrustum = (camera: Camera, pointsOnly: boolean 
 
     const data = [];
 
-    cubeVertices.iterData((i: GLArrayBufferDataIterResult) => {
+    cubeVertices.iterData((vs: number, ve: number) => {
         const v = tmpVec4;
+        const l = ve - vs;
 
-        if (i.vertex.length != 4) {
-            vec4.copy(v, [...i.vertex, 1.]);
+        if (l != 4) {
+            // @ts-ignore
+            vec4.copy(v, ...cubeVertices.buf.subarray(vs, ve), 1.);
         } else {
-            vec4.copy(v, <vec4> i.vertex);
+            // @ts-ignore
+            vec4.copy(v, ...cubeVertices.buf.subarray(vs, ve));
         }
 
         vec4.transformMat4(v, v, tmpMat4);
