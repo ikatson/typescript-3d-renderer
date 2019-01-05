@@ -174,32 +174,30 @@ export const computeBoundingBoxInTransformedSpace = (() => {
         let allBB: AxisAlignedBox = null;
         objFilter = objFilter || (_ => true);
 
-        scene.children.forEach(o => {
-            const bboxForChildInTransformedSpace = (o: GameObject) => {
-                o.children.forEach(bboxForChildInTransformedSpace);
+        const bboxForChildInTransformedSpace = (o: GameObject) => {
+            o.children.forEach(bboxForChildInTransformedSpace);
 
-                if (!(o.mesh && o.boundingBox && objFilter(o))) {
-                    return;
-                }
+            if (!(o.mesh && o.boundingBox && objFilter(o))) {
+                return;
+            }
 
-                mat4.mul(tmpMat4, transform, o.transform.getModelToWorld());
+            mat4.mul(tmpMat4, transform, o.transform.getModelToWorld());
 
-                const objLSBoundingBox = o.boundingBox.box.asVerticesBuffer(true)
-                    .translateTo(tmpMat4, tmpBoundingBoxVerticesBuf())
-                    .computeBoundingBox(bb(0));
+            const objLSBoundingBox = o.boundingBox.box.asVerticesBuffer(true)
+                .translateTo(tmpMat4, tmpBoundingBoxVerticesBuf())
+                .computeBoundingBox(bb(0));
 
-                if (allBB === null) {
-                    allBB = target || bb(1);
-                    allBB.setMin(objLSBoundingBox.min);
-                    allBB.setMax(objLSBoundingBox.max);
-                } else {
-                    tmpVec1[0] = objLSBoundingBox;
-                    allBB = computeBoundingBox(tmpVec1, false, allBB, allBB);
-                }
-            };
+            if (allBB === null) {
+                allBB = target || bb(1);
+                allBB.setMin(objLSBoundingBox.min);
+                allBB.setMax(objLSBoundingBox.max);
+            } else {
+                tmpVec1[0] = objLSBoundingBox;
+                allBB = computeBoundingBox(tmpVec1, false, allBB, allBB);
+            }
+        };
 
-            bboxForChildInTransformedSpace(o);
-        });
+        scene.children.forEach(bboxForChildInTransformedSpace);
 
         if (allBB === null) {
             allBB = target || bb(1);

@@ -11,6 +11,7 @@ const VEC3 = 3;
 const VEC4 = 4;
 const UV_SIZE = 2;
 
+const tmpVec1 = new Array(1);
 const tmpVec4 = vec4.create();
 
 export enum ArrayBufferDataType {
@@ -67,7 +68,9 @@ export class GLArrayBufferDataParams {
 type DataOrBoundingBox = GLArrayBufferData | AxisAlignedBox;
 
 export const computeBoundingBox = (() => {
-    const tmpVec3_2 = vec3.create();
+    const min = vec3.create();
+    const max = vec3.create();
+
     const compareAndSet = (out: number[] | Float32Array, inp: number[] | Float32Array, offset: number, f: (v: number, v1: number) => (number)) => {
         for (let i = 0; i < out.length; i++) {
             out[i] = f(out[i], inp[offset + i]);
@@ -75,8 +78,7 @@ export const computeBoundingBox = (() => {
     };
     return (objects: DataOrBoundingBox[], invertZ: boolean = false, target?: AxisAlignedBox, start?: AxisAlignedBox): AxisAlignedBox => {
         target = target || new AxisAlignedBox();
-        const min = tmpVec3;
-        const max = tmpVec3_2;
+
         if (start) {
             vec3.copy(min, start.min);
             vec3.copy(max, start.max);
@@ -84,9 +86,9 @@ export const computeBoundingBox = (() => {
             vec3.set(min, Infinity, Infinity, Infinity);
             vec3.set(max, -Infinity, -Infinity, -Infinity);
         }
-        objects.forEach(o => {
+        for (const o of objects) {
             if (o instanceof GLArrayBufferData) {
-                o.iterData((vs: number, ve: number) => {
+                o.iterData((vs: number) => {
                     compareAndSet(min, o.buf, vs, Math.min);
                     compareAndSet(max, o.buf, vs, Math.max);
                 });
@@ -94,7 +96,7 @@ export const computeBoundingBox = (() => {
                 compareAndSet(min, o.min, 0, Math.min);
                 compareAndSet(max, o.max, 0, Math.max);
             }
-        });
+        }
 
         target.setMin(min);
         target.setMax(max);
@@ -157,7 +159,8 @@ export class GLArrayBufferData {
     }
 
     computeBoundingBox(target?: AxisAlignedBox): AxisAlignedBox {
-        return computeBoundingBox([this], false, target);
+        tmpVec1[0] = this;
+        return computeBoundingBox(tmpVec1, false, target);
     }
 
     iterData(callback: (vs: number, ve: number, ns: number, ne: number, us: number, ue: number) => void) {
