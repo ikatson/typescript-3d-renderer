@@ -149,6 +149,82 @@ export class GBuffer {
         this.compileShader(gl);
     }
 
+    private bindValueOrTx<T>(gl: WebGL2RenderingContext, prefix: string, txOrValue: TextureOrValue<T>, uniformFunc: Function, index: number) {
+        const s = this.gBufferShader;
+        const valueName = prefix;
+        const hasTxName = prefix + "HasTexture";
+        const txName = prefix + "Texture";
+        const hasFactorName = prefix + "HasFactor";
+        const factorName = prefix + "Factor";
+
+        // can't just call it, chrome complains.
+        gl[uniformFunc.name](s.getUniformLocation(gl, valueName), txOrValue.value);
+
+        const hasTexture = txOrValue.hasTexture();
+        gl.uniform1i(s.getUniformLocation(gl, hasTxName), hasTexture ? 1 : 0);
+
+        if (hasTexture) {
+            bindUniformTx(gl, s, txName, txOrValue.texture.getTexture(), index);
+        }
+
+        const hasFactor = txOrValue.hasFactor();
+        gl.uniform1i(s.getUniformLocation(gl, hasFactorName), hasFactor ? 1 : 0);
+        if (hasFactor) {
+            gl[uniformFunc.name](s.getUniformLocation(gl, factorName), txOrValue.factor);
+        }
+    }
+
+    private renderObject(gl: WebGL2RenderingContext, o: GameObject, camera: Camera) {
+        const s = this.gBufferShader;
+        if (o.mesh != null) {
+            const modelWorldMatrix = o.transform.getModelToWorld();
+            const modelViewMatrix = tmpMat4;
+            const material = o.material ? o.material.material : this.defaultMaterial;
+
+            mat4.multiply(modelViewMatrix, camera.getWorldToCamera(), modelWorldMatrix);
+
+            o.mesh.prepareMeshVertexAndShaderDataForRendering(gl, s);
+
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_MODEL_VIEW_MATRIX), false, modelViewMatrix);
+            gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_MODEL_WORLD_MATRIX), false, modelWorldMatrix);
+
+            this.bindValueOrTx(gl, "u_albedo", material.albedo, gl.uniform4fv, 1);
+            this.bindValueOrTx(gl, "u_metallic", material.metallic, gl.uniform1f, 2);
+            this.bindValueOrTx(gl, "u_roughness", material.roughness, gl.uniform1f, 3);
+
+            const hasNormalMap = !!material.normalMap && this.config.normalMapsEnabled;
+            gl.uniform1i(s.getUniformLocation(gl, "u_normalMapHasTexture"), (hasNormalMap) ? 1 : 0);
+            gl.uniform1i(s.getUniformLocation(gl, "u_hasTangent"), o.mesh.arrayBuffer.hasTangent() ? 1 : 0);
+            if (hasNormalMap) {
+                bindUniformTx(gl, s, "u_normalMapTx", material.normalMap.getTexture(), 4);
+            }
+
+            /**
+             * TODO: remove stencils? Not sure, maybe there will be some use for it later.
+             * @deprecated
+             */
+            let stencilValue = StencilValues.NORMAL;
+            if (material.isReflective) {
+                stencilValue = StencilValues.SSR;
+            }
+
+            // always pass and overwrite the stencil value.
+            gl.stencilFunc(gl.ALWAYS, stencilValue, 0xff);
+            gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
+            o.mesh.draw(gl);
+
+            if (o.boundingBox && o.boundingBox.visible) {
+                const buf = o.boundingBox.asArrayBuffer(gl);
+                buf.prepareMeshVertexAndShaderDataForRendering(gl, s);
+                buf.draw(gl);
+            }
+        }
+
+        for (let i = 0; i < o.children.length; i++) {
+            this.renderObject(gl, o.children[i], camera);
+        }
+    };
+
     render(gl: WebGL2RenderingContext, camera: Camera, scene: Scene) {
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.gFrameBuffer);
 
@@ -176,80 +252,9 @@ export class GBuffer {
 
         gl.disable(gl.BLEND);
 
-        const renderObject = (o: GameObject) => {
-            if (o.mesh != null) {
-                const modelWorldMatrix = o.transform.getModelToWorld();
-                const modelViewMatrix = tmpMat4;
-                const material = o.material ? o.material.material : this.defaultMaterial;
-
-                mat4.multiply(modelViewMatrix, camera.getWorldToCamera(), modelWorldMatrix);
-
-                o.mesh.prepareMeshVertexAndShaderDataForRendering(gl, s);
-
-                gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_MODEL_VIEW_MATRIX), false, modelViewMatrix);
-                gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_MODEL_WORLD_MATRIX), false, modelWorldMatrix);
-
-                function bindValueOrTx<T>(prefix: string, txOrValue: TextureOrValue<T>, uniformFunc: Function, index: number) {
-
-                    const valueName = prefix;
-                    const hasTxName = prefix + "HasTexture";
-                    const txName = prefix + "Texture";
-                    const hasFactorName = prefix + "HasFactor";
-                    const factorName = prefix + "Factor";
-
-                    // can't just call it, chrome complains.
-                    gl[uniformFunc.name](s.getUniformLocation(gl, valueName), txOrValue.value);
-
-                    const hasTexture = txOrValue.hasTexture();
-                    gl.uniform1i(s.getUniformLocation(gl, hasTxName), hasTexture ? 1 : 0);
-
-                    if (hasTexture) {
-                        bindUniformTx(gl, s, txName, txOrValue.texture.getTexture(), index);
-                    }
-
-                    const hasFactor = txOrValue.hasFactor();
-                    gl.uniform1i(s.getUniformLocation(gl, hasFactorName), hasFactor ? 1 : 0);
-                    if (hasFactor) {
-                        gl[uniformFunc.name](s.getUniformLocation(gl, factorName), txOrValue.factor);
-                    }
-                }
-
-                bindValueOrTx("u_albedo", material.albedo, gl.uniform4fv, 1);
-                bindValueOrTx("u_metallic", material.metallic, gl.uniform1f, 2);
-                bindValueOrTx("u_roughness", material.roughness, gl.uniform1f, 3);
-
-                const hasNormalMap = !!material.normalMap && this.config.normalMapsEnabled;
-                gl.uniform1i(s.getUniformLocation(gl, "u_normalMapHasTexture"), (hasNormalMap) ? 1 : 0);
-                gl.uniform1i(s.getUniformLocation(gl, "u_hasTangent"), o.mesh.arrayBuffer.hasTangent() ? 1 : 0);
-                if (hasNormalMap) {
-                    bindUniformTx(gl, s, "u_normalMapTx", material.normalMap.getTexture(), 4);
-                }
-
-                /**
-                 * TODO: remove stencils? Not sure, maybe there will be some use for it later.
-                 * @deprecated
-                 */
-                let stencilValue = StencilValues.NORMAL;
-                if (material.isReflective) {
-                    stencilValue = StencilValues.SSR;
-                }
-
-                // always pass and overwrite the stencil value.
-                gl.stencilFunc(gl.ALWAYS, stencilValue, 0xff);
-                gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
-                o.mesh.draw(gl);
-
-                if (o.boundingBox && o.boundingBox.visible) {
-                    const buf = o.boundingBox.asArrayBuffer(gl);
-                    buf.prepareMeshVertexAndShaderDataForRendering(gl, s);
-                    buf.draw(gl);
-                }
-            }
-
-            o.children.forEach(o => renderObject(o))
-        };
-
-        scene.children.forEach(o => renderObject(o));
+        for (let i = 0; i < scene.children.length; i++) {
+            this.renderObject(gl, scene.children[i], camera);
+        }
 
         // restore state.
         gl.disable(gl.STENCIL_TEST);
