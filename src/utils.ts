@@ -51,12 +51,33 @@ export function makeObjLoader(name: string) {
     }
 }
 
+export function cacheOnFirstUse<T>(factory: () => T): () => T {
+    let obj: T = null;
+    return (): T => {
+        if (obj === null) {
+            obj = factory();
+        }
+        return obj;
+    };
+}
+
+export function makeCache<T>(factory: () => T): (index: number) => T {
+    let cache: T[] = new Array(1);
+    return (index: number): T => {
+        if (cache[index] === undefined) {
+            cache[index] = factory();
+        }
+        return cache[index];
+    };
+}
+
 export const loadSphere = makeObjLoader('resources/sphere.obj');
 export const loadCube = makeObjLoader('resources/cube.obj');
 
 export const tmpMat4 = mat4.create();
 export const tmpVec3 = vec3.create();
 export const tmpVec4 = vec4.create();
+export const tmpBoundingBoxCache = makeCache(() => new AxisAlignedBox());
 export const tmpIdentityMatrix = (function () {
     const m = mat4.create();
     return () => {
@@ -66,40 +87,62 @@ export const tmpIdentityMatrix = (function () {
 })();
 
 
-export const makeWorldSpaceCameraFrustum = (camera: Camera, pointsOnly: boolean = false): GLArrayBufferData => {
-    const camToWorld = camera.getCameraToWorld();
-    let cubeVertices: GLArrayBufferData;
-    if (pointsOnly){
-        cubeVertices = new AxisAlignedBox().asVerticesBuffer();
-    } else {
-        cubeVertices = new AxisAlignedBox().asWireFrameBuffer();
-    }
+export const makeWorldSpaceCameraFrustum = (() => {
+    const identityAABB = cacheOnFirstUse(() => new AxisAlignedBox());
+    const identityAABBVertexBuffer = cacheOnFirstUse(() => new Float32Array(8 * 3));
+    const identityAABBWireframeBuffer = cacheOnFirstUse(() => new Float32Array(24 * 3));
 
-    mat4.invert(tmpMat4, camera.projectionMatrix().matrix);
-
-    const data = [];
-
-    cubeVertices.iterData((vs: number, ve: number) => {
-        const v = tmpVec4;
-        const l = ve - vs;
-
-        if (l != 4) {
-            // @ts-ignore
-            vec4.copy(v, ...cubeVertices.buf.subarray(vs, ve), 1.);
+    return (camera: Camera, pointsOnly: boolean = false, isTemporary: boolean = true): GLArrayBufferData => {
+        const camToWorld = camera.getCameraToWorld();
+        let cubeVertices: GLArrayBufferData;
+        if (pointsOnly){
+            cubeVertices = identityAABB().asVerticesBuffer();
         } else {
-            // @ts-ignore
-            vec4.copy(v, ...cubeVertices.buf.subarray(vs, ve));
+            cubeVertices = identityAABB().asWireFrameBuffer();
         }
 
-        vec4.transformMat4(v, v, tmpMat4);
-        vec4.scale(v, v, 1. / v[3]);
-        vec4.transformMat4(v, v, camToWorld);
+        mat4.invert(tmpMat4, camera.projectionMatrix().matrix);
 
-        data.push(...v.subarray(0, cubeVertices.params.elementSize));
-    });
+        let data: Float32Array;
+        if (isTemporary) {
+            if (pointsOnly) {
+                data = identityAABBVertexBuffer();
+            } else {
+                data = identityAABBWireframeBuffer();
+            }
+        } else {
+            if (pointsOnly) {
+                data = new Float32Array(8 * 3);
+            } else {
+                data = new Float32Array(24 * 3);
+            }
+        }
 
-    return new GLArrayBufferData(new Float32Array(data), cubeVertices.params);
-};
+        cubeVertices.iterData((vs: number, ve: number) => {
+            const v = tmpVec4;
+            const l = ve - vs;
+            if (l != 3) {
+                throw new Error('unsupported length of cubeVertices, should be 3');
+            }
+
+            v[0] = cubeVertices.buf[vs];
+            v[1] = cubeVertices.buf[vs + 1];
+            v[2] = cubeVertices.buf[vs + 2];
+            v[3] = 1;
+
+            vec4.transformMat4(v, v, tmpMat4);
+            vec4.scale(v, v, 1. / v[3]);
+            vec4.transformMat4(v, v, camToWorld);
+
+            data[vs] = v[0];
+            data[vs + 1] = v[1];
+            data[vs + 2] = v[2];
+        });
+
+        return new GLArrayBufferData(data, cubeVertices.params);
+    };
+})();
+
 
 export const makeDirectionalLightWorldToCameraMatrix = (direction: vec3): any => {
     // A new "camera" IS NOT needed here, but we only need the world to camera matrix from it.
@@ -122,72 +165,76 @@ export const myOrtho = (out, left, right, bottom, top, near, far) => {
     );
 };
 
-export const computeDirectionalLightCameraWorldToProjectionMatrix = (light: DirectionalLight, camera: Camera, scene: Scene): ProjectionMatrix => {
-    const worldToLightViewSpace = makeDirectionalLightWorldToCameraMatrix(light.direction);
-
-    // TODO: we ONLY need to render objects that are intersecting the camera frustum
-    // leaving that for another day.
-    // Also we need to LIMIT the resulting bounding box to camera frustum.
-    // makeWorldSpaceCameraFrustum(cameraClone, true)
-
+export const computeDirectionalLightCameraWorldToProjectionMatrix = (() => {
     const tmpBoundingBoxVerticesBuf = new Float32Array(8 * 3);
-    const tmpBoundingBox = new AxisAlignedBox();
     const tmpVec1 = new Array(1);
-    let allObjLSBoundingBox: AxisAlignedBox = null;
+    const bb = tmpBoundingBoxCache;
 
-    scene.children.forEach((o, i) => {
-        const bboxForObjInLightScreenSpace = (o: GameObject) => {
-            o.children.forEach(c => {
-                bboxForObjInLightScreenSpace(c);
-            });
+    return (light: DirectionalLight, camera: Camera, scene: Scene): ProjectionMatrix => {
+        const worldToLightViewSpace = makeDirectionalLightWorldToCameraMatrix(light.direction);
 
-            if (!(o.mesh && o.mesh.shadowCaster && o.boundingBox)) {
-                return;
-            }
+        let cameraFrustumBB = makeWorldSpaceCameraFrustum(camera, true, true)
+            .translateInPlace(worldToLightViewSpace)
+            .computeBoundingBox(bb(0));
 
-            mat4.mul(tmpMat4, worldToLightViewSpace, o.transform.getModelToWorld());
+        let allBB: AxisAlignedBox = null;
 
-            const objLSBoundingBox = o.boundingBox.box.asVerticesBuffer(true)
-                .translateTo(tmpMat4, tmpBoundingBoxVerticesBuf)
-                .computeBoundingBox(tmpBoundingBox);
+        scene.children.forEach((o, i) => {
+            const bboxForObjInLightScreenSpace = (o: GameObject) => {
+                o.children.forEach(c => {
+                    bboxForObjInLightScreenSpace(c);
+                });
 
-            if (allObjLSBoundingBox === null) {
-                allObjLSBoundingBox = new AxisAlignedBox();
-                allObjLSBoundingBox.setMin(objLSBoundingBox.min);
-                allObjLSBoundingBox.setMax(objLSBoundingBox.max);
-            } else {
-                tmpVec1[0] = objLSBoundingBox;
-                allObjLSBoundingBox = computeBoundingBox(tmpVec1, false, allObjLSBoundingBox, allObjLSBoundingBox);
-            }
-        };
+                if (!(o.mesh && o.mesh.shadowCaster && o.boundingBox)) {
+                    return;
+                }
 
-        bboxForObjInLightScreenSpace(o);
-    });
+                mat4.mul(tmpMat4, worldToLightViewSpace, o.transform.getModelToWorld());
 
-    if (allObjLSBoundingBox === null) {
-        allObjLSBoundingBox = tmpBoundingBox;
-    }
+                const objLSBoundingBox = o.boundingBox.box.asVerticesBuffer(true)
+                    .translateTo(tmpMat4, tmpBoundingBoxVerticesBuf)
+                    .computeBoundingBox(bb(1));
 
-    const lightClipSpaceMatrix = tmpMat4;
-    const result = mat4.create();
+                if (allBB === null) {
+                    allBB = bb(2);
+                    allBB.setMin(objLSBoundingBox.min);
+                    allBB.setMax(objLSBoundingBox.max);
+                } else {
+                    tmpVec1[0] = objLSBoundingBox;
+                    allBB = computeBoundingBox(tmpVec1, false, allBB, allBB);
+                }
+            };
 
-    const [x, y, z] = [0, 1, 2];
+            bboxForObjInLightScreenSpace(o);
+        });
 
-    const left = allObjLSBoundingBox.min[x];
-    const right = allObjLSBoundingBox.max[x];
+        if (allBB === null) {
+            allBB = bb(2);
+        }
 
-    const bottom = allObjLSBoundingBox.min[y];
-    const top = allObjLSBoundingBox.max[y];
+        const lightClipSpaceMatrix = tmpMat4;
+        const result = mat4.create();
 
-    // note Z is reversed here
-    const near = allObjLSBoundingBox.min[z];
-    const far = allObjLSBoundingBox.max[z];
+        const [x, y, z] = [0, 1, 2];
 
-    myOrtho(lightClipSpaceMatrix, left, right, bottom, top, near, far);
-    mat4.multiply(result, lightClipSpaceMatrix, worldToLightViewSpace);
+        // const left = Math.max(allBB.min[x], cameraFrustumBB.min[x]);
+        const left = allBB.min[x];
+        const right = allBB.max[x];
 
-    return new ProjectionMatrix(near, far, result);
-};
+        const bottom = allBB.min[y];
+        const top = allBB.max[y];
+
+        // note Z is reversed here
+        const near = allBB.min[z];
+        const far = allBB.max[z];
+
+        myOrtho(lightClipSpaceMatrix, left, right, bottom, top, near, far);
+        mat4.multiply(result, lightClipSpaceMatrix, worldToLightViewSpace);
+
+        return new ProjectionMatrix(near, far, result);
+    };
+})();
+
 
 
 export function hexToRgb1(out: vec4, hex: string): vec4 {
