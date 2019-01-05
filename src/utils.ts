@@ -217,12 +217,11 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (() => {
 
         const [x, y, z] = [0, 1, 2];
 
-        // const left = Math.max(allBB.min[x], cameraFrustumBB.min[x]);
-        const left = allBB.min[x];
-        const right = allBB.max[x];
+        const left = Math.max(allBB.min[x], cameraFrustumBB.min[x]);
+        const right = Math.min(allBB.max[x], cameraFrustumBB.max[x]);
 
-        const bottom = allBB.min[y];
-        const top = allBB.max[y];
+        const bottom = Math.max(allBB.min[y], cameraFrustumBB.min[y]);
+        const top = Math.min(allBB.max[y], cameraFrustumBB.max[y]);
 
         // note Z is reversed here
         const near = allBB.min[z];
