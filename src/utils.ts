@@ -165,19 +165,12 @@ export const myOrtho = (out, left, right, bottom, top, near, far) => {
     );
 };
 
-export const computeDirectionalLightCameraWorldToProjectionMatrix = (() => {
-    const tmpBoundingBoxVerticesBuf = new Float32Array(8 * 3);
-    const tmpVec1 = new Array(1);
-    const bb = tmpBoundingBoxCache;
-
-    return (light: DirectionalLight, camera: Camera, scene: Scene): ProjectionMatrix => {
-        const worldToLightViewSpace = makeDirectionalLightWorldToCameraMatrix(light.direction);
-
-        let cameraFrustumBB = makeWorldSpaceCameraFrustum(camera, true, true)
-            .translateInPlace(worldToLightViewSpace)
-            .computeBoundingBox(bb(0));
-
+export const computeBoundingBoxInTransformedSpace = (() => {
+    return (scene: Scene, transform: mat4, objFilter: (o: GameObject) => boolean = _ => true, target: AxisAlignedBox = null): AxisAlignedBox => {
         let allBB: AxisAlignedBox = null;
+        const tmpBoundingBoxVerticesBuf = new Float32Array(8 * 3);
+        const tmpVec1 = new Array(1);
+        const bb = makeCache(() => new AxisAlignedBox());
 
         scene.children.forEach((o, i) => {
             const bboxForObjInLightScreenSpace = (o: GameObject) => {
@@ -185,18 +178,18 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (() => {
                     bboxForObjInLightScreenSpace(c);
                 });
 
-                if (!(o.mesh && o.mesh.shadowCaster && o.boundingBox)) {
+                if (!(o.mesh && o.boundingBox && objFilter(o))) {
                     return;
                 }
 
-                mat4.mul(tmpMat4, worldToLightViewSpace, o.transform.getModelToWorld());
+                mat4.mul(tmpMat4, transform, o.transform.getModelToWorld());
 
                 const objLSBoundingBox = o.boundingBox.box.asVerticesBuffer(true)
                     .translateTo(tmpMat4, tmpBoundingBoxVerticesBuf)
-                    .computeBoundingBox(bb(1));
+                    .computeBoundingBox(bb(0));
 
                 if (allBB === null) {
-                    allBB = bb(2);
+                    allBB = target || bb(1);
                     allBB.setMin(objLSBoundingBox.min);
                     allBB.setMax(objLSBoundingBox.max);
                 } else {
@@ -207,6 +200,63 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (() => {
 
             bboxForObjInLightScreenSpace(o);
         });
+
+        if (allBB === null) {
+            allBB = target || bb(1);
+        }
+        return allBB;
+    };
+})();
+
+// export const computeFar = (camera: Camera, scene: Scene) => {
+//     scene.children.forEach((o, i) => {
+//         const bboxForObjInCameraScreenSpace = (o: GameObject) => {
+//             o.children.forEach(c => {
+//                 bboxForObjInCameraScreenSpace(c);
+//             });
+//
+//             if (!(o.mesh && o.mesh.shadowCaster && o.boundingBox)) {
+//                 return;
+//             }
+//
+//             mat4.mul(tmpMat4, worldToLightViewSpace, o.transform.getModelToWorld());
+//
+//             const objLSBoundingBox = o.boundingBox.box.asVerticesBuffer(true)
+//                 .translateTo(tmpMat4, tmpBoundingBoxVerticesBuf)
+//                 .computeBoundingBox(bb(1));
+//
+//             if (allBB === null) {
+//                 allBB = bb(2);
+//                 allBB.setMin(objLSBoundingBox.min);
+//                 allBB.setMax(objLSBoundingBox.max);
+//             } else {
+//                 tmpVec1[0] = objLSBoundingBox;
+//                 allBB = computeBoundingBox(tmpVec1, false, allBB, allBB);
+//             }
+//         };
+//
+//         bboxForObjInCameraScreenSpace(o);
+//     });
+// };
+
+
+
+export const computeDirectionalLightCameraWorldToProjectionMatrix = (() => {
+    const bb = tmpBoundingBoxCache;
+    const tmpCamera = new Camera();
+
+    return (light: DirectionalLight, camera: Camera, scene: Scene): ProjectionMatrix => {
+        const worldToLightViewSpace = makeDirectionalLightWorldToCameraMatrix(light.direction);
+
+        let cameraFrustumBB = makeWorldSpaceCameraFrustum(
+            camera.clone(tmpCamera), true, true
+        )
+            .translateInPlace(worldToLightViewSpace)
+            .computeBoundingBox(bb(0));
+
+        let allBB = computeBoundingBoxInTransformedSpace(
+            scene, worldToLightViewSpace, o => o.mesh.shadowCaster, bb(2)
+        );
 
         if (allBB === null) {
             allBB = bb(2);

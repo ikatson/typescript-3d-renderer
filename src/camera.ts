@@ -76,6 +76,11 @@ export class Camera {
         this.update();
     }
 
+    setFar(v: number): Camera {
+        this.far = v;
+        return this;
+    }
+
     update() {
         this._camToWorldNeedsUpdate = true;
         this._worldToCamNeedsUpdate = true;
@@ -120,14 +125,15 @@ export class Camera {
         this.update();
     }
 
-    clone() {
-        const c = new Camera();
+    clone(target?: Camera) {
+        const c = target || new Camera();
         vec3.copy(c.position, this.position);
         vec3.copy(c.forward, this.forward);
         vec3.copy(c.up, this.up);
         c.near = this.near;
         c.far = this.far;
         c.aspect = this.aspect;
+        c.update();
         return c;
     }
 
