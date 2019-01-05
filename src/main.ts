@@ -1,5 +1,5 @@
 import {fetchObject} from "./objparser";
-import {clip, hexToRgb1, initGL, tmpVec3, tmpVec4} from "./utils";
+import {clip, hexToRgb1, initGL, optimizeNearFar, tmpVec3, tmpVec4} from "./utils";
 import {ProgressBar, ProgressBarCommon} from "./progressbar";
 import {BoundingBoxComponent, DirectionalLight, GameObjectBuilder, MaterialComponent, MeshComponent} from "./object";
 import {Camera} from "./camera";
@@ -453,6 +453,7 @@ function main() {
                 );
             }
 
+            optimizeNearFar(camera, scene);
             renderer.render(scene, camera);
 
             requestAnimationFrame(processFrame);

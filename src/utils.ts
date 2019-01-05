@@ -166,13 +166,14 @@ export const myOrtho = (out, left, right, bottom, top, near, far) => {
 };
 
 export const computeBoundingBoxInTransformedSpace = (() => {
-    return (scene: Scene, transform: mat4, objFilter: (o: GameObject) => boolean = _ => true, target: AxisAlignedBox = null): AxisAlignedBox => {
+    return (scene: Scene, transform: mat4, objFilter: (o: GameObject) => boolean = null, target: AxisAlignedBox = null): AxisAlignedBox => {
         let allBB: AxisAlignedBox = null;
         const tmpBoundingBoxVerticesBuf = new Float32Array(8 * 3);
         const tmpVec1 = new Array(1);
         const bb = makeCache(() => new AxisAlignedBox());
+        objFilter = objFilter || (_ => true);
 
-        scene.children.forEach((o, i) => {
+        scene.children.forEach(o => {
             const bboxForObjInLightScreenSpace = (o: GameObject) => {
                 o.children.forEach(c => {
                     bboxForObjInLightScreenSpace(c);
@@ -208,37 +209,19 @@ export const computeBoundingBoxInTransformedSpace = (() => {
     };
 })();
 
-// export const computeFar = (camera: Camera, scene: Scene) => {
-//     scene.children.forEach((o, i) => {
-//         const bboxForObjInCameraScreenSpace = (o: GameObject) => {
-//             o.children.forEach(c => {
-//                 bboxForObjInCameraScreenSpace(c);
-//             });
-//
-//             if (!(o.mesh && o.mesh.shadowCaster && o.boundingBox)) {
-//                 return;
-//             }
-//
-//             mat4.mul(tmpMat4, worldToLightViewSpace, o.transform.getModelToWorld());
-//
-//             const objLSBoundingBox = o.boundingBox.box.asVerticesBuffer(true)
-//                 .translateTo(tmpMat4, tmpBoundingBoxVerticesBuf)
-//                 .computeBoundingBox(bb(1));
-//
-//             if (allBB === null) {
-//                 allBB = bb(2);
-//                 allBB.setMin(objLSBoundingBox.min);
-//                 allBB.setMax(objLSBoundingBox.max);
-//             } else {
-//                 tmpVec1[0] = objLSBoundingBox;
-//                 allBB = computeBoundingBox(tmpVec1, false, allBB, allBB);
-//             }
-//         };
-//
-//         bboxForObjInCameraScreenSpace(o);
-//     });
-// };
-
+export const optimizeNearFar = (
+    camera: Camera, scene: Scene,
+    minNear: number = 0.1, minFar: number = 1.,
+    objFilter: (o: GameObject) => boolean = null
+): Camera => {
+    const bb = computeBoundingBoxInTransformedSpace(
+        scene, camera.getWorldToCamera(), objFilter
+    );
+    camera.near = Math.max(minNear, -bb.max[2]);
+    camera.far = Math.max(minFar, -bb.min[2]);
+    camera.update();
+    return camera;
+};
 
 
 export const computeDirectionalLightCameraWorldToProjectionMatrix = (() => {
@@ -249,7 +232,8 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (() => {
         const worldToLightViewSpace = makeDirectionalLightWorldToCameraMatrix(light.direction);
 
         let cameraFrustumBB = makeWorldSpaceCameraFrustum(
-            camera.clone(tmpCamera), true, true
+            camera.clone(tmpCamera),
+            true, true
         )
             .translateInPlace(worldToLightViewSpace)
             .computeBoundingBox(bb(0));
