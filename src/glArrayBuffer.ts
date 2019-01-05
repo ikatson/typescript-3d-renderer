@@ -86,12 +86,13 @@ export const computeBoundingBox = (() => {
             vec3.set(min, Infinity, Infinity, Infinity);
             vec3.set(max, -Infinity, -Infinity, -Infinity);
         }
-        for (const o of objects) {
+        for (let i = 0; i < objects.length; i++) {
+            const o = objects[i];
             if (o instanceof GLArrayBufferData) {
-                o.iterData((vs: number) => {
-                    compareAndSet(min, o.buf, vs, Math.min);
-                    compareAndSet(max, o.buf, vs, Math.max);
-                });
+                for (const it of o.iterator(tmpIter)) {
+                    compareAndSet(min, o.buf, it.vs, Math.min);
+                    compareAndSet(max, o.buf, it.vs, Math.max);
+                }
             } else if (o instanceof AxisAlignedBox) {
                 compareAndSet(min, o.min, 0, Math.min);
                 compareAndSet(max, o.max, 0, Math.max);
@@ -127,28 +128,28 @@ export class GLArrayBufferData {
     }
 
     translateToBuf(matrix: mat4, result: Float32Array): Float32Array {
-        this.iterData((vs: number, ve: number, ns: number, ne: number, us: number, ue: number) => {
-            let l = ve - vs;
+        for (const it of this.iterator(tmpIter)) {
+            let l = it.ve - it.vs;
             if (l === 3) {
-                tmpVec3[0] = this.buf[vs];
-                tmpVec3[1] = this.buf[vs + 1];
-                tmpVec3[2] = this.buf[vs + 2];
+                tmpVec3[0] = this.buf[it.vs];
+                tmpVec3[1] = this.buf[it.vs + 1];
+                tmpVec3[2] = this.buf[it.vs + 2];
                 vec3.transformMat4(tmpVec3, tmpVec3, matrix);
-                result.set(tmpVec3, vs);
+                result.set(tmpVec3, it.vs);
             } else {
-                tmpVec4[0] = this.buf[vs];
-                tmpVec4[1] = this.buf[vs + 1];
-                tmpVec4[2] = this.buf[vs + 2];
-                tmpVec4[3] = this.buf[vs + 3];
+                tmpVec4[0] = this.buf[it.vs];
+                tmpVec4[1] = this.buf[it.vs + 1];
+                tmpVec4[2] = this.buf[it.vs + 2];
+                tmpVec4[3] = this.buf[it.vs + 3];
                 vec4.transformMat4(tmpVec4, tmpVec4, matrix);
-                result.set(tmpVec4, vs);
+                result.set(tmpVec4, it.vs);
             }
 
             // TODO: translate normals. this just copies normals and uvs back
-            for (let i = ns; i < ue; i++) {
+            for (let i = it.ns; i < it.ue; i++) {
                 result[i] = this.buf[i];
             }
-        });
+        }
         return result;
     }
 
@@ -163,20 +164,79 @@ export class GLArrayBufferData {
         return computeBoundingBox(tmpVec1, false, target);
     }
 
-    iterData(callback: (vs: number, ve: number, ns: number, ne: number, us: number, ue: number) => void) {
-        for (let i = 0; i < this.params.vertexCount; i++) {
-            const offset = i * this.params.computeStrideInElements();
-            const noffset = offset + this.params.elementSize;
-            const uvoffset = this.params.hasNormals ? noffset + this.params.normalsSize : noffset;
+    iterator(outIter?: GlArrayBufferDataIterator) {
+        outIter = outIter || new GlArrayBufferDataIterator(this);
+        outIter.initialize(this);
+        return outIter;
+    }
 
-            callback(
-                offset, offset + this.params.elementSize,
-                noffset, this.params.hasNormals ? noffset + this.params.normalsSize : noffset,
-                uvoffset, this.params.hasUVs ? uvoffset + this.params.uvSize : uvoffset,
-            );
+    /**
+     * @deprecated
+     */
+    iterData(callback: (vs: number, ve: number, ns: number, ne: number, us: number, ue: number) => void) {
+        for (const i of this.iterator(tmpIter)) {
+            callback(i.vs, i.ve, i.ns, i.ne, i.us, i.ue);
         }
     };
 }
+
+export class GlArrayBufferDataIterator {
+    data: GLArrayBufferData;
+    currentVertex: number = -1;
+
+    vs: number;
+    ve: number;
+    ns: number;
+    ne: number;
+    us: number;
+    ue: number;
+
+    constructor(data: GLArrayBufferData) {
+        this.initialize(data);
+    }
+
+    initialize(data: GLArrayBufferData) {
+        this.data = data;
+        this.currentVertex = -1;
+    }
+
+    computeOffsets() {
+        const p = this.data.params;
+        const offset = this.currentVertex * p.computeStrideInElements();
+        const noffset = offset + p.elementSize;
+        const uvoffset = p.hasNormals ? noffset + p.normalsSize : noffset;
+
+        this.vs = offset;
+        this.ve = offset + p.elementSize;
+        this.ns = noffset;
+        this.ne = p.hasNormals ? noffset + p.normalsSize : noffset;
+        this.us = uvoffset;
+        this.ue = p.hasUVs ? uvoffset + p.uvSize : uvoffset;
+    }
+
+    [Symbol.iterator]() {
+        return this;
+    }
+
+    next(): GlArrayBufferDataIterator {
+        this.currentVertex++;
+        this.computeOffsets();
+        return this;
+    }
+
+    get done(): boolean {
+        return this.currentVertex >= this.data.params.vertexCount;
+    }
+
+    get value(): GlArrayBufferDataIterator {
+        if (!this.done) {
+            return this;
+        }
+        return null;
+    }
+}
+
+export const tmpIter = new GlArrayBufferDataIterator(null);
 
 export interface GLArrayBufferI {
     buffer: WebGLBuffer;

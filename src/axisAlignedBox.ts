@@ -55,9 +55,9 @@ export class AxisAlignedBox {
         const params = new GLArrayBufferDataParams(false, false, 8, ArrayBufferDataType.POINTS);
         params.elementSize = 3;
         const data = [];
-        this.uniqueVertices().forEach(v => {
+        for (const v of this.uniqueVertices()) {
             data.push(...v);
-        });
+        }
         this._vertexBufferCache = new GLArrayBufferData(new Float32Array(data), params);
         this._cacheNeedsUpdate = false;
         return this._vertexBufferCache;

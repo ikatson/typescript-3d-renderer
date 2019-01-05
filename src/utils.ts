@@ -1,6 +1,6 @@
 import {mat4, vec3, vec4} from "gl-matrix";
 import {fetchObject, ObjParser} from "./objparser";
-import {computeBoundingBox, GLArrayBufferData} from "./glArrayBuffer";
+import {computeBoundingBox, GLArrayBufferData, tmpIter} from "./glArrayBuffer";
 import {Camera, ProjectionMatrix} from "./camera";
 import {AxisAlignedBox} from "./axisAlignedBox";
 import {Scene} from "./scene";
@@ -118,26 +118,26 @@ export const makeWorldSpaceCameraFrustum = (() => {
             }
         }
 
-        cubeVertices.iterData((vs: number, ve: number) => {
+        for (const it of cubeVertices.iterator(tmpIter)) {
             const v = tmpVec4;
-            const l = ve - vs;
+            const l = it.ve - it.vs;
             if (l != 3) {
                 throw new Error('unsupported length of cubeVertices, should be 3');
             }
 
-            v[0] = cubeVertices.buf[vs];
-            v[1] = cubeVertices.buf[vs + 1];
-            v[2] = cubeVertices.buf[vs + 2];
+            v[0] = cubeVertices.buf[it.vs];
+            v[1] = cubeVertices.buf[it.vs + 1];
+            v[2] = cubeVertices.buf[it.vs + 2];
             v[3] = 1;
 
             vec4.transformMat4(v, v, tmpMat4);
             vec4.scale(v, v, 1. / v[3]);
             vec4.transformMat4(v, v, camToWorld);
 
-            data[vs] = v[0];
-            data[vs + 1] = v[1];
-            data[vs + 2] = v[2];
-        });
+            data[it.vs] = v[0];
+            data[it.vs + 1] = v[1];
+            data[it.vs + 2] = v[2];
+        }
 
         return new GLArrayBufferData(data, cubeVertices.params);
     };
