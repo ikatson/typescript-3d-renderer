@@ -153,7 +153,7 @@ export const makeDirectionalLightWorldToCameraMatrix = (direction: vec3): any =>
     return tempCamera.getWorldToCamera();
 };
 
-export const myOrtho = (out, left, right, bottom, top, near, far) => {
+export const orthoProjection = (out, left, right, bottom, top, near, far) => {
     const fn = 1. / (far - near);
     const tb = 1. / (top - bottom);
     const rl = 1. / (right - left);
@@ -166,11 +166,12 @@ export const myOrtho = (out, left, right, bottom, top, near, far) => {
 };
 
 export const computeBoundingBoxInTransformedSpace = (() => {
+    const tmpBoundingBoxVerticesBuf = cacheOnFirstUse(() => new AxisAlignedBox().asVerticesBuffer());
+    const tmpVec1 = new Array(1);
+    const bb = makeCache(() => new AxisAlignedBox());
+
     return (scene: Scene, transform: mat4, objFilter: (o: GameObject) => boolean = null, target: AxisAlignedBox = null): AxisAlignedBox => {
         let allBB: AxisAlignedBox = null;
-        const tmpBoundingBoxVerticesBuf = new Float32Array(8 * 3);
-        const tmpVec1 = new Array(1);
-        const bb = makeCache(() => new AxisAlignedBox());
         objFilter = objFilter || (_ => true);
 
         scene.children.forEach(o => {
@@ -186,7 +187,7 @@ export const computeBoundingBoxInTransformedSpace = (() => {
                 mat4.mul(tmpMat4, transform, o.transform.getModelToWorld());
 
                 const objLSBoundingBox = o.boundingBox.box.asVerticesBuffer(true)
-                    .translateTo(tmpMat4, tmpBoundingBoxVerticesBuf)
+                    .translateTo(tmpMat4, tmpBoundingBoxVerticesBuf())
                     .computeBoundingBox(bb(0));
 
                 if (allBB === null) {
@@ -226,13 +227,12 @@ export const optimizeNearFar = (
 
 export const computeDirectionalLightCameraWorldToProjectionMatrix = (() => {
     const bb = tmpBoundingBoxCache;
-    const tmpCamera = new Camera();
 
     return (light: DirectionalLight, camera: Camera, scene: Scene): ProjectionMatrix => {
         const worldToLightViewSpace = makeDirectionalLightWorldToCameraMatrix(light.direction);
 
         let cameraFrustumBB = makeWorldSpaceCameraFrustum(
-            camera.clone(tmpCamera),
+            camera,
             true, true
         )
             .translateInPlace(worldToLightViewSpace)
@@ -261,7 +261,7 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (() => {
         const near = allBB.min[z];
         const far = allBB.max[z];
 
-        myOrtho(lightClipSpaceMatrix, left, right, bottom, top, near, far);
+        orthoProjection(lightClipSpaceMatrix, left, right, bottom, top, near, far);
         mat4.multiply(result, lightClipSpaceMatrix, worldToLightViewSpace);
 
         return new ProjectionMatrix(near, far, result);

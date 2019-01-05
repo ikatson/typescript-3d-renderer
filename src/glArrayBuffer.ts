@@ -68,9 +68,9 @@ type DataOrBoundingBox = GLArrayBufferData | AxisAlignedBox;
 
 export const computeBoundingBox = (() => {
     const tmpVec3_2 = vec3.create();
-    const compareAndSet = (out: number[] | Float32Array, inp: number[] | Float32Array, f: (v: number, v1: number) => (number)) => {
+    const compareAndSet = (out: number[] | Float32Array, inp: number[] | Float32Array, offset: number, f: (v: number, v1: number) => (number)) => {
         for (let i = 0; i < out.length; i++) {
-            out[i] = f(out[i], inp[i]);
+            out[i] = f(out[i], inp[offset + i]);
         }
     };
     return (objects: DataOrBoundingBox[], invertZ: boolean = false, target?: AxisAlignedBox, start?: AxisAlignedBox): AxisAlignedBox => {
@@ -87,13 +87,12 @@ export const computeBoundingBox = (() => {
         objects.forEach(o => {
             if (o instanceof GLArrayBufferData) {
                 o.iterData((vs: number, ve: number) => {
-                    const vertexView = o.buf.subarray(vs, ve);
-                    compareAndSet(min, vertexView, Math.min);
-                    compareAndSet(max, vertexView, Math.max);
+                    compareAndSet(min, o.buf, vs, Math.min);
+                    compareAndSet(max, o.buf, vs, Math.max);
                 });
             } else if (o instanceof AxisAlignedBox) {
-                compareAndSet(min, o.min, Math.min);
-                compareAndSet(max, o.max, Math.max);
+                compareAndSet(min, o.min, 0, Math.min);
+                compareAndSet(max, o.max, 0, Math.max);
             }
         });
 
@@ -116,16 +115,16 @@ export class GLArrayBufferData {
     }
 
     translate(matrix: mat4): GLArrayBufferData {
-        const result = new Float32Array(this.buf.length);
+        const result = new GLArrayBufferData(new Float32Array(this.buf.length), this.params);
         return this.translateTo(matrix, result);
     }
 
     translateInPlace(matrix: mat4): GLArrayBufferData {
-        this.translateTo(matrix, this.buf);
+        this.translateToBuf(matrix, this.buf);
         return this;
     }
 
-    translateTo(matrix: mat4, result: Float32Array): GLArrayBufferData {
+    translateToBuf(matrix: mat4, result: Float32Array): Float32Array {
         this.iterData((vs: number, ve: number, ns: number, ne: number, us: number, ue: number) => {
             let l = ve - vs;
             if (l === 3) {
@@ -148,7 +147,12 @@ export class GLArrayBufferData {
                 result[i] = this.buf[i];
             }
         });
-        return new GLArrayBufferData(new Float32Array(result), this.params);
+        return result;
+    }
+
+    translateTo(matrix: mat4, result: GLArrayBufferData): GLArrayBufferData {
+        this.translateToBuf(matrix, result.buf);
+        return result;
     }
 
     computeBoundingBox(target?: AxisAlignedBox): AxisAlignedBox {
