@@ -8,7 +8,7 @@ import {GBUFFER_SHADER_SOURCE} from "./shaders/gBuffer";
 import {SSAO_SHADER_SOURCE} from "./shaders/ssao";
 import {VISUALIZE_LIGHTS_SHADERS} from "./shaders/visualize-lights";
 import {SSAOConfig, SSAOState} from "./SSAOState";
-import {computeDirectionalLightCameraWorldToProjectionMatrix, tmpMat4,} from "./utils";
+import {computeDirectionalLightCameraWorldToProjectionMatrix, tmpMat4} from "./utils";
 import {SHADOWMAP_SHADERS} from "./shaders/shadowMap";
 import {GLArrayBufferI} from "./glArrayBuffer";
 import {Material, TextureOrValue} from "./material";

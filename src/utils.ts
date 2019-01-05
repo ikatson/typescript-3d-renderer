@@ -175,10 +175,8 @@ export const computeBoundingBoxInTransformedSpace = (() => {
         objFilter = objFilter || (_ => true);
 
         scene.children.forEach(o => {
-            const bboxForObjInLightScreenSpace = (o: GameObject) => {
-                o.children.forEach(c => {
-                    bboxForObjInLightScreenSpace(c);
-                });
+            const bboxForChildInTransformedSpace = (o: GameObject) => {
+                o.children.forEach(bboxForChildInTransformedSpace);
 
                 if (!(o.mesh && o.boundingBox && objFilter(o))) {
                     return;
@@ -200,7 +198,7 @@ export const computeBoundingBoxInTransformedSpace = (() => {
                 }
             };
 
-            bboxForObjInLightScreenSpace(o);
+            bboxForChildInTransformedSpace(o);
         });
 
         if (allBB === null) {
@@ -295,4 +293,3 @@ export function mapComputeIfAbsent<K, V>(m: Map<K, V>, key: K, callback: (K) => 
     m.set(key, v);
     return v;
 }
-

@@ -152,6 +152,7 @@ export class GLArrayBufferData {
 
     translateTo(matrix: mat4, result: GLArrayBufferData): GLArrayBufferData {
         this.translateToBuf(matrix, result.buf);
+        result.params = this.params;
         return result;
     }
 
@@ -160,9 +161,8 @@ export class GLArrayBufferData {
     }
 
     iterData(callback: (vs: number, ve: number, ns: number, ne: number, us: number, ue: number) => void) {
-        const stride = this.params.computeStrideInElements();
         for (let i = 0; i < this.params.vertexCount; i++) {
-            const offset = i * stride;
+            const offset = i * this.params.computeStrideInElements();
             const noffset = offset + this.params.elementSize;
             const uvoffset = this.params.hasNormals ? noffset + this.params.normalsSize : noffset;
 
