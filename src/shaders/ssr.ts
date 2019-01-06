@@ -22,6 +22,7 @@ void main() {
 
     // float strength = (1. - roughness) * metallic;
     float strength = (1. - roughness);
+    // float strength = (1. - pow(roughness, 3.));
     if (strength < 0.01) {
         color = vec4(vec3(0.), 0.);
         return;
@@ -30,6 +31,8 @@ void main() {
     vec3 c = vec3(0.);
     
     int i = 0;
+
+    bool isFound = false;
     
     for (; i < SSR_STEPS; i++) {
         vec3 sampleVS = posVS.xyz + reflectRay * (SSR_STEP_SIZE * float(i + 1));
@@ -72,15 +75,19 @@ void main() {
             
             // c = vec3(distance);
             if (abs(minDistance) < 0.05) {
-
                 float howFar = clamp(length(sampleVS - posVS.xyz) / (float(SSR_STEPS) * SSR_STEP_SIZE), 0., 1.);
+                // the further the sample is from the start and the closer it is to screen edges, the more is attenuation.
                 float attenuation = (1. - howFar) * (1. - smoothstep(.7, .95, abs(sampleSS.x))) * (1. - smoothstep(.7, .95, abs(sampleSS.y)));
-                c = texture(u_lightedSceneTx, minPosSS.xy * 0.5 + 0.5).xyz * attenuation;
+                strength *= attenuation;
+                c = texture(u_lightedSceneTx, minPosSS.xy * 0.5 + 0.5).xyz;
+                isFound = true;
             }
-            
             break;
         }
-        
+    }
+
+    if (!isFound) {
+        strength = 0.;
     }
 
     color = vec4(c, strength);

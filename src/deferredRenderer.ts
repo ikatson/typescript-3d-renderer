@@ -964,7 +964,8 @@ class SSRRenderer {
                 vec4 l = texture(u_lightedSceneTx, tx_pos);
                 vec4 s = texture(u_ssrTx, tx_pos);
                 // color = vec4(max(l.rgb, s.rgb), l.a);
-                color = vec4(mix(l.rgb, max(s.rgb * s.a, l.rgb), s.a), l.a);
+                // color = vec4(mix(l.rgb, max(s.rgb * s.a, l.rgb), s.a), l.a);
+                color = vec4(mix(l.rgb, s.rgb, s.a), l.a);
             }
             `).build())
         )
@@ -1133,9 +1134,10 @@ export class DeferredRenderer {
                         break;
                     case ShowLayer.SSR:
                         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-                        gl.disable(gl.BLEND);
+                        gl.enable(gl.BLEND);
                         gl.clearColor(0, 0, 0, 1);
                         gl.clear(gl.COLOR_BUFFER_BIT);
+                        gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
                         this.ssrToDefaultFB.copy(gl);
                         break;
                     default:
