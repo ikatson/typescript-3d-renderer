@@ -22,7 +22,7 @@ void main() {
 
     // float strength = (1. - roughness) * metallic;
     float strength = (1. - roughness);
-    // float strength = (1. - pow(roughness, 3.));
+    // float strength = 1.; // this is good for testing SSR or just displaying it.
     if (strength < 0.01) {
         color = vec4(vec3(0.), 0.);
         return;
