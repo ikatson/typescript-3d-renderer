@@ -54,7 +54,7 @@ void main() {
         if (distance > 0. && resultVS.a > 0.) {
             vec3 dir = reflectRay * (SSR_STEP_SIZE * 0.5);
             for (int j = 0; j < SSR_BINARY_SEARCH_STEPS; ++j) {
-                if (distance > 0. && resultVS.a > 0.) {
+                if (distance > 0.) {
                     sampleVS -= dir;
                 } else {
                     sampleVS += dir;
@@ -65,6 +65,11 @@ void main() {
                 sampleSS = sampleSS4.xyz / sampleSS4.w;
                 
                 resultVS = GBUFFER_POSITION(sampleSS.xy * 0.5 + 0.5);
+                
+                // hit out-of-bounds somewhere.
+                if (resultVS.a == 0.) {
+                    continue;
+                }
                 
                 distance = resultVS.z - sampleVS.z;
                 if (abs(distance) < minDistance) {

@@ -55,7 +55,7 @@ uniform bool u_hasTangent;
 uniform sampler2D u_normalMapTx;
 
 layout(location = 0) out vec4 gbuf_position;
-layout(location = 1) out vec4 gbuf_normal;
+layout(location = 1) out vec3 gbuf_normal;
 layout(location = 2) out vec4 gbuf_albedo;
 layout(location = 3) out vec4 gbuf_metallic_roughness;
 
@@ -65,7 +65,7 @@ vec4 srgb(vec4 color) {
 
 void main() {
     gbuf_position = vec4(v_pos.xyz, 1.0);
-    
+    vec3 normal;
     if (u_normalMapHasTexture && u_hasTangent) {
         vec3 normalMap = normalize(texture(u_normalMapTx, v_uv).xyz * 2. - 1.);
         vec3 tangent = normalize(u_modelViewMatrix * vec4(v_tangent.xyz, 0.)).xyz;
@@ -75,10 +75,11 @@ void main() {
             bitangent,
             v_norm.xyz
         );
-        gbuf_normal = vec4(normalize(tangentToView * normalMap), 1.);
+        normal = normalize(tangentToView * normalMap);
     } else {
-        gbuf_normal = vec4(normalize(v_norm.xyz), 1.0);
+        normal = normalize(v_norm.xyz);
     }
+    gbuf_normal = normal * 0.5 + 0.5;
     
     if (u_albedoHasTexture) {
         gbuf_albedo = srgb(texture(u_albedoTexture, v_uv));

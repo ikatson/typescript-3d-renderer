@@ -35,8 +35,8 @@ void main() {
     GBUFFER_MR(tx_pos, metallic, roughness);
 
     #ifdef SHOW_NORMALS
-    // color = vec4(normal.xyz * .5 + .5, normal.a);
-    color = normal;
+    color = vec4(normal.xyz * .5 + .5, pos.a);
+    // color = normal;
     return;
     #endif
 

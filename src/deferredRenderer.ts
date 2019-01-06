@@ -275,8 +275,11 @@ export class GBuffer {
         this.albedoTX = createAndBindBufferTexture(gl, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE);
         this.metallicRoughnessTX = createAndBindBufferTexture(gl, gl.RG16F, gl.RG, gl.HALF_FLOAT);
         
-        this.normalTX = createAndBindBufferTexture(gl, gl.RG16F, gl.RG, gl.HALF_FLOAT);
-        // uncomment to have 32-bit float normals
+        // uncomment to have 16-bit float normals RG
+        // this.normalTX = createAndBindBufferTexture(gl, gl.RG16F, gl.RG, gl.HALF_FLOAT);
+        // uncomment to have 8-bit integer normals.
+        this.normalTX = createAndBindBufferTexture(gl, gl.RGB8, gl.RGB, gl.UNSIGNED_BYTE);
+        // uncomment to have 32-bit float normals RG
         // this.normalTX = createAndBindBufferTexture(gl, gl.RG32F, gl.RG, gl.FLOAT);
 
         this.posTx = createAndBindBufferTexture(gl, gl.RGBA16F, gl.RGBA, gl.FLOAT);
