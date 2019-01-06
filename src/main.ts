@@ -356,8 +356,6 @@ function main() {
             state.pause.checked = true;
         });
 
-        const v3 = v => vec3.fromValues(v, v, v);
-
         const sun = new GameObjectBuilder("sun").setDirectionalLightComponent(new DirectionalLight()).build();
         sun.directionalLight.direction = vec3.normalize(sun.directionalLight.direction, [-1, -1, -1]);
         sun.directionalLight.intensity = state.lighting.sun.intensity.value;

@@ -149,7 +149,7 @@ export class GBuffer {
         this.compileShader(gl);
     }
 
-    private bindValueOrTx<T>(gl: WebGL2RenderingContext, prefix: string, txOrValue: TextureOrValue<T>, uniformFunc: Function, index: number) {
+    private bindValueOrTx<T>(gl: WebGL2RenderingContext, prefix: string, txOrValue: TextureOrValue<T>, uniformFunc: string, index: number) {
         const s = this.gBufferShader;
         const valueName = prefix;
         const hasTxName = prefix + "HasTexture";
@@ -157,8 +157,7 @@ export class GBuffer {
         const hasFactorName = prefix + "HasFactor";
         const factorName = prefix + "Factor";
 
-        // can't just call it, chrome complains.
-        gl[uniformFunc.name](s.getUniformLocation(gl, valueName), txOrValue.value);
+        gl[uniformFunc](s.getUniformLocation(gl, valueName), txOrValue.value);
 
         const hasTexture = txOrValue.hasTexture();
         gl.uniform1i(s.getUniformLocation(gl, hasTxName), hasTexture ? 1 : 0);
@@ -170,7 +169,7 @@ export class GBuffer {
         const hasFactor = txOrValue.hasFactor();
         gl.uniform1i(s.getUniformLocation(gl, hasFactorName), hasFactor ? 1 : 0);
         if (hasFactor) {
-            gl[uniformFunc.name](s.getUniformLocation(gl, factorName), txOrValue.factor);
+            gl[uniformFunc](s.getUniformLocation(gl, factorName), txOrValue.factor);
         }
     }
 
@@ -188,9 +187,9 @@ export class GBuffer {
             gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_MODEL_VIEW_MATRIX), false, modelViewMatrix);
             gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_MODEL_WORLD_MATRIX), false, modelWorldMatrix);
 
-            this.bindValueOrTx(gl, "u_albedo", material.albedo, gl.uniform4fv, 1);
-            this.bindValueOrTx(gl, "u_metallic", material.metallic, gl.uniform1f, 2);
-            this.bindValueOrTx(gl, "u_roughness", material.roughness, gl.uniform1f, 3);
+            this.bindValueOrTx(gl, "u_albedo", material.albedo, 'uniform4fv', 1);
+            this.bindValueOrTx(gl, "u_metallic", material.metallic, 'uniform1f', 2);
+            this.bindValueOrTx(gl, "u_roughness", material.roughness, 'uniform1f', 3);
 
             const hasNormalMap = !!material.normalMap && this.config.normalMapsEnabled;
             gl.uniform1i(s.getUniformLocation(gl, "u_normalMapHasTexture"), (hasNormalMap) ? 1 : 0);
