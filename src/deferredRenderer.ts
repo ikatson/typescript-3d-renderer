@@ -274,7 +274,11 @@ export class GBuffer {
     private setupGBuffer(gl: WebGL2RenderingContext) {
         this.albedoTX = createAndBindBufferTexture(gl, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE);
         this.metallicRoughnessTX = createAndBindBufferTexture(gl, gl.RG16F, gl.RG, gl.HALF_FLOAT);
+        
         this.normalTX = createAndBindBufferTexture(gl, gl.RG16F, gl.RG, gl.HALF_FLOAT);
+        // uncomment to have 32-bit float normals
+        // this.normalTX = createAndBindBufferTexture(gl, gl.RG32F, gl.RG, gl.FLOAT);
+
         this.posTx = createAndBindBufferTexture(gl, gl.RGBA16F, gl.RGBA, gl.FLOAT);
         this.depthTX = createAndBindBufferTexture(gl, gl.DEPTH24_STENCIL8, gl.DEPTH_STENCIL, gl.UNSIGNED_INT_24_8);
         this.gFrameBuffer = gl.createFramebuffer();
@@ -950,7 +954,7 @@ class SSRRenderer {
             gl,
             fullScreenQuad.vertexShader,
             new FragmentShader(gl, SSR_SHADERS.fs
-                .define('SSR_STEPS', '30')
+                .define('SSR_STEPS', '90')
                 .define('SSR_STEP_SIZE', '0.15')
                 .define('SSR_BINARY_SEARCH_STEPS', '10')
                 .build()

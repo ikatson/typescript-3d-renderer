@@ -451,7 +451,7 @@ function main() {
                 state.fps.max = Math.max(state.fps.max, state.fps.current)
             }
             frame++;
-            if (frame % 3 === 0) {
+            if (frame % 5 === 0) {
                 updateFpsHTML();
             }
 
