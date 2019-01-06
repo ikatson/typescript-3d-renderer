@@ -1,4 +1,5 @@
 import {ShaderLoadError, LinkError} from "./errors";
+import {mapComputeIfAbsent} from "./utils";
 
 export function redefine(shaderSource: string, defineName: string, value: string) {
     return shaderSource.replace(new RegExp(`#define ${defineName} .*`), `#define ${defineName} ${value}`);
@@ -99,8 +100,9 @@ export class ShaderProgram {
     }
 
     getAttribLocation(gl: WebGL2RenderingContext, name: string): number {
-        if (this._attribs.get(name) !== undefined) {
-            return this._attribs.get(name);
+        const existing = this._attribs.get(name);
+        if (existing !== undefined) {
+            return existing;
         }
         const loc = gl.getAttribLocation(this.program, name);
         this._attribs.set(name, loc);

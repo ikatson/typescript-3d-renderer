@@ -143,15 +143,16 @@ export const makeWorldSpaceCameraFrustum = (() => {
     };
 })();
 
-
-export const makeDirectionalLightWorldToCameraMatrix = (direction: vec3): any => {
-    // A new "camera" IS NOT needed here, but we only need the world to camera matrix from it.
-    let tempCamera = new Camera();
-    tempCamera.forward = direction;
-    tempCamera.calculateUpFromWorldUp();
-    tempCamera.update();
-    return tempCamera.getWorldToCamera();
-};
+export const makeDirectionalLightWorldToCameraMatrix = (() => {
+    const tmpCamera = new Camera();
+    return (direction: vec3): any => {
+        // A new "camera" IS NOT needed here, but we only need the world to camera matrix from it.
+        tmpCamera.forward = direction;
+        tmpCamera.calculateUpFromWorldUp();
+        tmpCamera.update();
+        return tmpCamera.getWorldToCamera();
+    }
+})();
 
 export const orthoProjection = (out, left, right, bottom, top, near, far) => {
     const fn = 1. / (far - near);
@@ -220,12 +221,13 @@ export const optimizeNearFar = (
     return camera;
 };
 
-
+export const tmpProjectionMatrix = new ProjectionMatrix(0, 1, mat4.create());
 export const computeDirectionalLightCameraWorldToProjectionMatrix = (() => {
     const bb = tmpBoundingBoxCache;
 
-    return (light: DirectionalLight, camera: Camera, scene: Scene): ProjectionMatrix => {
+    return (light: DirectionalLight, camera: Camera, scene: Scene, out?: ProjectionMatrix): ProjectionMatrix => {
         const worldToLightViewSpace = makeDirectionalLightWorldToCameraMatrix(light.direction);
+        out = out || new ProjectionMatrix(0, 1, mat4.create());
 
         let cameraFrustumBB = makeWorldSpaceCameraFrustum(
             camera,
@@ -243,9 +245,10 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (() => {
         }
 
         const lightClipSpaceMatrix = tmpMat4;
-        const result = mat4.create();
 
-        const [x, y, z] = [0, 1, 2];
+        const x = 0;
+        const y = 1;
+        const z = 2;
 
         const left = Math.max(allBB.min[x], cameraFrustumBB.min[x]);
         const right = Math.min(allBB.max[x], cameraFrustumBB.max[x]);
@@ -258,9 +261,10 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (() => {
         const far = allBB.max[z];
 
         orthoProjection(lightClipSpaceMatrix, left, right, bottom, top, near, far);
-        mat4.multiply(result, lightClipSpaceMatrix, worldToLightViewSpace);
-
-        return new ProjectionMatrix(near, far, result);
+        mat4.multiply(out.matrix, lightClipSpaceMatrix, worldToLightViewSpace);
+        out.near = near;
+        out.far = far;
+        return out;
     };
 })();
 

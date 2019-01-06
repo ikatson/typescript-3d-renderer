@@ -8,7 +8,7 @@ import {GBUFFER_SHADER_SOURCE} from "./shaders/gBuffer";
 import {SSAO_SHADER_SOURCE} from "./shaders/ssao";
 import {VISUALIZE_LIGHTS_SHADERS} from "./shaders/visualize-lights";
 import {SSAOConfig, SSAOState} from "./SSAOState";
-import {computeDirectionalLightCameraWorldToProjectionMatrix, tmpMat4} from "./utils";
+import {computeDirectionalLightCameraWorldToProjectionMatrix, tmpMat4, tmpProjectionMatrix} from "./utils";
 import {SHADOWMAP_SHADERS} from "./shaders/shadowMap";
 import {GLArrayBufferI} from "./glArrayBuffer";
 import {Material, TextureOrValue} from "./material";
@@ -692,7 +692,7 @@ export class LightingRenderer {
         if (!this.config.showLayerAmong(ShowLayer.Final, ShowLayer.SSR)) {
             if (this.config.showLayer === ShowLayer.ShadowMap) {
                 this.shadowMapRenderer.render(gl, computeDirectionalLightCameraWorldToProjectionMatrix(
-                    scene.directionalLights[0], camera, scene
+                    scene.directionalLights[0], camera, scene, tmpProjectionMatrix
                 ), scene);
                 gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
             }
@@ -724,7 +724,7 @@ export class LightingRenderer {
 
             if (this.config.shadowMap.enabled) {
                 lightCameraWorldToProjectionMatrix = computeDirectionalLightCameraWorldToProjectionMatrix(
-                    light, camera, scene
+                    light, camera, scene, tmpProjectionMatrix
                 );
                 gl.disable(gl.STENCIL_TEST);
                 this.shadowMapRenderer.render(gl, lightCameraWorldToProjectionMatrix, scene);
