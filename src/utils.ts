@@ -7,7 +7,9 @@ import {Scene} from "./scene";
 import {DirectionalLight, GameObject} from "./object";
 
 export function initGL(canvas: HTMLCanvasElement): WebGL2RenderingContext {
-    let gl = <WebGL2RenderingContext>canvas.getContext("webgl2");
+    let gl = <WebGL2RenderingContext>canvas.getContext("webgl2", {
+        antialias: false,
+    });
     gl.getExtension("EXT_color_buffer_float");
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);

@@ -1,5 +1,5 @@
 import {Scene} from "./scene";
-import {vec3, vec4} from "gl-matrix";
+import {vec3, vec4, quat} from "gl-matrix";
 import {Texture} from "./texture";
 import {Material} from "./material";
 import {GlTf, MeshPrimitive} from "gltf-loader-ts/lib/gltf";
@@ -200,11 +200,18 @@ export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename
         });
     }
 
-    g.scenes[g.scene].nodes.forEach(nodeId => {
+    const toGameObject = (nodeId: number): GameObject => {
         const node = g.nodes[nodeId];
         const gameObject = new GameObject(node.name || nodeId.toString());
         if (node.scale) {
             vec3.copy(gameObject.transform.scale, node.scale);
+        }
+        if (node.translation) {
+            vec3.copy(gameObject.transform.position, node.translation);
+        }
+        if (node.rotation) {
+            // @ts-ignore
+            quat.getAxisAngle(gameObject.transform.rotation, quat.fromValues(...node.rotation));
         }
         gameObject.transform.update();
 
@@ -226,7 +233,17 @@ export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename
                 });
             })
         }
-        scene.addChild(gameObject);
+        if (node.children) {
+            node.children.forEach(nodeId => {
+                const child = toGameObject(nodeId);
+                gameObject.addChild(child);
+            })
+        }
+        return gameObject;
+    }
+
+    g.scenes[g.scene].nodes.forEach(nodeId => {
+        scene.addChild(toGameObject(nodeId));
     });
 
     return scene;
