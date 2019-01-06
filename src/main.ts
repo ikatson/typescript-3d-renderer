@@ -121,6 +121,11 @@ function main() {
                 metallic: {value: 0., min: 0, max: 1, step: 0.01, onChange: ui.funcRef()},
                 roughness: {value: 0.8, min: 0, max: 1, step: 0.01, onChange: ui.funcRef()},
             }
+        },
+        fps: {
+            min: 0,
+            max: 0,
+            current: 0,
         }
     };
 
@@ -136,10 +141,26 @@ function main() {
         return ui.SliderInput(label, props, props.onChange);
     };
 
+    const minFpsE = ui.e('span', {className: 'min-fps'})
+    const maxFpsE = ui.e('span', {className: 'max-fps'})
+    const currentFpsE = ui.e('span', {className: 'max-fps'})
+
+    const updateFpsHTML = () => {
+        currentFpsE.innerText = state.fps.current.toFixed(2);
+        minFpsE.innerText = state.fps.min.toFixed(2);
+        maxFpsE.innerText = state.fps.max.toFixed(2);
+    }
+    updateFpsHTML();
+
     document.getElementById('app').appendChild(
         ui.Form(
             ui.FormRow(
                 ui.e('div', ui.c('col-lg'),
+                    ui.e('ul', ui.c('fps'),
+                        ui.e('li', null, currentFpsE),                    
+                        ui.e('li', null, ui.e('span', null, 'Min: '), minFpsE),
+                        ui.e('li', null, ui.e('span', null, 'Max: '), maxFpsE),
+                    ),
                     ui.FormGroup('Features',
                         ui.CheckBoxInput('Pause', state.pause, state.pause.onChange),
                         ui.CheckBoxInput('Rotate / animate', state.shouldRotate, state.shouldRotate.onChange),
@@ -406,6 +427,7 @@ function main() {
 
         let delta = 1000. / 60;
         let lastStart = null;
+        let frame = 0;
 
         function processFrame(timestamp: DOMHighResTimeStamp) {
             if (state.pause.checked) {
@@ -414,9 +436,23 @@ function main() {
 
             if (lastStart === null) {
                 delta = 1000 / 60;
+                lastStart = timestamp;
             } else {
                 delta = timestamp - lastStart;
                 lastStart = timestamp;
+            }
+
+            state.fps.current = 1000 / delta;
+            if (frame % 100 === 0) {
+                state.fps.min = state.fps.current;
+                state.fps.max = state.fps.current;
+            } else {
+                state.fps.min = Math.min(state.fps.min, state.fps.current)
+                state.fps.max = Math.max(state.fps.max, state.fps.current)
+            }
+            frame++;
+            if (frame % 3 === 0) {
+                updateFpsHTML();
             }
 
             pressedKeys.forEach((v, k) => {
