@@ -42,6 +42,7 @@ export class SSRConfig {
 export class DeferredRendererConfig {
     showLayer: ShowLayer = ShowLayer.Final;
     normalMapsEnabled: boolean = true;
+    albedoTexturesEnabled: boolean = true;
     ssao = new SSAOConfig();
     shadowMap = new ShadowMapConfig();
     ssr = new SSRConfig();
@@ -159,7 +160,10 @@ export class GBuffer {
 
         gl[uniformFunc](s.getUniformLocation(gl, valueName), txOrValue.value);
 
-        const hasTexture = txOrValue.hasTexture();
+        let hasTexture = txOrValue.hasTexture();
+        if (prefix == "u_albedo" && !this.config.albedoTexturesEnabled) {
+            hasTexture = false;
+        }
         gl.uniform1i(s.getUniformLocation(gl, hasTxName), hasTexture ? 1 : 0);
 
         if (hasTexture) {

@@ -59,11 +59,11 @@ function main() {
                 onChange: ui.funcRef(),
                 checked: true,
             },
-            sampleCount: {value: 32, min: 1, step: 1, onChange: ui.funcRef()},
+            sampleCount: {value: 64, min: 1, step: 1, onChange: ui.funcRef()},
             noiseScale: {value: 4, min: 2, step: 1, onChange: ui.funcRef()},
-            radius: {value: 0.25, min: 0.001, step: 0.1, onChange: ui.funcRef(),},
+            radius: {value: 1., min: 0.001, step: 0.1, onChange: ui.funcRef(),},
             bias: {value: 0.02, step: 0.001, min: 0.001, onChange: ui.funcRef(),},
-            strength: {value: 1.0, min: 0, step: 0.5, onChange: ui.funcRef(),},
+            strength: {value: 2.0, min: 0, step: 0.5, onChange: ui.funcRef(),},
             scalePower: {value: 2, min: 0, step: 0.5, onChange: ui.funcRef(),},
             blurPositionThreshold: {value: 0.3, min: 0, step: 0.01, onChange: ui.funcRef()},
             blurNormalThreshold: {value: 0.9, min: 0, step: 0.05, onChange: ui.funcRef()},
@@ -90,6 +90,10 @@ function main() {
         normalMapsEnabled: {
             onChange: ui.funcRef(),
             checked: true
+        },
+        albedoTexturesEnabled: {
+            onChange: ui.funcRef(),
+            checked: true,
         },
         pause: {
             onChange: ui.funcRef(),
@@ -136,8 +140,19 @@ function main() {
         ui.Form(
             ui.FormRow(
                 ui.e('div', ui.c('col-lg'),
+                    ui.FormGroup('Features',
+                        ui.CheckBoxInput('Pause', state.pause, state.pause.onChange),
+                        ui.CheckBoxInput('Rotate / animate', state.shouldRotate, state.shouldRotate.onChange),
+                        ui.CheckBoxInput('SSAO', state.ssao.enable, state.ssao.enable.onChange),
+                        ui.CheckBoxInput('Shadow Map', state.shadowMap.enable, state.shadowMap.enable.onChange),
+                        ui.CheckBoxInput('Normal maps', state.normalMapsEnabled, state.normalMapsEnabled.onChange),
+                        ui.CheckBoxInput('Albedo textures', state.albedoTexturesEnabled, state.albedoTexturesEnabled.onChange),
+                        ui.CheckBoxInput('Screen-space reflections', state.ssr.enable, state.ssr.enable.onChange),
+                    ),
+                    ui.FormGroup('Layer to show',
+                        ui.RadioInput(state.showLayer.options, state.showLayer, state.showLayer.onChange)
+                    ),
                     ui.FormGroup('SSAO',
-                        ui.CheckBoxInput('Enable', state.ssao.enable, state.ssao.enable.onChange),
                         n('Samples', state.ssao.sampleCount),
                         n('Noise scale', state.ssao.noiseScale),
                         n('Radius', state.ssao.radius),
@@ -149,19 +164,9 @@ function main() {
                         n('Pos. threshold', state.ssao.blurPositionThreshold),
                         n('Normal threshold', state.ssao.blurNormalThreshold),
                     ),
-                    ui.FormGroup('Layer to show',
-                        ui.RadioInput(state.showLayer.options, state.showLayer, state.showLayer.onChange)
-                    ),
-                    ui.FormGroup('Other',
-                        ui.CheckBoxInput('Should rotate', state.shouldRotate, state.shouldRotate.onChange),
-                        ui.CheckBoxInput('Enable normal maps', state.normalMapsEnabled, state.normalMapsEnabled.onChange),
-                        ui.CheckBoxInput('Enable SSR', state.ssr.enable, state.ssr.enable.onChange),
-                        ui.CheckBoxInput('Pause', state.pause, state.pause.onChange),
-                    ),
                 ),
                 ui.e('div', ui.c('col-lg'),
                     ui.FormGroup('Shadow Map',
-                        ui.CheckBoxInput('Enable', state.shadowMap.enable, state.shadowMap.enable.onChange),
                         n('Fixed bias', state.shadowMap.bias.fixed),
                         n('Normal bias', state.shadowMap.bias.normal),
                     ),
@@ -339,12 +344,16 @@ function main() {
         rendererConfig.ssr = ssrConfig;
         rendererConfig.showLayer = state.showLayer.value;
         rendererConfig.normalMapsEnabled = state.normalMapsEnabled.checked;
+        rendererConfig.albedoTexturesEnabled = state.albedoTexturesEnabled.checked;
 
         const renderer = new DeferredRenderer(gl, rendererConfig, fb, sphereMesh, ssaoState);
         let scene = new Scene();
 
         state.normalMapsEnabled.onChange.ref = v => {
             rendererConfig.normalMapsEnabled = v;
+        };
+        state.albedoTexturesEnabled.onChange.ref = v => {
+            rendererConfig.albedoTexturesEnabled = v;
         };
 
         loadSceneFromGLTF(gl, SAMPLE_GLTF_SPONZA).then(newScene => {
