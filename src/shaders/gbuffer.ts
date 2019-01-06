@@ -79,7 +79,11 @@ void main() {
     } else {
         normal = normalize(v_norm.xyz);
     }
-    gbuf_normal = normal * 0.5 + 0.5;
+    // encode Z normal sign in R. This is pretty stupid encoding but does the job.
+    if (normal.z < 0.) {
+        normal.x += 3.;
+    }
+    gbuf_normal = normal;
     
     if (u_albedoHasTexture) {
         gbuf_albedo = srgb(texture(u_albedoTexture, v_uv));

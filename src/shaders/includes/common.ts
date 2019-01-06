@@ -5,12 +5,19 @@ uniform sampler2D gbuf_colormap;
 uniform sampler2D gbuf_metallic_roughness;
 
 vec4 read_gbuffer_normal(vec2 pos) {
-    vec4 val = texture(gbuf_normal, pos);
-    val.xyz = val.xyz * 2. - 1.;
+    vec3 val = texture(gbuf_normal, pos).xyz;
+    bool zIsNegative = false;
+    if (val.x > 1.5) {
+        val.x -= 3.;
+        zIsNegative = true;
+    }
     // clamp is for float error correction
-    // val.z = sqrt(clamp(1. - val.x * val.x - val.y * val.y, 0., 1.));
-    val.a = 0.;
-    return val;
+    val.z = sqrt(clamp(1. - val.x * val.x - val.y * val.y, 0., 1.));
+    if (zIsNegative) {
+        val.z = -val.z;
+    }
+    val = normalize(val);
+    return vec4(val, 0.);
 }
 
 struct metallicRoughness {

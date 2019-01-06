@@ -276,11 +276,15 @@ export class GBuffer {
         this.metallicRoughnessTX = createAndBindBufferTexture(gl, gl.RG16F, gl.RG, gl.HALF_FLOAT);
         
         // uncomment to have 16-bit float normals RG
+        // NOT ENOUGH PRECISION, SSR texture jumps around when restoring Z from.
         // this.normalTX = createAndBindBufferTexture(gl, gl.RG16F, gl.RG, gl.HALF_FLOAT);
+
+        // NOT ENOUGH PRECISION (although better than RG16F)
         // uncomment to have 8-bit integer normals.
-        this.normalTX = createAndBindBufferTexture(gl, gl.RGB8, gl.RGB, gl.UNSIGNED_BYTE);
-        // uncomment to have 32-bit float normals RG
-        // this.normalTX = createAndBindBufferTexture(gl, gl.RG32F, gl.RG, gl.FLOAT);
+        // this.normalTX = createAndBindBufferTexture(gl, gl.RGB8, gl.RGB, gl.UNSIGNED_BYTE);
+
+        // uncomment to have 32-bit float normals RG.
+        this.normalTX = createAndBindBufferTexture(gl, gl.RG32F, gl.RG, gl.FLOAT);
 
         this.posTx = createAndBindBufferTexture(gl, gl.RGBA16F, gl.RGBA, gl.FLOAT);
         this.depthTX = createAndBindBufferTexture(gl, gl.DEPTH24_STENCIL8, gl.DEPTH_STENCIL, gl.UNSIGNED_INT_24_8);
