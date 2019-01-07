@@ -19,6 +19,13 @@ import {FullScreenQuad, QuadArrayBufferData} from "./quad";
 const originZero = vec3.create();
 const PI2 = Math.PI / 2.0 - 0.01;
 
+const printError = e => {
+    console.error(e);
+    const errE = document.getElementById('error');
+    errE.innerText = e.toString();
+    errE.style.display = '';
+}
+
 function main() {
     const state = {
         lighting: {
@@ -631,7 +638,13 @@ function main() {
 
         requestAnimationFrame(processFrame)
 
-    }, e => console.error(e));
+    }).catch(printError);
 }
 
-window.onload = main;
+window.addEventListener('load', () => {
+    try {
+        main()
+    } catch(e) {
+        printError(e);
+    }
+});
