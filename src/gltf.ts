@@ -23,37 +23,55 @@ export function constructUrlBase(url: string) {
     return parts.join('/') + '/';
 }
 
-export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename: string): Promise<Scene> {
-    const scene = new Scene();
+const m = () => new Map();
+const white = vec3.fromValues(1, 1, 1);
 
-    let g: GlTf = await fetch(gltfFilename).then(response => {
-        if (!response.ok) {
-            throw new Error(response.statusText);
-        }
-        return <Promise<GlTf>> response.json();
-    });
+export class GLTFLoader {
+    private buffers = m();
+    private bufferViewsIndices = m();
+    private bufferViewsArrays = m();
+    private images = m();
+    private textures = m();
+    private materials = m();
+    private accessorsIndices = m();
+    private accessorsArrays = m();
+    private urlPrefix: string;
+    private g: GlTf;
+    private gPromise: Promise<GlTf>;
+    private gl: WebGL2RenderingContext;
 
-    const buffers = new Map();
-    const bufferViewsIndices = new Map();
-    const bufferViewsArrays = new Map();
-    const images = new Map();
-    const textures = new Map();
-    const materials = new Map();
-    const accessorsIndices = new Map();
-    const accessorsArrays = new Map();
-    const white = vec3.fromValues(1, 1, 1);
+    constructor(gl: WebGL2RenderingContext, gltfFilename: string) {
+        this.urlPrefix = constructUrlBase(gltfFilename);
+        this.gPromise = fetch(gltfFilename).then(response => {
+            if (!response.ok) {
+                throw new Error(response.statusText);
+            }
+            return <Promise<GlTf>> response.json();
+        });
+        this.gPromise.then(g => this.g = g);
+        this.gl = gl;
+    }
 
-    const urlPrefix = constructUrlBase(gltfFilename);
+    async loadScene(id?: number): Promise<Scene> {
+        const scene = new Scene();
+        const g: GlTf = await this.gPromise;
 
-    const urlJoin = (suffix: string): string => {
-        return urlPrefix + suffix;
+        g.scenes[g.scene].nodes.forEach(nodeId => {
+            scene.addChild(this.toGameObject(nodeId));
+        });
+
+        return scene;
+
+    }
+
+    private urlJoin = (suffix: string): string => {
+        return this.urlPrefix + suffix;
     };
 
-    const loadImage = (id: number): Promise<HTMLImageElement> => {
-        return mapComputeIfAbsent(images, id, (id) => {
-            // console.log(`loading image ${id}`);
-            const img = g.images[id];
-            const uri = urlJoin(img.uri);
+    private loadImage(id: number): Promise<HTMLImageElement> {
+        return mapComputeIfAbsent(this.images, id, id => {
+            const img = this.g.images[id];
+            const uri = this.urlJoin(img.uri);
             return new Promise((resolve, reject) => {
                 const img = new Image();
                 img.src = uri;
@@ -69,75 +87,73 @@ export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename
         });
     };
 
-    async function loadBufferAsync(id: number): Promise<Uint8Array> {
-        const uri = urlJoin(g.buffers[id].uri);
+    private async loadBufferAsync(id: number): Promise<Uint8Array> {
+        const uri = this.urlJoin(this.g.buffers[id].uri);
         const response = await fetch(uri);
         if (response.status != 200) {
             throw new Error(`Unexpected response: ${response.status}`);
         }
         const buf =  await response.arrayBuffer();
         return new Uint8Array(buf);
-    }
-
-    const loadBuffer = (id: number): Promise<Uint8Array> => {
-        return mapComputeIfAbsent(buffers, id, id => {
-            return loadBufferAsync(id);
-        });
     };
 
-    const loadBufferViewIndices = (id: number): Promise<BufferView<ElementArrayWebGLBufferWrapper>> => {
-        return mapComputeIfAbsent(bufferViewsIndices, id, id => {
-            const bv = g.bufferViews[id];
-            return loadBuffer(bv.buffer).then(buf => {
-                const glbuf = new ElementArrayWebGLBufferWrapper(gl, buf.subarray(bv.byteOffset, bv.byteOffset + bv.byteLength));
+    private loadBuffer = (id: number): Promise<Uint8Array> => {
+        return mapComputeIfAbsent(this.buffers, id, this.loadBufferAsync.bind(this));
+    };
+
+    private loadBufferViewIndices = (id: number): Promise<BufferView<ElementArrayWebGLBufferWrapper>> => {
+        return mapComputeIfAbsent(this.bufferViewsIndices, id, id => {
+            const bv = this.g.bufferViews[id];
+            return this.loadBuffer(bv.buffer).then(buf => {
+                const glbuf = new ElementArrayWebGLBufferWrapper(this.gl, buf.subarray(bv.byteOffset, bv.byteOffset + bv.byteLength));
                 return new BufferView(glbuf, bv.byteLength);
             })
         })
     };
 
-    const loadBufferViewArray = (id: number): Promise<BufferView<ArrayWebGLBufferWrapper>> => {
-        return mapComputeIfAbsent(bufferViewsArrays, id, id => {
-            const bv = g.bufferViews[id];
-            return loadBuffer(bv.buffer).then(buf => {
-                const glbuf = new ArrayWebGLBufferWrapper(gl, buf.subarray(bv.byteOffset, bv.byteOffset + bv.byteLength));
+    private loadBufferViewArray = (id: number): Promise<BufferView<ArrayWebGLBufferWrapper>> => {
+        return mapComputeIfAbsent(this.bufferViewsArrays, id, id => {
+            const bv = this.g.bufferViews[id];
+            return this.loadBuffer(bv.buffer).then(buf => {
+                const glbuf = new ArrayWebGLBufferWrapper(this.gl, buf.subarray(bv.byteOffset, bv.byteOffset + bv.byteLength));
                 return new BufferView(glbuf, bv.byteLength);
             })
         })
     };
 
-    const loadAccessorIndices = (id: number): Promise<GLTFAccessor<ElementArrayWebGLBufferWrapper>> => {
-        return mapComputeIfAbsent(accessorsIndices, id, id => {
-            const accessor = g.accessors[id];
-            return loadBufferViewIndices(accessor.bufferView).then(bv => {
+    private loadAccessorIndices = (id: number): Promise<GLTFAccessor<ElementArrayWebGLBufferWrapper>> => {
+        return mapComputeIfAbsent(this.accessorsIndices, id, id => {
+            const accessor = this.g.accessors[id];
+            return this.loadBufferViewIndices(accessor.bufferView).then(bv => {
                 return new GLTFAccessor<ElementArrayWebGLBufferWrapper>(accessor, bv);
             });
         })
     };
 
-    const loadAccessorArrays = (id: number): Promise<GLTFAccessor<ArrayWebGLBufferWrapper>> => {
+    private loadAccessorArrays(id: number): Promise<GLTFAccessor<ArrayWebGLBufferWrapper>> {
         if (id === null || id === undefined) {
             return Promise.resolve(undefined);
         }
-        return mapComputeIfAbsent(accessorsArrays, id, id => {
-            const accessor = g.accessors[id];
-            return loadBufferViewArray(accessor.bufferView).then(bv => {
+        return mapComputeIfAbsent(this.accessorsArrays, id, id => {
+            const accessor = this.g.accessors[id];
+            return this.loadBufferViewArray(accessor.bufferView).then(bv => {
                 return new GLTFAccessor<ArrayWebGLBufferWrapper>(accessor, bv);
             });
         })
     };
 
-    const loadTexture = (id: number): Texture => {
-        return mapComputeIfAbsent(textures, id, () => {
-            const t = g.textures[id];
-            const img = loadImage(t.source);
-            return new Texture(gl, img, white);
+    private loadTexture(id: number): Texture {
+        return mapComputeIfAbsent(this.textures, id, () => {
+            const t = this.g.textures[id];
+            const img = this.loadImage(t.source);
+            return new Texture(this.gl, img, white);
         });
     };
 
-    const loadMaterial = (id: number): Material => {
-        return mapComputeIfAbsent(materials, id, () => {
+    private loadMaterial(id: number): Material {
+        return mapComputeIfAbsent(this.materials, id, id => {
             const nm = new Material();
-            const m = g.materials[id];
+            const m = this.g.materials[id];
 
             const mr = m.pbrMetallicRoughness;
 
@@ -151,7 +167,7 @@ export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename
                 }
             }
             if (mr.baseColorTexture) {
-                nm.albedo.setTexture(loadTexture(mr.baseColorTexture.index));
+                nm.albedo.setTexture(this.loadTexture(mr.baseColorTexture.index));
             }
 
             // metallic
@@ -163,7 +179,7 @@ export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename
                 }
             }
             if (mr.metallicRoughnessTexture) {
-                nm.metallic.texture = loadTexture(mr.metallicRoughnessTexture.index);
+                nm.metallic.texture = this.loadTexture(mr.metallicRoughnessTexture.index);
             }
 
             // roughness
@@ -175,25 +191,25 @@ export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename
                 }
             }
             if (mr.metallicRoughnessTexture) {
-                nm.roughness.texture = loadTexture(mr.metallicRoughnessTexture.index);
+                nm.roughness.texture = this.loadTexture(mr.metallicRoughnessTexture.index);
             }
             if (m.normalTexture) {
-                nm.setNormalMap(loadTexture(m.normalTexture.index));
+                nm.setNormalMap(this.loadTexture(m.normalTexture.index));
             }
             return nm;
         })
     };
 
-    async function loadPrimitive(p: MeshPrimitive): Promise<GLArrayBufferI> {
+    private loadPrimitive(p: MeshPrimitive): Promise<GLArrayBufferI> {
         if (p.mode !== undefined && p.mode != GLTF.TRIANGLES) {
             throw new Error(`Not trianges: ${p.mode}`);
         }
-        return await Promise.all([
-            loadAccessorIndices(p.indices),
-            loadAccessorArrays(p.attributes.POSITION),
-            loadAccessorArrays(p.attributes.TEXCOORD_0),
-            loadAccessorArrays(p.attributes.NORMAL),
-            loadAccessorArrays(p.attributes.TANGENT)
+        return Promise.all([
+            this.loadAccessorIndices(p.indices),
+            this.loadAccessorArrays(p.attributes.POSITION),
+            this.loadAccessorArrays(p.attributes.TEXCOORD_0),
+            this.loadAccessorArrays(p.attributes.NORMAL),
+            this.loadAccessorArrays(p.attributes.TANGENT)
         ]).then(([indices, pos, uv, normal, tangent]) => {
             return new GLArrayBufferGLTF(
                 indices, pos, uv, normal, tangent
@@ -201,8 +217,8 @@ export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename
         });
     }
 
-    const toGameObject = (nodeId: number): GameObject => {
-        const node = g.nodes[nodeId];
+    private toGameObject(nodeId: number): GameObject {
+        const node = this.g.nodes[nodeId];
         const gameObject = new GameObject(node.name || nodeId.toString());
         if (node.scale) {
             vec3.copy(gameObject.transform.scale, node.scale);
@@ -217,17 +233,17 @@ export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename
         gameObject.transform.update();
 
         if (node.mesh !== undefined) {
-            const mesh = g.meshes[node.mesh];
+            const mesh = this.g.meshes[node.mesh];
             mesh.primitives.forEach((p, pi) => {
-                loadPrimitive(p).then(buf => {
-                    const posAccessor = g.accessors[p.attributes.POSITION];
+                this.loadPrimitive(p).then(buf => {
+                    const posAccessor = this.g.accessors[p.attributes.POSITION];
                     const primitiveGameObject = new GameObjectBuilder(`mesh ${node.mesh}, primitive ${pi}`)
                         .setMeshComponent(new MeshComponent(buf))
                         .setBoundingBoxComponent(
                             new BoundingBoxComponent(new AxisAlignedBox().setMin(posAccessor.min).setMax(posAccessor.max))
                         )
                         .setMaterialComponent(
-                            new MaterialComponent(loadMaterial(p.material))
+                            new MaterialComponent(this.loadMaterial(p.material))
                         ).build();
 
                     gameObject.addChild(primitiveGameObject);
@@ -236,16 +252,15 @@ export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename
         }
         if (node.children) {
             node.children.forEach(nodeId => {
-                const child = toGameObject(nodeId);
+                const child = this.toGameObject(nodeId);
                 gameObject.addChild(child);
             })
         }
         return gameObject;
     }
 
-    g.scenes[g.scene].nodes.forEach(nodeId => {
-        scene.addChild(toGameObject(nodeId));
-    });
+}
 
-    return scene;
+export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename: string): Promise<Scene> {
+    return new GLTFLoader(gl, gltfFilename).loadScene();
 }
