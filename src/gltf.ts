@@ -208,7 +208,7 @@ export class GLTFLoader {
             this.loadAccessorArrays(p.attributes.TANGENT)
         ]).then(([indices, pos, uv, normal, tangent]) => {
             return new GLArrayBufferGLTF(
-                indices, pos, uv, normal, tangent
+                this.gl, indices, pos, uv, normal, tangent
             );
         });
     }

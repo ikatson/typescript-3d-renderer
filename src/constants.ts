@@ -1,7 +1,11 @@
 export const ATTRIBUTE_POSITION = "a_pos";
+export const ATTRIBUTE_POSITION_LOC = 0;
 export const ATTRIBUTE_NORMALS = "a_norm";
+export const ATTRIBUTE_NORMALS_LOC = 1;
 export const ATTRIBUTE_UV = "a_uv";
+export const ATTRIBUTE_UV_LOC = 2;
 export const ATTRIBUTE_TANGENT = "a_tangent";
+export const ATTRIBUTE_TANGENT_LOC = 3;
 export const UNIFORM_CAMERA_POSITION = "u_cameraPos";
 export const UNIFORM_WORLD_TO_CAMERA_MAT4 = "u_worldToCameraMatrix";
 export const UNIFORM_CAMERA_TO_WORLD_MAT4 = "u_cameraToWorldMatrix";

@@ -3,7 +3,14 @@ import {AxisAlignedBox} from "./axisAlignedBox";
 import {mat4, vec3, vec4} from "gl-matrix";
 import {Accessor} from "gltf-loader-ts/lib/gltf";
 import {GLTF} from "./gltf-enums";
-import {ATTRIBUTE_NORMALS, ATTRIBUTE_POSITION, ATTRIBUTE_TANGENT, ATTRIBUTE_UV, UNIFORM_HAS_TANGENT} from "./constants";
+import {
+    ATTRIBUTE_NORMALS, ATTRIBUTE_NORMALS_LOC,
+    ATTRIBUTE_POSITION,
+    ATTRIBUTE_POSITION_LOC,
+    ATTRIBUTE_TANGENT, ATTRIBUTE_TANGENT_LOC,
+    ATTRIBUTE_UV, ATTRIBUTE_UV_LOC,
+    UNIFORM_HAS_TANGENT
+} from "./constants";
 import {tmpVec3} from "./utils";
 
 const FLOAT_BYTES = 4;
@@ -239,20 +246,18 @@ export class GlArrayBufferDataIterator {
 export const tmpIter = new GlArrayBufferDataIterator(null);
 
 export interface GLArrayBufferI {
-    buffer: WebGLBuffer;
-
     hasNormals(): boolean;
     hasUV(): boolean;
     hasTangent(): boolean;
 
-    setupVertexPositionsPointer(gl, attribLocation): void;
-    setupVertexNormalsPointer(gl, attribLocation): void;
-    setupVertexUVPointer(gl, attribLocation): void;
-    setupTangentPointer(gl: WebGL2RenderingContext, attribLocation: number);
+    // setupVertexPositionsPointer(gl, attribLocation): void;
+    // setupVertexNormalsPointer(gl, attribLocation): void;
+    // setupVertexUVPointer(gl, attribLocation): void;
+    // setupTangentPointer(gl: WebGL2RenderingContext, attribLocation: number);
 
     draw(gl: WebGL2RenderingContext, renderMode?: number): void;
     delete(gl: WebGL2RenderingContext): void;
-    prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext, program: ShaderProgram, normals?: boolean, uv?: boolean, tangent?: boolean): void;
+    prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext, program?: ShaderProgram): void;
 }
 
 
@@ -263,6 +268,7 @@ export class ArrayWebGLBufferWrapper implements WebGLBufferI {
     private _buf: WebGLBuffer;
     constructor(gl: WebGL2RenderingContext, data: ArrayBuffer) {
         this._buf = gl.createBuffer();
+        gl.bindVertexArray(null);
         gl.bindBuffer(gl.ARRAY_BUFFER, this._buf);
         gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
     }
@@ -285,6 +291,7 @@ export class ElementArrayWebGLBufferWrapper implements WebGLBufferI {
     private _buf: WebGLBuffer;
     constructor(gl: WebGL2RenderingContext, data: ArrayBuffer) {
         this._buf = gl.createBuffer();
+        gl.bindVertexArray(null);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._buf);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data, gl.STATIC_DRAW);
     }
@@ -387,14 +394,16 @@ export class GLTFAccessor<T extends WebGLBufferI> {
 }
 
 export class GLArrayBufferGLTF implements GLArrayBufferI {
-    buffer: WebGLBuffer;
     private indices: GLTFAccessor<ElementArrayWebGLBufferWrapper>;
     private position: GLTFAccessor<ArrayWebGLBufferWrapper>;
     private uv: GLTFAccessor<ArrayWebGLBufferWrapper>;
     private normal: GLTFAccessor<ArrayWebGLBufferWrapper>;
     private tangent: GLTFAccessor<ArrayWebGLBufferWrapper>;
 
+    private arr: WebGLVertexArrayObject;
+
     constructor(
+        gl: WebGL2RenderingContext,
         indices: GLTFAccessor<ElementArrayWebGLBufferWrapper>,
         position: GLTFAccessor<ArrayWebGLBufferWrapper>,
         uv: GLTFAccessor<ArrayWebGLBufferWrapper>,
@@ -406,6 +415,7 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
         this.uv = uv;
         this.normal = normal;
         this.tangent = tangent;
+        this.arr = this.prepareVAO(gl);
     }
 
     delete(gl: WebGL2RenderingContext): void {
@@ -413,58 +423,79 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
     }
 
     draw(gl: WebGL2RenderingContext, renderMode?: number): void {
+        if (renderMode === undefined) {
+            renderMode = gl.TRIANGLES;
+        }
+
         if (this.indices) {
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indices.webGlBuf);
             gl.drawElements(
-                gl.TRIANGLES,
+                renderMode,
                 this.indices.accessor.count,
                 this.indices.componentTypeToGlType(),
                 this.indices.accessor.byteOffset
             );
+        } else {
+            gl.drawArrays(
+                renderMode,
+                0,
+                this.position.accessor.count,
+            );
         }
     }
 
-    prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext, program: ShaderProgram, normals?: boolean, uv?: boolean, tangent?: boolean): void {
-        program.use(gl);
+    prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext, program?: ShaderProgram): void {
+        const tangent = !!this.tangent;
 
-        if (normals === undefined) {
-            normals = !!this.normal;
-        }
+        gl.bindVertexArray(this.arr);
 
-        if (uv === undefined) {
-            uv = !!this.uv;
-        }
-
-        if (tangent === undefined) {
-            tangent = !!this.tangent;
-        }
-
-        this.setupVertexPositionsPointer(gl, program.getAttribLocation(gl, ATTRIBUTE_POSITION));
-        if (normals) {
-            this.setupVertexNormalsPointer(gl, program.getAttribLocation(gl, ATTRIBUTE_NORMALS));
-        }
-        if (uv) {
-            this.setupVertexUVPointer(gl, program.getAttribLocation(gl, ATTRIBUTE_UV));
-        }
-        if (tangent) {
-            this.setupTangentPointer(gl, program.getAttribLocation(gl, ATTRIBUTE_TANGENT));
+        if (tangent && program) {
+            program.use(gl);
             gl.uniform1i(program.getUniformLocation(gl, UNIFORM_HAS_TANGENT), 1);
         }
+        return;
     }
 
-    setupVertexNormalsPointer(gl, attribLocation): void {
+    private prepareVAO(gl: WebGL2RenderingContext): WebGLVertexArrayObject {
+        const arr = gl.createVertexArray();
+        try {
+            gl.bindVertexArray(arr);
+
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indices.webGlBuf);
+
+            const normals = !!this.normal;
+            const uv = !!this.uv;
+            const tangent = !!this.tangent;
+
+            this.setupVertexPositionsPointer(gl, ATTRIBUTE_POSITION_LOC);
+            if (normals) {
+                this.setupVertexNormalsPointer(gl, ATTRIBUTE_NORMALS_LOC);
+            }
+            if (uv) {
+                this.setupVertexUVPointer(gl, ATTRIBUTE_UV_LOC);
+            }
+            if (tangent) {
+                this.setupTangentPointer(gl, ATTRIBUTE_TANGENT_LOC);
+            }
+        } catch(e) {
+            gl.deleteVertexArray(arr);
+            throw e;
+        }
+        return arr;
+    }
+
+    private setupVertexNormalsPointer(gl, attribLocation): void {
         this.normal.setupVertexPointer(gl, attribLocation);
     }
 
-    setupVertexPositionsPointer(gl, attribLocation): void {
+    private setupVertexPositionsPointer(gl, attribLocation): void {
         this.position.setupVertexPointer(gl, attribLocation);
     }
 
-    setupVertexUVPointer(gl, attribLocation): void {
+    private setupVertexUVPointer(gl, attribLocation): void {
         this.uv.setupVertexPointer(gl, attribLocation);
     }
 
-    setupTangentPointer(gl: WebGL2RenderingContext, attribLocation: number) {
+    private setupTangentPointer(gl: WebGL2RenderingContext, attribLocation: number) {
         this.tangent.setupVertexPointer(gl, attribLocation);
     }
 
@@ -484,6 +515,7 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
 export class GLArrayBufferV1 implements GLArrayBufferI {
     buffer: WebGLBuffer;
     params: GLArrayBufferDataParams;
+    private arr: WebGLVertexArrayObject;
     /**
      * @deprecated
      */
@@ -497,40 +529,36 @@ export class GLArrayBufferV1 implements GLArrayBufferI {
         this.params = data.params;
         // this.REMOVE_ME_DATA = data;
 
+        gl.bindVertexArray(null);
         gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
         gl.bufferData(gl.ARRAY_BUFFER, data.buf, usage);
+        this.arr = this.parepareVAO(gl);
+        gl.bindVertexArray(null);
     }
 
-    bind(gl: WebGL2RenderingContext) {
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
-    }
-
-    setupVertexPositionsPointer(gl, attribLocation) {
-        this.bind(gl);
+    private setupVertexPositionsPointer(gl, attribLocation) {
         gl.enableVertexAttribArray(attribLocation);
         gl.vertexAttribPointer(attribLocation, this.params.elementSize, gl.FLOAT, false, this.params.computeStrideInBytes(), 0);
     }
 
-    setupVertexNormalsPointer(gl, attribLocation) {
+    private setupVertexNormalsPointer(gl, attribLocation) {
         if (!this.params.hasNormals) {
             throw new Error("buf has no normals");
         }
         if (attribLocation == -1) {
             return;
         }
-        this.bind(gl);
         gl.enableVertexAttribArray(attribLocation);
         gl.vertexAttribPointer(attribLocation, this.params.normalsSize, gl.FLOAT, false, this.params.computeStrideInBytes(), this.params.computeNormalOffset());
     }
 
-    setupVertexUVPointer(gl, attribLocation) {
+    private setupVertexUVPointer(gl, attribLocation) {
         if (!this.params.hasUVs) {
             throw new Error("buf has no UVs");
         }
         if (attribLocation == -1) {
             return;
         }
-        this.bind(gl);
         gl.enableVertexAttribArray(attribLocation);
         gl.vertexAttribPointer(attribLocation, this.params.uvSize, gl.FLOAT, false, this.params.computeStrideInBytes(), this.params.computeUVOffset());
     }
@@ -540,32 +568,34 @@ export class GLArrayBufferV1 implements GLArrayBufferI {
     }
 
     delete(gl: WebGL2RenderingContext) {
+        gl.deleteVertexArray(this.arr);
         gl.deleteBuffer(this.buffer);
     }
 
-    prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext, program: ShaderProgram, normals?: boolean, uv?: boolean) {
-        program.use(gl);
-        this.bind(gl);
+    parepareVAO(gl: WebGL2RenderingContext): WebGLVertexArrayObject {
+        const arr = gl.createVertexArray();
+        try {
+            gl.bindVertexArray(arr);
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 
-        if (normals === undefined) {
-            normals = this.params.hasNormals
-        }
+            const normals = this.params.hasNormals;
+            const uv = this.params.hasUVs;
 
-        if (uv === undefined) {
-            uv = this.params.hasUVs;
+            this.setupVertexPositionsPointer(gl, ATTRIBUTE_POSITION_LOC);
+            if (normals) {
+                this.setupVertexNormalsPointer(gl, ATTRIBUTE_NORMALS_LOC);
+            }
+            if (uv) {
+                this.setupVertexUVPointer(gl, ATTRIBUTE_UV_LOC);
+            }
+        } catch (e) {
+            gl.deleteVertexArray(arr);
         }
-
-        this.setupVertexPositionsPointer(gl, program.getAttribLocation(gl, ATTRIBUTE_POSITION));
-        if (normals) {
-            this.setupVertexNormalsPointer(gl, program.getAttribLocation(gl, ATTRIBUTE_NORMALS));
-        }
-        if (uv) {
-            this.setupVertexUVPointer(gl, program.getAttribLocation(gl, ATTRIBUTE_UV));
-        }
+        return arr;
     }
 
-    setupTangentPointer(gl: WebGL2RenderingContext, attribLocation: number) {
-        throw new Error("not implemented");
+    prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext) {
+        gl.bindVertexArray(this.arr);
     }
 
     hasNormals(): boolean {

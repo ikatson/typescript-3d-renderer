@@ -4,7 +4,7 @@ import {WORLD_AND_CAMERA_TRANSFORMS} from "./includes/common";
 const VS = new ShaderSourceBuilder()
     .addTopChunk(WORLD_AND_CAMERA_TRANSFORMS)
     .addChunk(`
-in vec4 a_pos;
+layout(location = 0) in vec4 a_pos;
 out vec4 v_pos;
 
 uniform mat4 u_lightCameraWorldToProjectionMatrix;

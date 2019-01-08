@@ -1,5 +1,6 @@
 import {ArrayBufferDataType, GLArrayBufferData, GLArrayBufferDataParams, GLArrayBufferI} from "./glArrayBuffer";
 import {VertexShader} from "./shaders";
+import {ATTRIBUTE_POSITION_LOC} from "./constants";
 
 export const QuadVertices = new Float32Array([
     -1.0, 1.0,
@@ -37,10 +38,11 @@ export class FullScreenQuad {
         this.vertexShader = new VertexShader(gl, FULLSCREEN_QUAD_VS);
         // this object owns the shader, don't let others delete it recursively.
         this.vertexShader.setAutodelete(false);
+
     }
 
-    bind(gl: WebGL2RenderingContext, vertexPositionLocation: number) {
-        this.glArrayBuffer.setupVertexPositionsPointer(gl, vertexPositionLocation);
+    bind(gl: WebGL2RenderingContext) {
+        this.glArrayBuffer.prepareMeshVertexAndShaderDataForRendering(gl);
     }
 
     draw(gl: WebGL2RenderingContext) {

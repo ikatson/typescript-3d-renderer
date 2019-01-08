@@ -24,7 +24,7 @@ const printError = e => {
     const errE = document.getElementById('error');
     errE.innerText = e.toString();
     errE.style.display = '';
-}
+};
 
 function main() {
     const state = {
@@ -148,15 +148,15 @@ function main() {
         return ui.SliderInput(label, props, props.onChange);
     };
 
-    const minFpsE = ui.e('span', {className: 'min-fps'})
-    const maxFpsE = ui.e('span', {className: 'max-fps'})
-    const currentFpsE = ui.e('span', {className: 'max-fps'})
+    const minFpsE = ui.e('span', {className: 'min-fps'});
+    const maxFpsE = ui.e('span', {className: 'max-fps'});
+    const currentFpsE = ui.e('span', {className: 'max-fps'});
 
     const updateFpsHTML = () => {
         currentFpsE.innerText = state.fps.current.toFixed(2);
         minFpsE.innerText = state.fps.min.toFixed(2);
         maxFpsE.innerText = state.fps.max.toFixed(2);
-    }
+    };
     updateFpsHTML();
 
     document.getElementById('app').appendChild(
@@ -164,7 +164,7 @@ function main() {
             ui.FormRow(
                 ui.e('div', ui.c('col-lg'),
                     ui.e('ul', ui.c('fps'),
-                        ui.e('li', null, currentFpsE),                    
+                        ui.e('li', null, currentFpsE),
                         ui.e('li', null, ui.e('span', null, 'Min: '), minFpsE),
                         ui.e('li', null, ui.e('span', null, 'Max: '), maxFpsE),
                     ),
@@ -384,14 +384,18 @@ function main() {
             rendererConfig.albedoTexturesEnabled = v;
         };
 
+        state.pause.checked = true;
         loadSceneFromGLTF(gl, SAMPLE_GLTF_SPONZA).then(newScene => {
             scene = newScene;
             scene.directionalLights.push(sun.directionalLight);
 
             // camera.far = 50;
             vec3.set(camera.position, -6.4035325050354, 1.3013536930084229, -0.20439213514328003);
-            vec3.set(camera.forward, 1, 0, 0)
-            camera.calculateUpFromWorldUp()
+            vec3.set(camera.forward, 1, 0, 0);
+            camera.calculateUpFromWorldUp();
+
+            state.pause.checked = false;
+            requestAnimationFrame(processFrame);
         }, (err) => {
             console.error(err);
             state.pause.checked = true;
@@ -454,7 +458,7 @@ function main() {
                 state.fps.min = state.fps.current;
                 state.fps.max = state.fps.current;
             } else {
-                state.fps.min = Math.min(state.fps.min, state.fps.current)
+                state.fps.min = Math.min(state.fps.min, state.fps.current);
                 state.fps.max = Math.max(state.fps.max, state.fps.current)
             }
             frame++;

@@ -1,10 +1,10 @@
 const VS = `
 precision highp float;
 
-in vec4 a_pos;
-in vec3 a_norm;
-in vec2 a_uv;
-in vec4 a_tangent;
+layout(location = 0) in vec4 a_pos;
+layout(location = 1) in vec3 a_norm;
+layout(location = 2) in vec2 a_uv;
+layout(location = 3) in vec4 a_tangent;
 
 uniform mat4 u_modelViewMatrix;
 uniform mat4 u_modelWorldMatrix;

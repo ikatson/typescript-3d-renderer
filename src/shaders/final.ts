@@ -231,7 +231,7 @@ void main() {
 const POINT_LIGHT_RADIUS_VS = new ShaderSourceBuilder()
     .addTopChunk(WORLD_AND_CAMERA_TRANSFORMS)
     .addChunk(`
-in vec4 a_pos;
+layout(location = 0) in vec4 a_pos;
 out vec2 tx_pos;
 
 void main() {

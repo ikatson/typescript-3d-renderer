@@ -379,7 +379,7 @@ export class SSAORenderer {
             gl.clearColor(0., 0, 0, 1.);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-            this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, ATTRIBUTE_POSITION));
+            this.fullScreenQuad.bind(gl);
 
             // Common uniforms
             gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_WORLD_TO_CAMERA_MAT4), false, camera.getWorldToCamera());
@@ -412,7 +412,7 @@ export class SSAORenderer {
             gl.clearColor(0., 0, 0, 1.);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-            this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, ATTRIBUTE_POSITION));
+            this.fullScreenQuad.bind(gl);
 
             // Common uniforms
             gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_WORLD_TO_CAMERA_MAT4), false, camera.getWorldToCamera());
@@ -512,7 +512,7 @@ export class ShadowMapRenderer {
             }
 
             gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_MODEL_WORLD_MATRIX), false, o.transform.getModelToWorld());
-            o.mesh.draw(gl, s, false, false);
+            o.mesh.draw(gl, s);
         };
 
         withViewport(gl, this._shadowMapWidth, this._shadowMapHeight, () => {
@@ -706,7 +706,7 @@ export class LightingRenderer {
                 gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
             }
             const s = this.showBuffersShader.use(gl);
-            this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, ATTRIBUTE_POSITION));
+            this.fullScreenQuad.bind(gl);
             bindUniformTx(gl, this.showBuffersShader, UNIFORM_GBUF_POSITION, this.gBuffer.posTx, 0);
             bindUniformTx(gl, this.showBuffersShader, UNIFORM_GBUF_NORMAL, this.gBuffer.normalTX, 1);
             bindUniformTx(gl, this.showBuffersShader, UNIFORM_GBUF_ALBEDO, this.gBuffer.albedoTX, 2);
@@ -752,7 +752,7 @@ export class LightingRenderer {
             let s = this.directionalLightShader;
             s.use(gl);
 
-            this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, ATTRIBUTE_POSITION));
+            this.fullScreenQuad.bind(gl);
 
             // Shadow map stuff
             gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapFixedBias"), this.config.shadowMap.fixedBias);
@@ -801,7 +801,7 @@ export class LightingRenderer {
             gl.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
             gl.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE);
 
-            this.sphereObject.mesh.primitives[0].prepareMeshVertexAndShaderDataForRendering(gl, s, false, false);
+            this.sphereObject.mesh.primitives[0].prepareMeshVertexAndShaderDataForRendering(gl, s);
 
             // Shadow map stuff
             gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapFixedBias"), this.config.shadowMap.fixedBias);
@@ -1004,7 +1004,7 @@ class SSRRenderer {
         gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_PERSPECTIVE_MATRIX), false, camera.projectionMatrix().matrix);
 
         // full screen quad final draw
-        this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, ATTRIBUTE_POSITION));
+        this.fullScreenQuad.bind(gl);
         this.fullScreenQuad.draw(gl);
     }
 
@@ -1016,7 +1016,7 @@ class SSRRenderer {
         bindUniformTx(gl, s, "u_lightedSceneTx", this.lightingRenderer.resultTX, 0);
         bindUniformTx(gl, s, "u_ssrTx", this.resultTX, 1);
 
-        this.fullScreenQuad.bind(gl, s.getAttribLocation(gl, ATTRIBUTE_POSITION));
+        this.fullScreenQuad.bind(gl);
         this.fullScreenQuad.draw(gl);
     }
 }
@@ -1060,7 +1060,7 @@ class TextureToFbCopier {
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.targetFB);
         const s = this.shader.shader;
         s.use(gl);
-        this.fsq.bind(gl, s.getAttribLocation(gl, ATTRIBUTE_POSITION));
+        this.fsq.bind(gl);
         bindUniformTx(gl, s, "tx", this.tx, 0);
         this.fsq.draw(gl);
     }
