@@ -4,7 +4,7 @@ import { FullScreenQuad } from "./quad";
 export class ProgressBarCommon {
     fs: FragmentShader;
     vs: VertexShader;
-    program: ShaderProgram;
+    shader: ShaderProgram;
     fullScreenBuffer: FullScreenQuad;
     posLoc: number;
     percentLoc: WebGLUniformLocation;
@@ -12,8 +12,8 @@ export class ProgressBarCommon {
     constructor(gl: WebGL2RenderingContext, fullScreenBuffer: FullScreenQuad) {
         this.fullScreenBuffer = fullScreenBuffer;
         this.vs = new VertexShader(gl, `
-        precision highp float;
-        in vec2 a_pos;
+        layout(location = 0) in vec2 a_pos;
+        
         uniform float percent;
         out vec2 v_pos;
 
@@ -36,15 +36,8 @@ export class ProgressBarCommon {
             color = vec4(v_pos / 2. + 0.5, percent, 1.);
         }
         `);
-        this.program = new ShaderProgram(gl, this.vs, this.fs);
-
-        this.posLoc = this.program.getAttribLocation(gl, "a_pos");
-        this.percentLoc = this.program.getUniformLocation(gl, "percent")
-    }
-
-    bind(gl: WebGL2RenderingContext) {
-        gl.useProgram(this.program.getProgram());
-        this.fullScreenBuffer.bind(gl);
+        this.shader = new ShaderProgram(gl, this.vs, this.fs);
+        this.percentLoc = this.shader.getUniformLocation(gl, "percent")
     }
 
     delete(gl: WebGL2RenderingContext) {
@@ -57,9 +50,11 @@ export class ProgressBar {
     constructor(gl: WebGL2RenderingContext, common: ProgressBarCommon) {
         this.common = common;
     }
+
     prepare(gl: WebGL2RenderingContext) {
-        this.common.bind(gl);
+        this.common.shader.use(gl);
     }
+
     render(gl: WebGL2RenderingContext, percent: number) {
         gl.uniform1f(this.common.percentLoc, percent);
         this.common.fullScreenBuffer.draw(gl);

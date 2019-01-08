@@ -384,7 +384,6 @@ function main() {
             rendererConfig.albedoTexturesEnabled = v;
         };
 
-        state.pause.checked = true;
         loadSceneFromGLTF(gl, SAMPLE_GLTF_SPONZA).then(newScene => {
             scene = newScene;
             scene.directionalLights.push(sun.directionalLight);
@@ -393,9 +392,6 @@ function main() {
             vec3.set(camera.position, -6.4035325050354, 1.3013536930084229, -0.20439213514328003);
             vec3.set(camera.forward, 1, 0, 0);
             camera.calculateUpFromWorldUp();
-
-            state.pause.checked = false;
-            requestAnimationFrame(processFrame);
         }, (err) => {
             console.error(err);
             state.pause.checked = true;

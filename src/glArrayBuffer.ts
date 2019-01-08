@@ -257,7 +257,7 @@ export interface GLArrayBufferI {
 
     draw(gl: WebGL2RenderingContext, renderMode?: number): void;
     delete(gl: WebGL2RenderingContext): void;
-    prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext, program?: ShaderProgram): void;
+    // prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext, program?: ShaderProgram): void;
 }
 
 
@@ -400,7 +400,7 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
     private normal: GLTFAccessor<ArrayWebGLBufferWrapper>;
     private tangent: GLTFAccessor<ArrayWebGLBufferWrapper>;
 
-    private arr: WebGLVertexArrayObject;
+    private vao: WebGLVertexArrayObject;
 
     constructor(
         gl: WebGL2RenderingContext,
@@ -415,7 +415,7 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
         this.uv = uv;
         this.normal = normal;
         this.tangent = tangent;
-        this.arr = this.prepareVAO(gl);
+        this.vao = this.prepareVAO(gl);
     }
 
     delete(gl: WebGL2RenderingContext): void {
@@ -426,6 +426,8 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
         if (renderMode === undefined) {
             renderMode = gl.TRIANGLES;
         }
+
+        gl.bindVertexArray(this.vao);
 
         if (this.indices) {
             gl.drawElements(
@@ -443,10 +445,10 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
         }
     }
 
-    prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext, program?: ShaderProgram): void {
+    private prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext, program?: ShaderProgram): void {
         const tangent = !!this.tangent;
 
-        gl.bindVertexArray(this.arr);
+        gl.bindVertexArray(this.vao);
 
         if (tangent && program) {
             program.use(gl);
@@ -515,11 +517,7 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
 export class GLArrayBufferV1 implements GLArrayBufferI {
     buffer: WebGLBuffer;
     params: GLArrayBufferDataParams;
-    private arr: WebGLVertexArrayObject;
-    /**
-     * @deprecated
-     */
-    // REMOVE_ME_DATA: GLArrayBufferData;
+    private vao: WebGLVertexArrayObject;
 
     constructor(gl: WebGL2RenderingContext, data: GLArrayBufferData, usage?: number) {
         if (usage === undefined) {
@@ -527,12 +525,9 @@ export class GLArrayBufferV1 implements GLArrayBufferI {
         }
         this.buffer = gl.createBuffer();
         this.params = data.params;
-        // this.REMOVE_ME_DATA = data;
-
-        gl.bindVertexArray(null);
+        this.vao = this.parepareVAO(gl);
         gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
         gl.bufferData(gl.ARRAY_BUFFER, data.buf, usage);
-        this.arr = this.parepareVAO(gl);
         gl.bindVertexArray(null);
     }
 
@@ -564,15 +559,16 @@ export class GLArrayBufferV1 implements GLArrayBufferI {
     }
 
     draw(gl: WebGL2RenderingContext, renderMode?: number) {
+        gl.bindVertexArray(this.vao);
         gl.drawArrays(renderMode || ArrayBufferDataTypeToGL(this.params.dataType), 0, this.params.vertexCount)
     }
 
     delete(gl: WebGL2RenderingContext) {
-        gl.deleteVertexArray(this.arr);
+        gl.deleteVertexArray(this.vao);
         gl.deleteBuffer(this.buffer);
     }
 
-    parepareVAO(gl: WebGL2RenderingContext): WebGLVertexArrayObject {
+    private parepareVAO(gl: WebGL2RenderingContext): WebGLVertexArrayObject {
         const arr = gl.createVertexArray();
         try {
             gl.bindVertexArray(arr);
@@ -592,10 +588,6 @@ export class GLArrayBufferV1 implements GLArrayBufferI {
             gl.deleteVertexArray(arr);
         }
         return arr;
-    }
-
-    prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext) {
-        gl.bindVertexArray(this.arr);
     }
 
     hasNormals(): boolean {

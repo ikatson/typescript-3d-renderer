@@ -43,10 +43,9 @@ export class MeshComponent extends Component {
         return this;
     }
 
-    draw(gl: WebGL2RenderingContext, program: ShaderProgram) {
+    draw(gl: WebGL2RenderingContext) {
         for (let i = 0; i < this.primitives.length; i++) {
             const p = this.primitives[i];
-            p.prepareMeshVertexAndShaderDataForRendering(gl, program);
             p.draw(gl, this.forceRenderMode);
         }
     }

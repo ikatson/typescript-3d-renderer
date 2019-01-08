@@ -15,13 +15,12 @@ import {Material, TextureOrValue} from "./material";
 import {SSR_SHADERS} from "./shaders/ssr";
 import {QUAD_FRAGMENT_INPUTS} from "./shaders/includes/common";
 import {
-    ATTRIBUTE_POSITION,
     UNIFORM_CAMERA_POSITION,
     UNIFORM_CAMERA_TO_WORLD_MAT4,
     UNIFORM_GBUF_ALBEDO,
     UNIFORM_GBUF_MR,
     UNIFORM_GBUF_NORMAL,
-    UNIFORM_GBUF_POSITION,
+    UNIFORM_GBUF_POSITION, UNIFORM_HAS_TANGENT,
     UNIFORM_MODEL_VIEW_MATRIX,
     UNIFORM_MODEL_WORLD_MATRIX,
     UNIFORM_PERSPECTIVE_MATRIX,
@@ -198,6 +197,7 @@ export class GBuffer {
             if (hasNormalMap) {
                 bindUniformTx(gl, s, "u_normalMapTx", material.normalMap.getTexture(), 4);
             }
+            gl.uniform1i(s.getUniformLocation(gl, UNIFORM_HAS_TANGENT), o.mesh.primitives[0].hasTangent() ? 1 : 0);
 
             /**
              * TODO: remove stencils? Not sure, maybe there will be some use for it later.
@@ -211,11 +211,10 @@ export class GBuffer {
             // always pass and overwrite the stencil value.
             gl.stencilFunc(gl.ALWAYS, stencilValue, 0xff);
             gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
-            o.mesh.draw(gl, s);
+            o.mesh.draw(gl);
 
             if (o.boundingBox && o.boundingBox.visible) {
                 const buf = o.boundingBox.asArrayBuffer(gl);
-                buf.prepareMeshVertexAndShaderDataForRendering(gl, s);
                 buf.draw(gl);
             }
         }
@@ -512,7 +511,7 @@ export class ShadowMapRenderer {
             }
 
             gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_MODEL_WORLD_MATRIX), false, o.transform.getModelToWorld());
-            o.mesh.draw(gl, s);
+            o.mesh.draw(gl);
         };
 
         withViewport(gl, this._shadowMapWidth, this._shadowMapHeight, () => {
@@ -706,7 +705,6 @@ export class LightingRenderer {
                 gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
             }
             const s = this.showBuffersShader.use(gl);
-            this.fullScreenQuad.bind(gl);
             bindUniformTx(gl, this.showBuffersShader, UNIFORM_GBUF_POSITION, this.gBuffer.posTx, 0);
             bindUniformTx(gl, this.showBuffersShader, UNIFORM_GBUF_NORMAL, this.gBuffer.normalTX, 1);
             bindUniformTx(gl, this.showBuffersShader, UNIFORM_GBUF_ALBEDO, this.gBuffer.albedoTX, 2);
@@ -751,8 +749,6 @@ export class LightingRenderer {
 
             let s = this.directionalLightShader;
             s.use(gl);
-
-            this.fullScreenQuad.bind(gl);
 
             // Shadow map stuff
             gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapFixedBias"), this.config.shadowMap.fixedBias);
@@ -800,8 +796,6 @@ export class LightingRenderer {
 
             gl.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
             gl.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE);
-
-            this.sphereObject.mesh.primitives[0].prepareMeshVertexAndShaderDataForRendering(gl, s);
 
             // Shadow map stuff
             gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapFixedBias"), this.config.shadowMap.fixedBias);
@@ -1004,7 +998,6 @@ class SSRRenderer {
         gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_PERSPECTIVE_MATRIX), false, camera.projectionMatrix().matrix);
 
         // full screen quad final draw
-        this.fullScreenQuad.bind(gl);
         this.fullScreenQuad.draw(gl);
     }
 
@@ -1016,7 +1009,6 @@ class SSRRenderer {
         bindUniformTx(gl, s, "u_lightedSceneTx", this.lightingRenderer.resultTX, 0);
         bindUniformTx(gl, s, "u_ssrTx", this.resultTX, 1);
 
-        this.fullScreenQuad.bind(gl);
         this.fullScreenQuad.draw(gl);
     }
 }
@@ -1060,7 +1052,6 @@ class TextureToFbCopier {
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.targetFB);
         const s = this.shader.shader;
         s.use(gl);
-        this.fsq.bind(gl);
         bindUniformTx(gl, s, "tx", this.tx, 0);
         this.fsq.draw(gl);
     }

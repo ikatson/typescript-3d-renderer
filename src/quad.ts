@@ -42,7 +42,7 @@ export class FullScreenQuad {
     }
 
     bind(gl: WebGL2RenderingContext) {
-        this.glArrayBuffer.prepareMeshVertexAndShaderDataForRendering(gl);
+
     }
 
     draw(gl: WebGL2RenderingContext) {
