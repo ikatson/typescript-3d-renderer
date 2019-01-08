@@ -2,32 +2,55 @@
 <html>
 
 <head>
-   <meta charset="utf-8">
-   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO"
-    crossorigin="anonymous">
-  <title>Test</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
+          integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO"
+          crossorigin="anonymous">
+    <title>Test</title>
+    <style>
+        #fps {
+            position: absolute;
+            left: 5px;
+            top: 5px;
+            z-index: 1;
+            /* font-size: 1em; */
+        }
+        .fps {
+            color: white;
+        }
+        .fps li {
+            list-style-type: none;
+        }
+    </style>
 </head>
 
 <body>
-  <div class="container-fluid">
-    <div class="row">
-      <div class="col-12">
-          <div id="error" class="alert alert-danger" style="display: none"></div>
-      </div>
+<div class="container-fluid">
+    <div id="fps">
+        <ul class="fps">
+            <li>FPS: <span class="current-fps" id="current-fps"></span></li>
+            <li>min: <span class="min-fps" id="min-fps"></span></li>
+            <li>max: <span class="max-fps" id="max-fps"></span></li>
+        </ul>
     </div>
     <div class="row">
-      <div class="col-md">
-        <canvas id="gl" width="800" height="600"></canvas>
-      </div>
-      <div class="col-md">
-        <div id="app"></div>
-      </div>
+        <div class="col-12">
+            <div id="error" class="alert alert-danger" style="display: none"></div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md">
+            <canvas id="gl" width="800" height="600"></canvas>
+        </div>
+        <div class="col-md">
+            <div id="app"></div>
+        </div>
     </div>
 
-  </div>
+</div>
 
-  <script src="./dist/bundle.js"></script>
+<script src="./dist/bundle.js"></script>
 </body>
 
 </html>

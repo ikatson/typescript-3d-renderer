@@ -148,9 +148,9 @@ function main() {
         return ui.SliderInput(label, props, props.onChange);
     };
 
-    const minFpsE = ui.e('span', {className: 'min-fps'});
-    const maxFpsE = ui.e('span', {className: 'max-fps'});
-    const currentFpsE = ui.e('span', {className: 'max-fps'});
+    const minFpsE = document.getElementById('min-fps');
+    const maxFpsE = document.getElementById('max-fps');
+    const currentFpsE = document.getElementById('current-fps');
 
     const updateFpsHTML = () => {
         currentFpsE.innerText = state.fps.current.toFixed(2);
@@ -163,11 +163,6 @@ function main() {
         ui.Form(
             ui.FormRow(
                 ui.e('div', ui.c('col-lg'),
-                    ui.e('ul', ui.c('fps'),
-                        ui.e('li', null, currentFpsE),
-                        ui.e('li', null, ui.e('span', null, 'Min: '), minFpsE),
-                        ui.e('li', null, ui.e('span', null, 'Max: '), maxFpsE),
-                    ),
                     ui.FormGroup('Features',
                         ui.CheckBoxInput('Pause', state.pause, state.pause.onChange),
                         ui.CheckBoxInput('Rotate / animate', state.shouldRotate, state.shouldRotate.onChange),
