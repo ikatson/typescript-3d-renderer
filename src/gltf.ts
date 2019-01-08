@@ -35,10 +35,10 @@ export class GLTFLoader {
     private materials: Map<number, Material> = m();
     private accessorsIndices: Map<number, Promise<GLTFAccessor<ElementArrayWebGLBufferWrapper>>> = m();
     private accessorsArrays: Map<number, Promise<GLTFAccessor<ArrayWebGLBufferWrapper>>> = m();
-    private urlPrefix: string;
+    private readonly urlPrefix: string;
     private g: GlTf;
-    private gPromise: Promise<GlTf>;
-    private gl: WebGL2RenderingContext;
+    private readonly gPromise: Promise<GlTf>;
+    private readonly gl: WebGL2RenderingContext;
 
     constructor(gl: WebGL2RenderingContext, gltfFilename: string) {
         this.urlPrefix = constructUrlBase(gltfFilename);
@@ -58,7 +58,7 @@ export class GLTFLoader {
         if (id === undefined) {
             id = g.scene;
             if (id === undefined) {
-                console.warn("Assuming the scene to load is 0 as it was not explicitly specified and GlTf has no default scene")
+                console.warn("Assuming the scene to load is 0 as it was not explicitly specified and GlTf has no default scene");
                 id = 0;
             }
         }

@@ -14,7 +14,7 @@ export function vec3ToUnit8Array(v: vec3) {
     return new Uint8Array(nv);
 }
 
-export function fillWithEmptyTexture(gl: WebGL2RenderingContext, defaultColor: vec3) {
+export function fillTexture2DWithEmptyTexture(gl: WebGL2RenderingContext, defaultColor: vec3) {
     const level = 0;
     const internalFormat = gl.RGBA;
     const width = 1;
@@ -47,14 +47,12 @@ export class Texture {
         this.texture = gl.createTexture();
 
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
-        fillWithEmptyTexture(gl, defaultColor);
+        fillTexture2DWithEmptyTexture(gl, defaultColor);
 
-        data.then(img => {
-            this.bind(gl, img);
-        });
+        this.promise = data.then(img => this.bindImageToTexture(gl, img));
     }
 
-    private bind(gl: WebGL2RenderingContext, img: HTMLImageElement) {
+    private bindImageToTexture(gl: WebGL2RenderingContext, img: HTMLImageElement) {
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
