@@ -247,13 +247,16 @@ export class GLTFLoader {
                         .setMaterialComponent(
                             new MaterialComponent(this.loadMaterial(p.material))
                         ).build();
+
+                    const isFirst = bb === null;
                     bb = computeBoundingBox([primitiveBB], false, bb, bb);
                     gameObject.addChild(primitiveGameObject);
+
+                    if (isFirst) {
+                        gameObject.boundingBoxComponent = new BoundingBoxComponent(bb).setComputedFromChildren(true);
+                    }
                 });
             });
-            if (bb) {
-                gameObject.boundingBoxComponent = new BoundingBoxComponent(bb).setComputedFromChildren(true);
-            }
         }
         if (node.children) {
             node.children.forEach(nodeId => {
