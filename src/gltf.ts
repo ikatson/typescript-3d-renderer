@@ -10,7 +10,6 @@ import {
     GLArrayBufferGLTF,
     GLArrayBufferI,
     GLTFAccessor,
-    WebGLBufferI
 } from "./glArrayBuffer";
 import {GLTF} from "./gltf-enums";
 import {BoundingBoxComponent, GameObject, GameObjectBuilder, MaterialComponent, MeshComponent} from "./object";
@@ -28,14 +27,14 @@ const m = () => new Map();
 const white = vec3.fromValues(1, 1, 1);
 
 export class GLTFLoader {
-    private buffers = m();
-    private bufferViewsIndices = m();
-    private bufferViewsArrays = m();
-    private images = m();
-    private textures = m();
-    private materials = m();
-    private accessorsIndices = m();
-    private accessorsArrays = m();
+    private buffers: Map<number, Promise<Uint8Array>> = m();
+    private bufferViewsIndices: Map<number, Promise<BufferView<ElementArrayWebGLBufferWrapper>>> = m();
+    private bufferViewsArrays: Map<number, Promise<BufferView<ArrayWebGLBufferWrapper>>> = m();
+    private images: Map<number, Promise<HTMLImageElement>> = m();
+    private textures: Map<number, Texture> = m();
+    private materials: Map<number, Material> = m();
+    private accessorsIndices: Map<number, Promise<GLTFAccessor<ElementArrayWebGLBufferWrapper>>> = m();
+    private accessorsArrays: Map<number, Promise<GLTFAccessor<ArrayWebGLBufferWrapper>>> = m();
     private urlPrefix: string;
     private g: GlTf;
     private gPromise: Promise<GlTf>;
