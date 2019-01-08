@@ -171,16 +171,17 @@ export const orthoProjection = (out, left, right, bottom, top, near, far) => {
 export const computeBoundingBoxInTransformedSpace = (() => {
     const tmpBoundingBoxVerticesBuf = cacheOnFirstUse(() => new AxisAlignedBox().asVerticesBuffer());
     const tmpVec1 = new Array(1);
+    const tmpVec3_2 = vec3.create();
     const bb = makeCache(() => new AxisAlignedBox());
 
-    return (scene: Scene, transform: mat4, objFilter: (o: GameObject) => boolean = null, target: AxisAlignedBox = null): AxisAlignedBox => {
+    return (scene: Scene, transform: mat4, objFilter: (o: GameObject) => boolean = null, target: AxisAlignedBox = null, includePointLights: boolean = false): AxisAlignedBox => {
         let allBB: AxisAlignedBox = null;
         objFilter = objFilter || (_ => true);
 
         const bboxForChildInTransformedSpace = (o: GameObject) => {
-            // TODO: this is inflexible, but optimizes a lot. Do not use children's bounding boxes, but use the parent's
-            // one instead.
-            if (!o.boundingBox) {
+            // only process children's bounding boxes if the current object does not have a bounding box computed
+            // from children.
+            if (!o.boundingBox || !o.boundingBox.computedFromChildren) {
                 o.children.forEach(bboxForChildInTransformedSpace);
             }
 
@@ -206,6 +207,20 @@ export const computeBoundingBoxInTransformedSpace = (() => {
 
         scene.children.forEach(bboxForChildInTransformedSpace);
 
+        // this is inefficient and incorrect, but works around artifacts with point lights.
+        if (allBB && includePointLights) {
+            scene.pointLights.forEach(l => {
+                vec3.transformMat4(tmpVec3, l.object.transform.position, transform);
+                const b = bb(0);
+                const offset = l.radius + 0.1;
+                b.setMin(vec3.set(tmpVec3_2,  tmpVec3[0] - offset, tmpVec3[1] - offset, tmpVec3[2] - offset));
+                b.setMax(vec3.set(tmpVec3_2, tmpVec3[0] + offset, tmpVec3[1] + offset, tmpVec3[2] + offset));
+
+                tmpVec1[0] = b;
+                allBB = computeBoundingBox(tmpVec1, false, allBB, allBB);
+            });
+        }
+
         if (allBB === null) {
             allBB = target || bb(1);
         }
@@ -219,7 +234,7 @@ export const optimizeNearFar = (
     objFilter: (o: GameObject) => boolean = null
 ): Camera => {
     const bb = computeBoundingBoxInTransformedSpace(
-        scene, camera.getWorldToCamera(), objFilter
+        scene, camera.getWorldToCamera(), objFilter, tmpBoundingBoxCache(0), true
     );
     camera.near = Math.max(minNear, -bb.max[2]);
     camera.far = Math.max(minFar, -bb.min[2]);

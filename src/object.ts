@@ -54,10 +54,17 @@ export class MeshComponent extends Component {
 export class BoundingBoxComponent extends Component {
     box: AxisAlignedBox;
     visible: boolean = false;
+    computedFromChildren: boolean = false;
+
     private glArrayBuffer: GLArrayBufferI;
     constructor(box: AxisAlignedBox) {
         super();
         this.box = box;
+    }
+
+    setComputedFromChildren(v: boolean): this {
+        this.computedFromChildren = v;
+        return this;
     }
 
     asArrayBuffer(gl: WebGL2RenderingContext): GLArrayBufferI {

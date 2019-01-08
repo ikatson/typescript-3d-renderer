@@ -248,7 +248,7 @@ export class GLTFLoader {
                     gameObject.addChild(primitiveGameObject);
                 });
             });
-            gameObject.boundingBox = new BoundingBoxComponent(bb);
+            gameObject.boundingBox = new BoundingBoxComponent(bb).setComputedFromChildren(true);
         }
         if (node.children) {
             node.children.forEach(nodeId => {

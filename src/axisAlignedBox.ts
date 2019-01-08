@@ -26,6 +26,16 @@ export class AxisAlignedBox {
         return this;
     }
 
+    containsPoint(v: vec3): boolean {
+        return (
+            v[0] > this._min[0] && v[0] < this._max[0]
+            &&
+            v[1] > this._min[1] && v[1] < this._max[1]
+            &&
+            v[2] > this._min[2] && v[3] < this._max[2]
+        );
+    }
+
     uniqueVertices(): Array<number[]> {
         const x = 0;
         const y = 1;
