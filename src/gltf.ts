@@ -5,7 +5,7 @@ import {Material} from "./material";
 import {GlTf, MeshPrimitive} from "gltf-loader-ts/lib/gltf";
 import {
     ArrayWebGLBufferWrapper,
-    BufferView,
+    BufferView, computeBoundingBox,
     ElementArrayWebGLBufferWrapper,
     GLArrayBufferGLTF,
     GLArrayBufferI,
@@ -37,26 +37,17 @@ export class GLTFLoader {
     private accessorsArrays: Map<number, Promise<GLTFAccessor<ArrayWebGLBufferWrapper>>> = m();
     private readonly urlPrefix: string;
     private g: GlTf;
-    private readonly gPromise: Promise<GlTf>;
     private readonly gl: WebGL2RenderingContext;
 
-    constructor(gl: WebGL2RenderingContext, gltfFilename: string) {
-        this.urlPrefix = constructUrlBase(gltfFilename);
-        this.gPromise = fetch(gltfFilename).then(response => {
-            if (!response.ok) {
-                throw new Error(response.statusText);
-            }
-            return <Promise<GlTf>> response.json();
-        });
-        this.gPromise.then(g => this.g = g);
+    constructor(gl: WebGL2RenderingContext, g: GlTf, urlPrefix: string) {
+        this.urlPrefix = urlPrefix;
+        this.g = g;
         this.gl = gl;
     }
 
     async loadScene(id?: number): Promise<Scene> {
-        const g: GlTf = await this.gPromise;
-
         if (id === undefined) {
-            id = g.scene;
+            id = this.g.scene;
             if (id === undefined) {
                 console.warn("Assuming the scene to load is 0 as it was not explicitly specified and GlTf has no default scene");
                 id = 0;
@@ -64,7 +55,7 @@ export class GLTFLoader {
         }
 
         const scene = new Scene();
-        g.scenes[id].nodes.forEach(nodeId => {
+        this.g.scenes[id].nodes.forEach(nodeId => {
             scene.addChild(this.toGameObject(nodeId));
         });
 
@@ -239,21 +230,25 @@ export class GLTFLoader {
 
         if (node.mesh !== undefined) {
             const mesh = this.g.meshes[node.mesh];
+            let bb = new AxisAlignedBox().setMin([0, 0, 0]).setMax([0, 0, 0]);
+
             mesh.primitives.forEach((p, pi) => {
                 this.loadPrimitive(p).then(buf => {
                     const posAccessor = this.g.accessors[p.attributes.POSITION];
+                    const primitiveBB = new AxisAlignedBox().setMin(posAccessor.min).setMax(posAccessor.max);
                     const primitiveGameObject = new GameObjectBuilder(`mesh ${node.mesh}, primitive ${pi}`)
                         .setMeshComponent(new MeshComponent(buf))
                         .setBoundingBoxComponent(
-                            new BoundingBoxComponent(new AxisAlignedBox().setMin(posAccessor.min).setMax(posAccessor.max))
+                            new BoundingBoxComponent(primitiveBB)
                         )
                         .setMaterialComponent(
                             new MaterialComponent(this.loadMaterial(p.material))
                         ).build();
-
+                    bb = computeBoundingBox([bb, primitiveBB], false, bb);
                     gameObject.addChild(primitiveGameObject);
                 });
-            })
+            });
+            gameObject.boundingBox = new BoundingBoxComponent(bb);
         }
         if (node.children) {
             node.children.forEach(nodeId => {
@@ -263,9 +258,22 @@ export class GLTFLoader {
         }
         return gameObject;
     }
+}
 
+export async function fetchGLTF(gltfFilename: string): Promise<GlTf> {
+    const response = await fetch(gltfFilename);
+    if (!response.ok) {
+        throw new Error(`Error loading gltf from ${gltfFilename}: ${response.statusText}`);
+    }
+    return response.json();
+}
+
+export async function newGLTFLoader(gl: WebGL2RenderingContext, gltfFilename: string): Promise<GLTFLoader> {
+    const g = await fetchGLTF(gltfFilename);
+    return new GLTFLoader(gl, g, constructUrlBase(gltfFilename));
 }
 
 export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename: string): Promise<Scene> {
-    return new GLTFLoader(gl, gltfFilename).loadScene();
+    const loader = await newGLTFLoader(gl, gltfFilename);
+    return loader.loadScene();
 }

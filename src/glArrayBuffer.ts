@@ -3,7 +3,7 @@ import {AxisAlignedBox} from "./axisAlignedBox";
 import {mat4, vec3, vec4} from "gl-matrix";
 import {Accessor} from "gltf-loader-ts/lib/gltf";
 import {GLTF} from "./gltf-enums";
-import {ATTRIBUTE_NORMALS, ATTRIBUTE_POSITION, ATTRIBUTE_TANGENT, ATTRIBUTE_UV} from "./constants";
+import {ATTRIBUTE_NORMALS, ATTRIBUTE_POSITION, ATTRIBUTE_TANGENT, ATTRIBUTE_UV, UNIFORM_HAS_TANGENT} from "./constants";
 import {tmpVec3} from "./utils";
 
 const FLOAT_BYTES = 4;
@@ -252,7 +252,7 @@ export interface GLArrayBufferI {
 
     draw(gl: WebGL2RenderingContext, renderMode?: number): void;
     delete(gl: WebGL2RenderingContext): void;
-    prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext, program?: ShaderProgram, normals?: boolean, uv?: boolean, tangent?: boolean): void;
+    prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext, program: ShaderProgram, normals?: boolean, uv?: boolean, tangent?: boolean): void;
 }
 
 
@@ -424,7 +424,7 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
         }
     }
 
-    prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext, program?: ShaderProgram, normals?: boolean, uv?: boolean, tangent?: boolean): void {
+    prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext, program: ShaderProgram, normals?: boolean, uv?: boolean, tangent?: boolean): void {
         program.use(gl);
 
         if (normals === undefined) {
@@ -448,6 +448,7 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
         }
         if (tangent) {
             this.setupTangentPointer(gl, program.getAttribLocation(gl, ATTRIBUTE_TANGENT));
+            gl.uniform1i(program.getUniformLocation(gl, UNIFORM_HAS_TANGENT), 1);
         }
     }
 
@@ -542,7 +543,7 @@ export class GLArrayBufferV1 implements GLArrayBufferI {
         gl.deleteBuffer(this.buffer);
     }
 
-    prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext, program?: ShaderProgram, normals?: boolean, uv?: boolean) {
+    prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext, program: ShaderProgram, normals?: boolean, uv?: boolean) {
         program.use(gl);
         this.bind(gl);
 

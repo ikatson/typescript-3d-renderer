@@ -186,8 +186,6 @@ export class GBuffer {
 
             mat4.multiply(modelViewMatrix, camera.getWorldToCamera(), modelWorldMatrix);
 
-            o.mesh.prepareMeshVertexAndShaderDataForRendering(gl, s);
-
             gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_MODEL_VIEW_MATRIX), false, modelViewMatrix);
             gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_MODEL_WORLD_MATRIX), false, modelWorldMatrix);
 
@@ -197,7 +195,6 @@ export class GBuffer {
 
             const hasNormalMap = !!material.normalMap && this.config.normalMapsEnabled;
             gl.uniform1i(s.getUniformLocation(gl, "u_normalMapHasTexture"), (hasNormalMap) ? 1 : 0);
-            gl.uniform1i(s.getUniformLocation(gl, "u_hasTangent"), o.mesh.arrayBuffer.hasTangent() ? 1 : 0);
             if (hasNormalMap) {
                 bindUniformTx(gl, s, "u_normalMapTx", material.normalMap.getTexture(), 4);
             }
@@ -214,7 +211,7 @@ export class GBuffer {
             // always pass and overwrite the stencil value.
             gl.stencilFunc(gl.ALWAYS, stencilValue, 0xff);
             gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
-            o.mesh.draw(gl);
+            o.mesh.draw(gl, s);
 
             if (o.boundingBox && o.boundingBox.visible) {
                 const buf = o.boundingBox.asArrayBuffer(gl);
@@ -274,7 +271,7 @@ export class GBuffer {
     private setupGBuffer(gl: WebGL2RenderingContext) {
         this.albedoTX = createAndBindBufferTexture(gl, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE);
         this.metallicRoughnessTX = createAndBindBufferTexture(gl, gl.RG16F, gl.RG, gl.HALF_FLOAT);
-        
+
         // uncomment to have 16-bit float normals RG
         // NOT ENOUGH PRECISION, SSR texture jumps around when restoring Z from.
         // this.normalTX = createAndBindBufferTexture(gl, gl.RG16F, gl.RG, gl.HALF_FLOAT);
@@ -515,9 +512,7 @@ export class ShadowMapRenderer {
             }
 
             gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_MODEL_WORLD_MATRIX), false, o.transform.getModelToWorld());
-
-            o.mesh.prepareMeshVertexAndShaderDataForRendering(gl, s, false, false);
-            o.mesh.draw(gl);
+            o.mesh.draw(gl, s, false, false);
         };
 
         withViewport(gl, this._shadowMapWidth, this._shadowMapHeight, () => {
@@ -806,7 +801,7 @@ export class LightingRenderer {
             gl.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
             gl.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE);
 
-            this.sphereObject.mesh.prepareMeshVertexAndShaderDataForRendering(gl, s, false, false);
+            this.sphereObject.mesh.primitives[0].prepareMeshVertexAndShaderDataForRendering(gl, s, false, false);
 
             // Shadow map stuff
             gl.uniform1f(s.getUniformLocation(gl, "u_shadowMapFixedBias"), this.config.shadowMap.fixedBias);
@@ -853,7 +848,7 @@ export class LightingRenderer {
                 // this is used in the second pass.
                 gl.stencilFunc(gl.ALWAYS, StencilBits.TEMP, StencilBits.TEMP);
                 gl.stencilOp(gl.KEEP, gl.REPLACE, gl.KEEP);
-                this.sphereObject.mesh.draw(gl);
+                this.sphereObject.mesh.primitives[0].draw(gl);
 
                 // second pass
                 gl.depthFunc(gl.GEQUAL);
@@ -865,7 +860,7 @@ export class LightingRenderer {
                 // essentially this only will light up the pixels that are within the volume light's sphere.
                 gl.stencilFunc(gl.EQUAL, StencilValues.NORMAL, StencilBits.TEMP | 0x0f);
                 gl.stencilOp(gl.ZERO, gl.ZERO, gl.ZERO);
-                this.sphereObject.mesh.draw(gl);
+                this.sphereObject.mesh.primitives[0].draw(gl);
             });
 
             // Restore state.

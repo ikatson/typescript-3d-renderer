@@ -178,9 +178,13 @@ export const computeBoundingBoxInTransformedSpace = (() => {
         objFilter = objFilter || (_ => true);
 
         const bboxForChildInTransformedSpace = (o: GameObject) => {
-            o.children.forEach(bboxForChildInTransformedSpace);
+            // TODO: this is inflexible, but optimizes a lot. Do not use children's bounding boxes, but use the parent's
+            // one instead.
+            if (!o.boundingBox) {
+                o.children.forEach(bboxForChildInTransformedSpace);
+            }
 
-            if (!(o.mesh && o.boundingBox && objFilter(o))) {
+            if (!(o.boundingBox && objFilter(o))) {
                 return;
             }
 
@@ -239,7 +243,7 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (() => {
             .computeBoundingBox(bb(0));
 
         let allBB = computeBoundingBoxInTransformedSpace(
-            scene, worldToLightViewSpace, o => o.mesh.shadowCaster, bb(2)
+            scene, worldToLightViewSpace, o => o.mesh ? o.mesh.shadowCaster : true, bb(2)
         );
 
         if (allBB === null) {

@@ -1,7 +1,7 @@
 import {mat4, vec3} from "gl-matrix"
 import {ShaderProgram} from "./shaders";
 import {AxisAlignedBox} from "./axisAlignedBox";
-import {GLArrayBufferV1, GLArrayBufferI} from "./glArrayBuffer";
+import {GLArrayBufferV1, GLArrayBufferI, GLArrayBufferGLTF} from "./glArrayBuffer";
 import {Material} from "./material";
 
 export abstract class Component {
@@ -14,22 +14,18 @@ export abstract class Component {
 }
 
 export class MeshComponent extends Component {
-    arrayBuffer: GLArrayBufferI;
-    object: GameObject = null;
+    primitives: GLArrayBufferI[];
     shadowCaster: boolean = true;
     shadowReceiver: boolean = true;
     private forceRenderMode: GLenum = undefined;
 
-    constructor(buf: GLArrayBufferI) {
+    constructor(primitives: GLArrayBufferI | GLArrayBufferI[]) {
         super();
-        this.arrayBuffer = buf;
-    }
-
-    replaceBuf(gl: WebGL2RenderingContext, newBuf: GLArrayBufferI) {
-        if (this.arrayBuffer) {
-            this.arrayBuffer.delete(gl);
+        if (Array.isArray(primitives)) {
+            this.primitives = primitives;
+        } else {
+            this.primitives = [primitives];
         }
-        this.arrayBuffer = newBuf;
     }
 
     setRenderMode(m: GLenum): MeshComponent {
@@ -47,12 +43,12 @@ export class MeshComponent extends Component {
         return this;
     }
 
-    prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext, program?: ShaderProgram, normals?: boolean, uv?: boolean) {
-        this.arrayBuffer.prepareMeshVertexAndShaderDataForRendering(gl, program, normals, uv);
-    }
-
-    draw(gl: WebGL2RenderingContext) {
-        this.arrayBuffer.draw(gl, this.forceRenderMode);
+    draw(gl: WebGL2RenderingContext, program: ShaderProgram, normals?: boolean, uv?: boolean) {
+        for (let i = 0; i < this.primitives.length; i++) {
+            const p = this.primitives[i];
+            p.prepareMeshVertexAndShaderDataForRendering(gl, program, normals, uv);
+            p.draw(gl, this.forceRenderMode);
+        }
     }
 }
 
@@ -158,22 +154,72 @@ export class GameObject {
     children: GameObject[] = [];
     parent: GameObject;
     name: string;
-    transform: TransformComponent;
-    mesh: MeshComponent = null;
-    pointLight: PointLightComponent = null;
-    directionalLight: DirectionalLight = null;
-    boundingBox: BoundingBoxComponent = null;
     material: MaterialComponent;
 
     constructor(name: string) {
-        this.transform = new TransformComponent(this);
+        this._transform = new TransformComponent(this);
         this.name = name;
+    }
+
+    private _transform: TransformComponent;
+
+    get transform(): TransformComponent {
+        return this._transform;
+    }
+
+    set transform(value: TransformComponent) {
+        this._transform = value;
+        value.object = this;
+    }
+
+    private _mesh: MeshComponent = null;
+
+    get mesh(): MeshComponent {
+        return this._mesh;
+    }
+
+    set mesh(value: MeshComponent) {
+        this._mesh = value;
+        value.object = this;
+    }
+
+    private _pointLight: PointLightComponent = null;
+
+    get pointLight(): PointLightComponent {
+        return this._pointLight;
+    }
+
+    set pointLight(value: PointLightComponent) {
+        this._pointLight = value;
+        value.object = this;
+    }
+
+    private _directionalLight: DirectionalLight = null;
+
+    get directionalLight(): DirectionalLight {
+        return this._directionalLight;
+    }
+
+    set directionalLight(value: DirectionalLight) {
+        this._directionalLight = value;
+        value.object = this;
+    }
+
+    private _boundingBox: BoundingBoxComponent = null;
+
+    get boundingBox(): BoundingBoxComponent {
+        return this._boundingBox;
+    }
+
+    set boundingBox(value: BoundingBoxComponent) {
+        this._boundingBox = value;
+        value.object = this;
     }
 
     addChild(o: GameObject) {
         this.children.push(o);
         o.parent = this;
-        o.transform.update();
+        o._transform.update();
         // console.log(`added ${o.name} as child of ${this.fqdn()}`);
     }
 
