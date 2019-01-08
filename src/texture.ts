@@ -39,25 +39,41 @@ export function loadImage(uri: string): Promise<HTMLImageElement> {
     });
 }
 
+export interface Pixels {
+    setupTexture(gl: WebGL2RenderingContext)
+}
+
+export class ImagePixels implements Pixels {
+    private img: HTMLImageElement;
+
+    constructor(img: HTMLImageElement) {
+        this.img = img;
+    }
+
+    setupTexture(gl: WebGL2RenderingContext) {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.img);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        gl.generateMipmap(gl.TEXTURE_2D);
+    }
+}
+
 export class Texture {
     private promise: Promise<void>;
     private texture: WebGLTexture;
 
-    constructor(gl: WebGL2RenderingContext, data: Promise<HTMLImageElement>, defaultColor: vec3) {
+    constructor(gl: WebGL2RenderingContext, pixels: Promise<Pixels>, defaultColor: vec3) {
         this.texture = gl.createTexture();
 
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
         fillTexture2DWithEmptyTexture(gl, defaultColor);
 
-        this.promise = data.then(img => this.bindImageToTexture(gl, img));
+        this.promise = pixels.then(img => this.bindImageToTexture(gl, img));
     }
 
-    private bindImageToTexture(gl: WebGL2RenderingContext, img: HTMLImageElement) {
+    private bindImageToTexture(gl: WebGL2RenderingContext, pixels: Pixels) {
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-        gl.generateMipmap(gl.TEXTURE_2D);
+        pixels.setupTexture(gl);
     }
 
     getTexture() {

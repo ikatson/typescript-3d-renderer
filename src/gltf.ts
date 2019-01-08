@@ -1,6 +1,6 @@
 import {Scene} from "./scene";
 import {quat, vec3, vec4} from "gl-matrix";
-import {Texture} from "./texture";
+import {ImagePixels, Texture} from "./texture";
 import {Material} from "./material";
 import {GlTf, MeshPrimitive} from "gltf-loader-ts/lib/gltf";
 import {
@@ -141,7 +141,7 @@ export class GLTFLoader {
     private loadTexture(id: number): Texture {
         return mapComputeIfAbsent(this.textures, id, () => {
             const t = this.g.textures[id];
-            const img = this.loadImage(t.source);
+            const img = this.loadImage(t.source).then(i => new ImagePixels(i));
             return new Texture(this.gl, img, white);
         });
     };
