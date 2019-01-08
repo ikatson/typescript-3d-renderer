@@ -181,17 +181,17 @@ export const computeBoundingBoxInTransformedSpace = (() => {
         const bboxForChildInTransformedSpace = (o: GameObject) => {
             // only process children's bounding boxes if the current object does not have a bounding box computed
             // from children.
-            if (!o.boundingBox || !o.boundingBox.computedFromChildren) {
+            if (!o.boundingBoxComponent || !o.boundingBoxComponent.computedFromChildren) {
                 o.children.forEach(bboxForChildInTransformedSpace);
             }
 
-            if (!(o.boundingBox && objFilter(o))) {
+            if (!(o.boundingBoxComponent && objFilter(o))) {
                 return;
             }
 
             mat4.mul(tmpMat4, transform, o.transform.getModelToWorld());
 
-            const objLSBoundingBox = o.boundingBox.box.asVerticesBuffer(true)
+            const objLSBoundingBox = o.boundingBoxComponent.box.asVerticesBuffer(true)
                 .translateTo(tmpMat4, tmpBoundingBoxVerticesBuf())
                 .computeBoundingBox(bb(0));
 

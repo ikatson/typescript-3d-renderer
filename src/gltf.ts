@@ -200,6 +200,10 @@ export class GLTFLoader {
         if (p.mode !== undefined && p.mode != GLTF.TRIANGLES) {
             throw new Error(`Not trianges: ${p.mode}`);
         }
+
+        const posAccessor = this.g.accessors[p.attributes.POSITION];
+        const bb = new AxisAlignedBox().setMin(posAccessor.min).setMax(posAccessor.max);
+
         return Promise.all([
             this.loadAccessorIndices(p.indices),
             this.loadAccessorArrays(p.attributes.POSITION),
@@ -208,7 +212,7 @@ export class GLTFLoader {
             this.loadAccessorArrays(p.attributes.TANGENT)
         ]).then(([indices, pos, uv, normal, tangent]) => {
             return new GLArrayBufferGLTF(
-                this.gl, indices, pos, uv, normal, tangent
+                this.gl, indices, pos, uv, normal, tangent, bb
             );
         });
     }
@@ -230,12 +234,11 @@ export class GLTFLoader {
 
         if (node.mesh !== undefined) {
             const mesh = this.g.meshes[node.mesh];
-            let bb = new AxisAlignedBox().setMin([0, 0, 0]).setMax([0, 0, 0]);
+            let bb = null;
 
             mesh.primitives.forEach((p, pi) => {
                 this.loadPrimitive(p).then(buf => {
-                    const posAccessor = this.g.accessors[p.attributes.POSITION];
-                    const primitiveBB = new AxisAlignedBox().setMin(posAccessor.min).setMax(posAccessor.max);
+                    const primitiveBB = buf.getBoundingBox();
                     const primitiveGameObject = new GameObjectBuilder(`mesh ${node.mesh}, primitive ${pi}`)
                         .setMeshComponent(new MeshComponent(buf))
                         .setBoundingBoxComponent(
@@ -244,11 +247,11 @@ export class GLTFLoader {
                         .setMaterialComponent(
                             new MaterialComponent(this.loadMaterial(p.material))
                         ).build();
-                    bb = computeBoundingBox([bb, primitiveBB], false, bb);
+                    bb = computeBoundingBox([primitiveBB], false, bb, bb);
                     gameObject.addChild(primitiveGameObject);
                 });
             });
-            gameObject.boundingBox = new BoundingBoxComponent(bb).setComputedFromChildren(true);
+            gameObject.boundingBoxComponent = new BoundingBoxComponent(bb).setComputedFromChildren(true);
         }
         if (node.children) {
             node.children.forEach(nodeId => {

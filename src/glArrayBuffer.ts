@@ -95,6 +95,9 @@ export const computeBoundingBox = (() => {
         }
         for (let i = 0; i < objects.length; i++) {
             const o = objects[i];
+            if (o === null) {
+                continue;
+            }
             if (o instanceof GLArrayBufferData) {
                 for (const it of o.iterator(tmpIter)) {
                     compareAndSet(min, o.buf, it.vs, Math.min);
@@ -246,6 +249,7 @@ export class GlArrayBufferDataIterator {
 export const tmpIter = new GlArrayBufferDataIterator(null);
 
 export interface GLArrayBufferI {
+    getBoundingBox(): AxisAlignedBox
     hasNormals(): boolean;
     hasUV(): boolean;
     hasTangent(): boolean;
@@ -394,12 +398,15 @@ export class GLTFAccessor<T extends WebGLBufferI> {
 }
 
 export class GLArrayBufferGLTF implements GLArrayBufferI {
+    getBoundingBox(): AxisAlignedBox {
+        return this.bb;
+    }
     private indices: GLTFAccessor<ElementArrayWebGLBufferWrapper>;
     private position: GLTFAccessor<ArrayWebGLBufferWrapper>;
     private uv: GLTFAccessor<ArrayWebGLBufferWrapper>;
     private normal: GLTFAccessor<ArrayWebGLBufferWrapper>;
     private tangent: GLTFAccessor<ArrayWebGLBufferWrapper>;
-
+    private bb: AxisAlignedBox;
     private vao: WebGLVertexArrayObject;
 
     constructor(
@@ -409,6 +416,7 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
         uv: GLTFAccessor<ArrayWebGLBufferWrapper>,
         normal: GLTFAccessor<ArrayWebGLBufferWrapper>,
         tangent: GLTFAccessor<ArrayWebGLBufferWrapper>,
+        boundingBox: AxisAlignedBox,
     ) {
         this.indices = indices;
         this.position = position;
@@ -416,6 +424,7 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
         this.normal = normal;
         this.tangent = tangent;
         this.vao = this.prepareVAO(gl);
+        this.bb = boundingBox;
     }
 
     delete(gl: WebGL2RenderingContext): void {
@@ -515,9 +524,14 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
 }
 
 export class GLArrayBufferV1 implements GLArrayBufferI {
+    getBoundingBox(): AxisAlignedBox {
+        return this.bb;
+    }
+
     buffer: WebGLBuffer;
     params: GLArrayBufferDataParams;
     private vao: WebGLVertexArrayObject;
+    private bb: AxisAlignedBox;
 
     constructor(gl: WebGL2RenderingContext, data: GLArrayBufferData, usage?: number) {
         if (usage === undefined) {
@@ -529,6 +543,7 @@ export class GLArrayBufferV1 implements GLArrayBufferI {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
         gl.bufferData(gl.ARRAY_BUFFER, data.buf, usage);
         gl.bindVertexArray(null);
+        this.bb = data.computeBoundingBox();
     }
 
     private setupVertexPositionsPointer(gl, attribLocation) {

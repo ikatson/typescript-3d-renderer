@@ -211,14 +211,14 @@ export class GameObject {
         value.object = this;
     }
 
-    private _boundingBox: BoundingBoxComponent = null;
+    private _boundingBoxComponent: BoundingBoxComponent = null;
 
-    get boundingBox(): BoundingBoxComponent {
-        return this._boundingBox;
+    get boundingBoxComponent(): BoundingBoxComponent {
+        return this._boundingBoxComponent;
     }
 
-    set boundingBox(value: BoundingBoxComponent) {
-        this._boundingBox = value;
+    set boundingBoxComponent(value: BoundingBoxComponent) {
+        this._boundingBoxComponent = value;
         value.object = this;
     }
 
@@ -249,31 +249,37 @@ export class GameObjectBuilder {
         this.o = new GameObject(name);
     }
 
-    setMeshComponent(meshComponent: MeshComponent): GameObjectBuilder {
+    setMeshFromBuffer(mesh: GLArrayBufferI): this {
+        this.o.mesh = new MeshComponent(mesh);
+        this.o.boundingBoxComponent = new BoundingBoxComponent(mesh.getBoundingBox());
+        return this;
+    }
+
+    setMeshComponent(meshComponent: MeshComponent): this {
         this.o.mesh = meshComponent;
         meshComponent.setObject(this.o);
         return this;
     }
 
-    setDirectionalLightComponent(light: DirectionalLight): GameObjectBuilder {
+    setDirectionalLightComponent(light: DirectionalLight): this {
         this.o.directionalLight = light;
         light.object = this.o;
         return this;
     }
 
-    setPointLightComponent(light: PointLightComponent): GameObjectBuilder {
+    setPointLightComponent(light: PointLightComponent): this {
         this.o.pointLight = light;
         light.object = this.o;
         return this;
     }
 
-    setBoundingBoxComponent(bbox: BoundingBoxComponent) {
-        this.o.boundingBox = bbox;
+    setBoundingBoxComponent(bbox: BoundingBoxComponent): this {
+        this.o.boundingBoxComponent = bbox;
         bbox.object = this.o;
         return this;
     }
 
-    setMaterialComponent(c: MaterialComponent): GameObjectBuilder {
+    setMaterialComponent(c: MaterialComponent): this {
         this.o.material = c;
         c.object = this.o;
         return this;

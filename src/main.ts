@@ -1,18 +1,16 @@
 import {fetchObject} from "./objparser";
 import {clip, hexToRgb1, initGL, optimizeNearFar, tmpVec3, tmpVec4} from "./utils";
 import {ProgressBar, ProgressBarCommon} from "./progressbar";
-import {BoundingBoxComponent, DirectionalLight, GameObjectBuilder, MaterialComponent, MeshComponent} from "./object";
+import {DirectionalLight, GameObjectBuilder, MaterialComponent, MeshComponent} from "./object";
 import {Camera} from "./camera";
 
 import {vec3} from "gl-matrix";
 import {randomPointLight, Scene} from "./scene";
 import {DeferredRenderer, DeferredRendererConfig, ShadowMapConfig, ShowLayer, SSRConfig} from "./deferredRenderer";
-import {GLArrayBufferV1, GLArrayBufferI} from "./glArrayBuffer";
+import {GLArrayBufferI, GLArrayBufferV1} from "./glArrayBuffer";
 import * as ui from "./ui";
 import {SSAOConfig, SSAOState} from "./SSAOState";
 import {Material} from "./material";
-import {loadSceneFromGLTF} from "./gltf";
-import {SAMPLE_GLTF_SPONZA} from "./constants";
 import {FullScreenQuad, QuadArrayBufferData} from "./quad";
 
 
@@ -279,12 +277,8 @@ function main() {
 
     Promise.all([
         fetchObject('resources/aphrodite/aphrodite.obj', onHeaders).then(parser => {
-            const arrayBuf = parser.getArrayBuffer();
             const aphrodite = new GameObjectBuilder("aphrodite.obj")
-                .setMeshComponent(
-                    new MeshComponent(arrayBuf.intoGLArrayBuffer(gl))
-                )
-                .setBoundingBoxComponent(new BoundingBoxComponent(arrayBuf.computeBoundingBox()))
+                .setMeshFromBuffer(parser.getArrayBuffer().intoGLArrayBuffer(gl))
                 .setMaterialComponent(new MaterialComponent(
                     makeMaterialFromState(state.materials.aphrodite)
                 ))
@@ -299,15 +293,9 @@ function main() {
         fetchObject('resources/corvette/corvette.obj', onHeaders).then(parser => {
             const arrayBuffer = parser.getArrayBuffer();
             const corvette = new GameObjectBuilder("corvette.obj")
-                .setMeshComponent(new MeshComponent(
-                    arrayBuffer.intoGLArrayBuffer(gl),
-                ))
-                .setBoundingBoxComponent(
-                    new BoundingBoxComponent(arrayBuffer.computeBoundingBox())
-                )
+                .setMeshFromBuffer(arrayBuffer.intoGLArrayBuffer(gl))
                 .setMaterialComponent(new MaterialComponent(
                     makeMaterialFromState(state.materials.corvette)
-                    //    .setReflective(true)
                         .setMetallic(1.)
                         .setRoughness(0.1)
                 ))
@@ -331,7 +319,6 @@ function main() {
         const camera = new Camera(gl.canvas.width / gl.canvas.height);
         camera.position = vec3.fromValues(0, 0, -3.);
 
-        // const renderer = new ForwardRenderer(gl);
         const ssaoConfig = new SSAOConfig();
         const shadowMapConfig = new ShadowMapConfig();
         const ssrConfig = new SSRConfig();
@@ -416,15 +403,14 @@ function main() {
 
 
         const plane = new GameObjectBuilder("plane")
-            .setMeshComponent(new MeshComponent(planeMesh))
+            .setMeshFromBuffer(planeMesh)
             .setMaterialComponent(new MaterialComponent(
                 makeMaterialFromState(state.materials.plane)
-                //        .setReflective(true)
             ))
             .build();
         plane.mesh.setShadowCaster(false);
         vec3.copy(plane.transform.position, [0, -0.8, 0]);
-        vec3.copy(plane.transform.scale, [50, 50, 50]);
+        vec3.copy(plane.transform.scale, [5, 5, 5]);
         plane.transform.update();
         onColorChanges(state.materials.plane, plane.material.material);
 

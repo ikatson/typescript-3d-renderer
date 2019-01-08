@@ -213,8 +213,8 @@ export class GBuffer {
             gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
             o.mesh.draw(gl);
 
-            if (o.boundingBox && o.boundingBox.visible) {
-                const buf = o.boundingBox.asArrayBuffer(gl);
+            if (o.boundingBoxComponent && o.boundingBoxComponent.visible) {
+                const buf = o.boundingBoxComponent.asArrayBuffer(gl);
                 buf.draw(gl);
             }
         }
