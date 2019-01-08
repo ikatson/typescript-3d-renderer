@@ -69,16 +69,17 @@ export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename
         });
     };
 
-    async function loadBufferAsync(id: number): Promise<ArrayBuffer> {
-        const uri = urlJoin(g.buffers[0].uri);
+    async function loadBufferAsync(id: number): Promise<Uint8Array> {
+        const uri = urlJoin(g.buffers[id].uri);
         const response = await fetch(uri);
         if (response.status != 200) {
             throw new Error(`Unexpected response: ${response.status}`);
         }
-        return await response.arrayBuffer();
+        const buf =  await response.arrayBuffer();
+        return new Uint8Array(buf);
     }
 
-    const loadBuffer = (id: number): Promise<ArrayBuffer> => {
+    const loadBuffer = (id: number): Promise<Uint8Array> => {
         return mapComputeIfAbsent(buffers, id, id => {
             return loadBufferAsync(id);
         });
@@ -88,7 +89,7 @@ export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename
         return mapComputeIfAbsent(bufferViewsIndices, id, id => {
             const bv = g.bufferViews[id];
             return loadBuffer(bv.buffer).then(buf => {
-                const glbuf = new ElementArrayWebGLBufferWrapper(gl, buf.slice(bv.byteOffset, bv.byteOffset + bv.byteLength));
+                const glbuf = new ElementArrayWebGLBufferWrapper(gl, buf.subarray(bv.byteOffset, bv.byteOffset + bv.byteLength));
                 return new BufferView(glbuf, bv.byteLength);
             })
         })
@@ -98,7 +99,7 @@ export async function loadSceneFromGLTF(gl: WebGL2RenderingContext, gltfFilename
         return mapComputeIfAbsent(bufferViewsArrays, id, id => {
             const bv = g.bufferViews[id];
             return loadBuffer(bv.buffer).then(buf => {
-                const glbuf = new ArrayWebGLBufferWrapper(gl, buf.slice(bv.byteOffset, bv.byteOffset + bv.byteLength));
+                const glbuf = new ArrayWebGLBufferWrapper(gl, buf.subarray(bv.byteOffset, bv.byteOffset + bv.byteLength));
                 return new BufferView(glbuf, bv.byteLength);
             })
         })
