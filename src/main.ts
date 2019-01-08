@@ -1,7 +1,7 @@
 import {fetchObject} from "./objparser";
 import {clip, hexToRgb1, initGL, optimizeNearFar, tmpVec3, tmpVec4} from "./utils";
 import {ProgressBar, ProgressBarCommon} from "./progressbar";
-import {DirectionalLight, GameObjectBuilder, MaterialComponent, MeshComponent} from "./object";
+import {DirectionalLight, GameObjectBuilder, MaterialComponent} from "./object";
 import {Camera} from "./camera";
 
 import {vec3} from "gl-matrix";
@@ -12,6 +12,8 @@ import * as ui from "./ui";
 import {SSAOConfig, SSAOState} from "./SSAOState";
 import {Material} from "./material";
 import {FullScreenQuad, QuadArrayBufferData} from "./quad";
+import {loadSceneFromGLTF} from "./gltf";
+import {SAMPLE_GLTF_SPONZA} from "./constants";
 
 
 const originZero = vec3.create();
@@ -371,18 +373,18 @@ function main() {
             rendererConfig.albedoTexturesEnabled = v;
         };
 
-        // loadSceneFromGLTF(gl, SAMPLE_GLTF_SPONZA).then(newScene => {
-        //     scene = newScene;
-        //     scene.directionalLights.push(sun.directionalLight);
-        //
-        //     // camera.far = 50;
-        //     vec3.set(camera.position, -6.4035325050354, 1.3013536930084229, -0.20439213514328003);
-        //     vec3.set(camera.forward, 1, 0, 0);
-        //     camera.calculateUpFromWorldUp();
-        // }, (err) => {
-        //     console.error(err);
-        //     state.pause.checked = true;
-        // });
+        loadSceneFromGLTF(gl, SAMPLE_GLTF_SPONZA).then(newScene => {
+            scene = newScene;
+            scene.directionalLights.push(sun.directionalLight);
+
+            // camera.far = 50;
+            vec3.set(camera.position, -6.4035325050354, 1.3013536930084229, -0.20439213514328003);
+            vec3.set(camera.forward, 1, 0, 0);
+            camera.calculateUpFromWorldUp();
+        }, (err) => {
+            console.error(err);
+            state.pause.checked = true;
+        });
 
         const sun = new GameObjectBuilder("sun").setDirectionalLightComponent(new DirectionalLight()).build();
         sun.directionalLight.direction = vec3.normalize(sun.directionalLight.direction, [-1, -1, -1]);
