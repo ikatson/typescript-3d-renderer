@@ -377,8 +377,7 @@ function main() {
             vec3.set(camera.forward, 1, 0, 0);
             camera.calculateUpFromWorldUp();
         }, (err) => {
-            console.error(err);
-            state.pause.checked = true;
+            printError(err);
         });
 
         const sun = new GameObjectBuilder("sun").setDirectionalLightComponent(new DirectionalLight()).build();

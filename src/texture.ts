@@ -76,8 +76,6 @@ export class DDSPixels implements Pixels {
             throw new Error("Compressed textures not supported, can't load WEBGL_compressed_texture_s3tc")
         }
 
-        console.log(`mip levels ${this.dds.images.length}`);
-
         for (let mip = 0; mip < this.dds.images.length; mip++) {
             const image = this.dds.images[mip];
             const data = new Uint8Array(this.data, image.offset, image.length);

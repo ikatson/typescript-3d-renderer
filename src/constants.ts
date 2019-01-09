@@ -22,4 +22,4 @@ export const SAMPLE_GLTF_SPONZA = "https://raw.githubusercontent.com/KhronosGrou
 
 // DDS variant produced like this:
 // cat Sponza.gltf | sed -E 's/\.(jpg|png)/.\1.dds/g' | sed -E 's/(image\/jpeg|image\/png)/image\/vnd-ms.dds/g' > Sponza-dds.gltf
-export const SAMPLE_GLTF_SPONZA_DDS = "/glTF-Sample-Models/2.0/Sponza/glTF/Sponza-dds.gltf";
+export const SAMPLE_GLTF_SPONZA_DDS = "https://raw.githubusercontent.com/ikatson/glTF-Sample-Models/master/2.0/Sponza/glTF/Sponza-dds.gltf";
