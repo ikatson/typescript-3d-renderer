@@ -2,12 +2,7 @@ import {AxisAlignedBox} from "./axisAlignedBox";
 import {mat4, vec3, vec4} from "gl-matrix";
 import {Accessor} from "./gltf-types";
 import {GLTF} from "./gltf-enums";
-import {
-    ATTRIBUTE_NORMALS_LOC,
-    ATTRIBUTE_POSITION_LOC,
-    ATTRIBUTE_TANGENT_LOC,
-    ATTRIBUTE_UV_LOC,
-} from "./constants";
+import {ATTRIBUTE_NORMALS_LOC, ATTRIBUTE_POSITION_LOC, ATTRIBUTE_TANGENT_LOC, ATTRIBUTE_UV_LOC,} from "./constants";
 import {tmpVec3} from "./utils";
 
 const FLOAT_BYTES = 4;
@@ -48,9 +43,11 @@ export class GLArrayBufferDataParams {
         this.vertexCount = vertexCount;
         this.dataType = dataType || this.dataType;
     }
+
     computeStrideInElements() {
         return this.computeStrideInBytes() / FLOAT_BYTES;
     }
+
     computeStrideInBytes() {
         let size = this.elementSize * FLOAT_BYTES;
         if (this.hasNormals) {
@@ -61,9 +58,11 @@ export class GLArrayBufferDataParams {
         }
         return size;
     }
+
     computeNormalOffset() {
         return FLOAT_BYTES * this.elementSize;
     }
+
     computeUVOffset() {
         return this.computeNormalOffset() + (this.hasNormals ? this.normalsSize * FLOAT_BYTES : 0);
     }
@@ -115,6 +114,7 @@ export const computeBoundingBox = (() => {
 export class GLArrayBufferData {
     buf: Float32Array;
     params: GLArrayBufferDataParams;
+
     constructor(buf: Float32Array, params: GLArrayBufferDataParams) {
         this.buf = buf;
         this.params = params;
@@ -193,6 +193,17 @@ export class GlArrayBufferDataIterator {
         this.initialize(data);
     }
 
+    get done(): boolean {
+        return this.currentVertex >= this.data.params.vertexCount;
+    }
+
+    get value(): GlArrayBufferDataIterator {
+        if (!this.done) {
+            return this;
+        }
+        return null;
+    }
+
     initialize(data: GLArrayBufferData) {
         this.data = data;
         this.currentVertex = -1;
@@ -221,43 +232,39 @@ export class GlArrayBufferDataIterator {
         this.computeOffsets();
         return this;
     }
-
-    get done(): boolean {
-        return this.currentVertex >= this.data.params.vertexCount;
-    }
-
-    get value(): GlArrayBufferDataIterator {
-        if (!this.done) {
-            return this;
-        }
-        return null;
-    }
 }
 
 export const tmpIter = new GlArrayBufferDataIterator(null);
 
 export interface GLArrayBufferI {
     getBoundingBox(): AxisAlignedBox
+
     hasNormals(): boolean;
+
     hasUV(): boolean;
+
     hasTangent(): boolean;
 
     draw(gl: WebGL2RenderingContext, renderMode?: number): void;
+
     delete(gl: WebGL2RenderingContext): void;
 }
 
 
 export class ArrayWebGLBufferWrapper implements WebGLBufferI {
-    buf(): WebGLBuffer {
-        return this._buf;
-    }
     private _buf: WebGLBuffer;
+
     constructor(gl: WebGL2RenderingContext, data: ArrayBuffer) {
         this._buf = gl.createBuffer();
         gl.bindVertexArray(null);
         gl.bindBuffer(gl.ARRAY_BUFFER, this._buf);
         gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
     }
+
+    buf(): WebGLBuffer {
+        return this._buf;
+    }
+
     delete(gl: WebGL2RenderingContext) {
         gl.deleteBuffer(this._buf);
         this._buf = null;
@@ -270,20 +277,24 @@ export class ArrayWebGLBufferWrapper implements WebGLBufferI {
 
 export interface WebGLBufferI {
     buf(): WebGLBuffer
+
     target(): GLenum
 }
 
 export class ElementArrayWebGLBufferWrapper implements WebGLBufferI {
     private _buf: WebGLBuffer;
+
     constructor(gl: WebGL2RenderingContext, data: ArrayBuffer) {
         this._buf = gl.createBuffer();
         gl.bindVertexArray(null);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._buf);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data, gl.STATIC_DRAW);
     }
+
     buf() {
         return this._buf;
     }
+
     delete(gl: WebGL2RenderingContext) {
         gl.deleteBuffer(this._buf);
         this._buf = null;
@@ -295,42 +306,54 @@ export class ElementArrayWebGLBufferWrapper implements WebGLBufferI {
 }
 
 export class BufferView<T extends WebGLBufferI> {
-    get byteLength(): number {
-        return this._byteLength;
-    }
-    get byteOffset(): number {
-        return this._byteOffset;
-    }
-    get byteStride(): number {
-        return this._byteStride;
-    }
-    private _byteLength: number;
-    private _byteOffset: number;
-    private _byteStride: number;
-    get buf(): T {
-        return this._buf;
-    }
-    private _buf: T;
     constructor(buf: T, byteLength: number, byteOffset: number = 0, byteStride: number = 0) {
         this._buf = buf;
         this._byteLength = byteLength;
         this._byteOffset = byteOffset;
         this._byteStride = byteStride;
     }
+
+    private _byteLength: number;
+
+    get byteLength(): number {
+        return this._byteLength;
+    }
+
+    private _byteOffset: number;
+
+    get byteOffset(): number {
+        return this._byteOffset;
+    }
+
+    private _byteStride: number;
+
+    get byteStride(): number {
+        return this._byteStride;
+    }
+
+    private _buf: T;
+
+    get buf(): T {
+        return this._buf;
+    }
 }
 
 export class GLTFAccessor<T extends WebGLBufferI> {
-    get data(): BufferView<T> {
-        return this._data;
-    }
-    get accessor(): Accessor {
-        return this._accessor;
-    }
-    private _accessor: Accessor;
-    private _data: BufferView<T>;
     constructor(accessor: Accessor, data: BufferView<T>) {
         this._accessor = accessor;
         this._data = data;
+    }
+
+    private _accessor: Accessor;
+
+    get accessor(): Accessor {
+        return this._accessor;
+    }
+
+    private _data: BufferView<T>;
+
+    get data(): BufferView<T> {
+        return this._data;
     }
 
     get webGlBuf(): WebGLBuffer {
@@ -380,9 +403,6 @@ export class GLTFAccessor<T extends WebGLBufferI> {
 }
 
 export class GLArrayBufferGLTF implements GLArrayBufferI {
-    getBoundingBox(): AxisAlignedBox {
-        return this.bb;
-    }
     private indices: GLTFAccessor<ElementArrayWebGLBufferWrapper>;
     private position: GLTFAccessor<ArrayWebGLBufferWrapper>;
     private uv: GLTFAccessor<ArrayWebGLBufferWrapper>;
@@ -407,6 +427,10 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
         this.tangent = tangent;
         this.vao = this.prepareVAO(gl);
         this.bb = boundingBox;
+    }
+
+    getBoundingBox(): AxisAlignedBox {
+        return this.bb;
     }
 
     delete(gl: WebGL2RenderingContext): void {
@@ -436,6 +460,18 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
         }
     }
 
+    hasNormals(): boolean {
+        return !!this.normal;
+    }
+
+    hasTangent(): boolean {
+        return !!this.tangent;
+    }
+
+    hasUV(): boolean {
+        return !!this.uv;
+    }
+
     private prepareVAO(gl: WebGL2RenderingContext): WebGLVertexArrayObject {
         const arr = gl.createVertexArray();
         try {
@@ -457,7 +493,7 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
             if (tangent) {
                 this.setupTangentPointer(gl, ATTRIBUTE_TANGENT_LOC);
             }
-        } catch(e) {
+        } catch (e) {
             gl.deleteVertexArray(arr);
             throw e;
         }
@@ -479,25 +515,9 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
     private setupTangentPointer(gl: WebGL2RenderingContext, attribLocation: number) {
         this.tangent.setupVertexPointer(gl, attribLocation);
     }
-
-    hasNormals(): boolean {
-        return !!this.normal;
-    }
-
-    hasTangent(): boolean {
-        return !!this.tangent;
-    }
-
-    hasUV(): boolean {
-        return !!this.uv;
-    }
 }
 
 export class GLArrayBufferV1 implements GLArrayBufferI {
-    getBoundingBox(): AxisAlignedBox {
-        return this.bb;
-    }
-
     buffer: WebGLBuffer;
     params: GLArrayBufferDataParams;
     private vao: WebGLVertexArrayObject;
@@ -514,6 +534,32 @@ export class GLArrayBufferV1 implements GLArrayBufferI {
         gl.bufferData(gl.ARRAY_BUFFER, data.buf, usage);
         gl.bindVertexArray(null);
         this.bb = data.computeBoundingBox();
+    }
+
+    getBoundingBox(): AxisAlignedBox {
+        return this.bb;
+    }
+
+    draw(gl: WebGL2RenderingContext, renderMode?: number) {
+        gl.bindVertexArray(this.vao);
+        gl.drawArrays(renderMode || ArrayBufferDataTypeToGL(this.params.dataType), 0, this.params.vertexCount)
+    }
+
+    delete(gl: WebGL2RenderingContext) {
+        gl.deleteVertexArray(this.vao);
+        gl.deleteBuffer(this.buffer);
+    }
+
+    hasNormals(): boolean {
+        return this.params.hasNormals;
+    }
+
+    hasTangent(): boolean {
+        return false;
+    }
+
+    hasUV(): boolean {
+        return this.params.hasUVs;
     }
 
     private setupVertexPositionsPointer(gl, attribLocation) {
@@ -543,16 +589,6 @@ export class GLArrayBufferV1 implements GLArrayBufferI {
         gl.vertexAttribPointer(attribLocation, this.params.uvSize, gl.FLOAT, false, this.params.computeStrideInBytes(), this.params.computeUVOffset());
     }
 
-    draw(gl: WebGL2RenderingContext, renderMode?: number) {
-        gl.bindVertexArray(this.vao);
-        gl.drawArrays(renderMode || ArrayBufferDataTypeToGL(this.params.dataType), 0, this.params.vertexCount)
-    }
-
-    delete(gl: WebGL2RenderingContext) {
-        gl.deleteVertexArray(this.vao);
-        gl.deleteBuffer(this.buffer);
-    }
-
     private parepareVAO(gl: WebGL2RenderingContext): WebGLVertexArrayObject {
         const arr = gl.createVertexArray();
         try {
@@ -573,17 +609,5 @@ export class GLArrayBufferV1 implements GLArrayBufferI {
             gl.deleteVertexArray(arr);
         }
         return arr;
-    }
-
-    hasNormals(): boolean {
-        return this.params.hasNormals;
-    }
-
-    hasTangent(): boolean {
-        return false;
-    }
-
-    hasUV(): boolean {
-        return this.params.hasUVs;
     }
 }

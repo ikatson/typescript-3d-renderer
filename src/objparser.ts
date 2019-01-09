@@ -95,7 +95,7 @@ export class ObjParser {
     }
 
     feedByteChunk(data: BufferSource) {
-        const text = this.textDecoder.decode(data, { stream: true });
+        const text = this.textDecoder.decode(data, {stream: true});
         const lines = text.split('\n');
         lines[0] = this.lineBuf + lines[0];
         this.lineBuf = lines.pop();

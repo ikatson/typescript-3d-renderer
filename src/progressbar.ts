@@ -1,5 +1,5 @@
 import {FragmentShader, ShaderProgram, VertexShader} from "./shaders";
-import { FullScreenQuad } from "./quad";
+import {FullScreenQuad} from "./quad";
 
 export class ProgressBarCommon {
     fs: FragmentShader;
@@ -47,6 +47,7 @@ export class ProgressBarCommon {
 
 export class ProgressBar {
     common: ProgressBarCommon;
+
     constructor(gl: WebGL2RenderingContext, common: ProgressBarCommon) {
         this.common = common;
     }
@@ -59,6 +60,7 @@ export class ProgressBar {
         gl.uniform1f(this.common.percentLoc, percent);
         this.common.fullScreenBuffer.draw(gl);
     }
+
     delete() {
 
     }

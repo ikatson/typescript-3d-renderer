@@ -143,7 +143,7 @@ export class Camera {
         mat4.set(m,
             r[0], this.up[0], -this.forward[0], 0,
             r[1], this.up[1], -this.forward[1], 0,
-            r[2], this.up[2], -this.forward[2],0,
+            r[2], this.up[2], -this.forward[2], 0,
             0, 0, 0, 1,
         );
         vec3.scale(tmpVec3, this.position, -1);

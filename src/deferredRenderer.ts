@@ -20,7 +20,8 @@ import {
     UNIFORM_GBUF_ALBEDO,
     UNIFORM_GBUF_MR,
     UNIFORM_GBUF_NORMAL,
-    UNIFORM_GBUF_POSITION, UNIFORM_HAS_TANGENT,
+    UNIFORM_GBUF_POSITION,
+    UNIFORM_HAS_TANGENT,
     UNIFORM_MODEL_VIEW_MATRIX,
     UNIFORM_MODEL_WORLD_MATRIX,
     UNIFORM_PERSPECTIVE_MATRIX,
@@ -149,6 +150,41 @@ export class GBuffer {
         this.compileShader(gl);
     }
 
+    render(gl: WebGL2RenderingContext, camera: Camera, scene: Scene) {
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.gFrameBuffer);
+
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+
+        gl.enable(gl.CULL_FACE);
+        gl.enable(gl.DEPTH_TEST);
+        gl.enable(gl.STENCIL_TEST);
+        gl.stencilMask(0x0f);
+
+        const s = this.gBufferShader;
+        s.use(gl);
+
+        gl.uniform3fv(s.getUniformLocation(gl, UNIFORM_CAMERA_POSITION), camera.position);
+        gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_WORLD_TO_CAMERA_MAT4), false, camera.getWorldToCamera());
+        gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_PERSPECTIVE_MATRIX), false, camera.projectionMatrix().matrix);
+
+        gl.drawBuffers([
+            this.ATTACHMENT_POSITION,
+            this.ATTACHMENT_NORMAL,
+            this.ATTACHMENT_ALBEDO,
+            this.ATTACHMENT_METALLIC_ROUGHNESS
+        ]);
+
+        gl.disable(gl.BLEND);
+
+        for (let i = 0; i < scene.children.length; i++) {
+            this.renderObject(gl, scene.children[i], camera);
+        }
+
+        // restore state.
+        gl.disable(gl.STENCIL_TEST);
+    }
+
     private bindValueOrTx<T>(gl: WebGL2RenderingContext, prefix: string, txOrValue: TextureOrValue<T>, uniformFunc: string, index: number) {
         const s = this.gBufferShader;
         const valueName = prefix;
@@ -224,41 +260,6 @@ export class GBuffer {
         }
     };
 
-    render(gl: WebGL2RenderingContext, camera: Camera, scene: Scene) {
-        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.gFrameBuffer);
-
-        gl.clearColor(0, 0, 0, 0);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
-
-        gl.enable(gl.CULL_FACE);
-        gl.enable(gl.DEPTH_TEST);
-        gl.enable(gl.STENCIL_TEST);
-        gl.stencilMask(0x0f);
-
-        const s = this.gBufferShader;
-        s.use(gl);
-
-        gl.uniform3fv(s.getUniformLocation(gl, UNIFORM_CAMERA_POSITION), camera.position);
-        gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_WORLD_TO_CAMERA_MAT4), false, camera.getWorldToCamera());
-        gl.uniformMatrix4fv(s.getUniformLocation(gl, UNIFORM_PERSPECTIVE_MATRIX), false, camera.projectionMatrix().matrix);
-
-        gl.drawBuffers([
-            this.ATTACHMENT_POSITION,
-            this.ATTACHMENT_NORMAL,
-            this.ATTACHMENT_ALBEDO,
-            this.ATTACHMENT_METALLIC_ROUGHNESS
-        ]);
-
-        gl.disable(gl.BLEND);
-
-        for (let i = 0; i < scene.children.length; i++) {
-            this.renderObject(gl, scene.children[i], camera);
-        }
-
-        // restore state.
-        gl.disable(gl.STENCIL_TEST);
-    }
-
     private compileShader(gl: WebGL2RenderingContext) {
         this.gBufferShader = new ShaderProgram(
             gl,
@@ -309,6 +310,7 @@ export class SSAORenderer {
     private blurShader: ShaderProgram;
     private width: number;
     private height: number;
+    private _ssaoBlurTx: WebGLTexture;
 
     constructor(gl: WebGL2RenderingContext, ssaoParameters: SSAOState, ssaoConfig: SSAOConfig, gBuffer: GBuffer, fullScreenQuad: FullScreenQuad) {
         this.ssaoConfig = ssaoConfig;
@@ -324,8 +326,6 @@ export class SSAORenderer {
         this.setupSSAOBuffers(gl, ssaoParameters);
         this.recompileShaders(gl);
     }
-
-    private _ssaoBlurTx: WebGLTexture;
 
     get ssaoTx(): WebGLTexture {
         return this._ssaoBlurTx;
@@ -549,12 +549,11 @@ export class ShadowMapRenderer {
 }
 
 export class LightingRenderer {
+    resultTX: WebGLTexture;
     private showBuffersShader: ShaderProgram = null;
     private directionalLightShader: ShaderProgram = null;
     private pointLightShader: ShaderProgram = null;
-
     private fullScreenQuad: FullScreenQuad;
-
     private config: DeferredRendererConfig;
     private gBuffer: GBuffer;
     private ssaoRenderer: SSAORenderer;
@@ -563,7 +562,6 @@ export class LightingRenderer {
     private _recompileOnNextRun: boolean = true;
     private sphereObject: GameObject;
     private fb: WebGLFramebuffer;
-    resultTX: WebGLTexture;
 
     constructor(gl: WebGL2RenderingContext,
                 config: DeferredRendererConfig,
@@ -923,16 +921,12 @@ export class LightingRenderer {
 
 
 class SSRRenderer {
-    private gbuffer: GBuffer;
     blendShader: ShaderProgram;
-    get resultTX(): WebGLTexture {
-        return this._resultTX;
-    }
+    private gbuffer: GBuffer;
     private lightingRenderer: LightingRenderer;
     private shader: ShaderProgram;
     private fullScreenQuad: FullScreenQuad;
     private fb: WebGLFramebuffer;
-    private _resultTX: WebGLTexture;
 
     constructor(gl: WebGL2RenderingContext, config: DeferredRendererConfig, gbuffer: GBuffer, light: LightingRenderer, fullScreenQuad: FullScreenQuad) {
         this.fullScreenQuad = fullScreenQuad;
@@ -975,6 +969,12 @@ class SSRRenderer {
         )
     }
 
+    private _resultTX: WebGLTexture;
+
+    get resultTX(): WebGLTexture {
+        return this._resultTX;
+    }
+
     render(gl: WebGL2RenderingContext, scene: Scene, camera: Camera) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
         gl.clearColor(0, 0, 0, 0);
@@ -1014,11 +1014,6 @@ class SSRRenderer {
 }
 
 class CopierShader {
-    get shader(): ShaderProgram {
-        return this._shader;
-    }
-    private _shader: ShaderProgram;
-
     constructor(gl: WebGL2RenderingContext, fullScreenQuad: FullScreenQuad) {
         this._shader = new ShaderProgram(
             gl,
@@ -1031,6 +1026,12 @@ class CopierShader {
             }
             `).build())
         );
+    }
+
+    private _shader: ShaderProgram;
+
+    get shader(): ShaderProgram {
+        return this._shader;
     }
 }
 
@@ -1065,7 +1066,6 @@ export class DeferredRenderer {
     private ssaoRenderer: SSAORenderer;
     private shadowMap: ShadowMapRenderer;
     private recompileOnNextRun: boolean = false;
-    private _config: DeferredRendererConfig;
     private ssr: SSRRenderer;
     private finalToDefaultFB: TextureToFbCopier;
     private ssrToDefaultFB: TextureToFbCopier;
@@ -1087,6 +1087,8 @@ export class DeferredRenderer {
         this.finalToDefaultFB = new TextureToFbCopier(gl, this.lightingRenderer.resultTX, null, copierShader, fullScreenQuad);
         this.ssrToDefaultFB = new TextureToFbCopier(gl, this.ssr.resultTX, null, copierShader, fullScreenQuad);
     }
+
+    private _config: DeferredRendererConfig;
 
     get config(): DeferredRendererConfig {
         return this._config;

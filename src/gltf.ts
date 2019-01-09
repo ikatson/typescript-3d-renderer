@@ -4,7 +4,8 @@ import {DDSPixels, ImagePixels, Pixels, Texture} from "./texture";
 import {Material} from "./material";
 import {
     ArrayWebGLBufferWrapper,
-    BufferView, computeBoundingBox,
+    BufferView,
+    computeBoundingBox,
     ElementArrayWebGLBufferWrapper,
     GLArrayBufferGLTF,
     GLArrayBufferI,
@@ -18,7 +19,9 @@ import {GlTf, MeshPrimitive} from "./gltf-types";
 
 export function constructUrlBase(url: string) {
     const parts = url.split('/');
-    if (parts.length === 1) { return './'; }
+    if (parts.length === 1) {
+        return './';
+    }
     parts.pop();
     return parts.join('/') + '/';
 }
@@ -38,6 +41,46 @@ export class GLTFLoader {
     private readonly urlPrefix: string;
     private g: GlTf;
     private readonly gl: WebGL2RenderingContext;
+    private urlJoin = (suffix: string): string => {
+        return this.urlPrefix + suffix;
+    };
+    private loadBuffer = (id: number): Promise<Uint8Array> => {
+        return mapComputeIfAbsent(this.buffers, id, async id => {
+            const uri = this.urlJoin(this.g.buffers[id].uri);
+            const response = await fetch(uri);
+            if (response.status != 200) {
+                throw new Error(`Unexpected response: ${response.status}`);
+            }
+            const buf = await response.arrayBuffer();
+            return new Uint8Array(buf);
+        });
+    };
+    private loadBufferViewIndices = (id: number): Promise<BufferView<ElementArrayWebGLBufferWrapper>> => {
+        return mapComputeIfAbsent(this.bufferViewsIndices, id, async id => {
+            const bv = this.g.bufferViews[id];
+            const buf = await this.loadBuffer(bv.buffer);
+            const glbuf = new ElementArrayWebGLBufferWrapper(this.gl, buf.subarray(bv.byteOffset, bv.byteOffset + bv.byteLength));
+            return new BufferView(glbuf, bv.byteLength);
+        })
+    };
+    private loadBufferViewArray = (id: number): Promise<BufferView<ArrayWebGLBufferWrapper>> => {
+        return mapComputeIfAbsent(this.bufferViewsArrays, id, async id => {
+            const bv = this.g.bufferViews[id];
+            const buf = await this.loadBuffer(bv.buffer);
+            const glbuf = new ArrayWebGLBufferWrapper(this.gl, buf.subarray(bv.byteOffset, bv.byteOffset + bv.byteLength));
+            return new BufferView(glbuf, bv.byteLength);
+        })
+    };
+    private loadAccessorIndices = (id: number): Promise<GLTFAccessor<ElementArrayWebGLBufferWrapper>> => {
+        if (id === null || id === undefined) {
+            return Promise.resolve(undefined);
+        }
+        return mapComputeIfAbsent(this.accessorsIndices, id, async id => {
+            const accessor = this.g.accessors[id];
+            const bv = await this.loadBufferViewIndices(accessor.bufferView);
+            return new GLTFAccessor<ElementArrayWebGLBufferWrapper>(accessor, bv);
+        })
+    };
 
     constructor(gl: WebGL2RenderingContext, g: GlTf, urlPrefix: string) {
         this.urlPrefix = urlPrefix;
@@ -62,10 +105,6 @@ export class GLTFLoader {
         return scene;
 
     }
-
-    private urlJoin = (suffix: string): string => {
-        return this.urlPrefix + suffix;
-    };
 
     private loadImage(id: number): Promise<Pixels> {
         return mapComputeIfAbsent(this.images, id, id => {
@@ -95,47 +134,6 @@ export class GLTFLoader {
                     });
             }
         });
-    };
-
-    private loadBuffer = (id: number): Promise<Uint8Array> => {
-        return mapComputeIfAbsent(this.buffers, id, async id => {
-            const uri = this.urlJoin(this.g.buffers[id].uri);
-            const response = await fetch(uri);
-            if (response.status != 200) {
-                throw new Error(`Unexpected response: ${response.status}`);
-            }
-            const buf =  await response.arrayBuffer();
-            return new Uint8Array(buf);
-        });
-    };
-
-    private loadBufferViewIndices = (id: number): Promise<BufferView<ElementArrayWebGLBufferWrapper>> => {
-        return mapComputeIfAbsent(this.bufferViewsIndices, id, async id => {
-            const bv = this.g.bufferViews[id];
-            const buf = await this.loadBuffer(bv.buffer);
-            const glbuf = new ElementArrayWebGLBufferWrapper(this.gl, buf.subarray(bv.byteOffset, bv.byteOffset + bv.byteLength));
-            return new BufferView(glbuf, bv.byteLength);
-        })
-    };
-
-    private loadBufferViewArray = (id: number): Promise<BufferView<ArrayWebGLBufferWrapper>> => {
-        return mapComputeIfAbsent(this.bufferViewsArrays, id, async id => {
-            const bv = this.g.bufferViews[id];
-            const buf = await this.loadBuffer(bv.buffer);
-            const glbuf = new ArrayWebGLBufferWrapper(this.gl, buf.subarray(bv.byteOffset, bv.byteOffset + bv.byteLength));
-            return new BufferView(glbuf, bv.byteLength);
-        })
-    };
-
-    private loadAccessorIndices = (id: number): Promise<GLTFAccessor<ElementArrayWebGLBufferWrapper>> => {
-        if (id === null || id === undefined) {
-            return Promise.resolve(undefined);
-        }
-        return mapComputeIfAbsent(this.accessorsIndices, id, async id => {
-            const accessor = this.g.accessors[id];
-            const bv = await this.loadBufferViewIndices(accessor.bufferView);
-            return new GLTFAccessor<ElementArrayWebGLBufferWrapper>(accessor, bv);
-        })
     };
 
     private loadAccessorArrays(id: number): Promise<GLTFAccessor<ArrayWebGLBufferWrapper>> {

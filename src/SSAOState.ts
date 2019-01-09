@@ -1,4 +1,4 @@
-import {randFloat, lerp} from "./utils";
+import {lerp, randFloat} from "./utils";
 
 export class SSAOConfig {
     enabled: boolean = true;

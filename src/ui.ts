@@ -1,5 +1,3 @@
-import {rgbToHex} from "./utils";
-
 type Props = {
     // onChange: Function,
     checked?: boolean,
@@ -30,7 +28,9 @@ const nextId = (() => {
     }
 })()
 
-export const c = (name: string) => { return { className: name } };
+export const c = (name: string) => {
+    return {className: name}
+};
 
 export const funcRef: Function = (ref?: Function) => {
     const f = function () {
@@ -172,7 +172,7 @@ export const RadioInput = (options: RadioInputOption[], props: Props, onChange: 
                     onChange(ev.target.value);
                 }
             }),
-            e('label', { className: 'form-check-label', for: eid.toString() }, o.label)
+            e('label', {className: 'form-check-label', for: eid.toString()}, o.label)
         )
     });
 }

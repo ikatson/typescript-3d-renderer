@@ -1,4 +1,4 @@
-import { ShaderSourceBuilder } from "../shaders";
+import {ShaderSourceBuilder} from "../shaders";
 import {GBUF_TEXTURES, QUAD_FRAGMENT_INPUTS, WORLD_AND_CAMERA_TRANSFORMS} from "./includes/common";
 import {PBR_INCLUDE} from "./includes/pbr";
 

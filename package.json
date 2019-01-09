@@ -13,7 +13,8 @@
     "gl-matrix": "^2.8.1"
   },
   "scripts": {
-    "start": "./node_modules/.bin/webpack --config webpack.config.js --optimize-minimize"
+    "start": "./node_modules/.bin/webpack --config webpack.config.js --watch",
+    "prod": "./node_modules/.bin/webpack --config webpack.config.js --mode production"
   },
   "sideEffects": false
 }

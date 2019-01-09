@@ -1,5 +1,4 @@
-import {ShaderLoadError, LinkError} from "./errors";
-import {mapComputeIfAbsent} from "./utils";
+import {LinkError, ShaderLoadError} from "./errors";
 
 export function redefine(shaderSource: string, defineName: string, value: string) {
     return shaderSource.replace(new RegExp(`#define ${defineName} .*`), `#define ${defineName} ${value}`);
@@ -39,6 +38,7 @@ class RawShader {
     setAutodelete(v: boolean) {
         this.autodelete = v;
     }
+
     shouldAutodelete(): boolean {
         return this.autodelete;
     }
@@ -203,7 +203,7 @@ export class ShaderSourceBuilder {
 
     build(): string {
         const result: string[] = [];
-        result.push(`precision ${this.precision} float;`)
+        result.push(`precision ${this.precision} float;`);
 
         this.defines.forEach((v, k) => {
             result.push(`#define ${k} ${v}`)

@@ -2,17 +2,20 @@ import {ArrayBufferDataType, GLArrayBufferData, GLArrayBufferDataParams} from ".
 import {vec3} from "gl-matrix";
 
 export class AxisAlignedBox {
-    get max(): vec3 {
-        return this._max;
-    }
+    private _cacheNeedsUpdate = false;
+    private _vertexBufferCache: GLArrayBufferData = null;
+
+    private _min = vec3.fromValues(-1, -1, -1);
+
     get min(): vec3 {
         return this._min;
     }
-    private _min = vec3.fromValues(-1, -1, -1);
+
     private _max = vec3.fromValues(1, 1, 1);
 
-    private _cacheNeedsUpdate = false;
-    private _vertexBufferCache: GLArrayBufferData = null;
+    get max(): vec3 {
+        return this._max;
+    }
 
     setMin(v: vec3 | number[]): AxisAlignedBox {
         vec3.copy(this._min, v);

@@ -1,6 +1,5 @@
 import {ArrayBufferDataType, GLArrayBufferData, GLArrayBufferDataParams, GLArrayBufferI} from "./glArrayBuffer";
 import {VertexShader} from "./shaders";
-import {ATTRIBUTE_POSITION_LOC} from "./constants";
 
 export const QuadVertices = new Float32Array([
     -1.0, 1.0,
@@ -30,8 +29,8 @@ void main() {
 `;
 
 export class FullScreenQuad {
-    private glArrayBuffer: GLArrayBufferI;
     vertexShader: VertexShader;
+    private glArrayBuffer: GLArrayBufferI;
 
     constructor(gl: WebGL2RenderingContext, quadBuffer: GLArrayBufferI) {
         this.glArrayBuffer = quadBuffer;

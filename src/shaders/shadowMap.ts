@@ -1,4 +1,4 @@
-import { ShaderSourceBuilder } from "../shaders";
+import {ShaderSourceBuilder} from "../shaders";
 import {WORLD_AND_CAMERA_TRANSFORMS} from "./includes/common";
 
 const VS = new ShaderSourceBuilder()

@@ -13,7 +13,7 @@ import {SSAOConfig, SSAOState} from "./SSAOState";
 import {Material} from "./material";
 import {FullScreenQuad, QuadArrayBufferData} from "./quad";
 import {loadSceneFromGLTF} from "./gltf";
-import {SAMPLE_GLTF_SPONZA, SAMPLE_GLTF_SPONZA_DDS} from "./constants";
+import {SAMPLE_GLTF_SPONZA_DDS} from "./constants";
 
 
 const originZero = vec3.create();
@@ -626,7 +626,7 @@ function main() {
 window.addEventListener('load', () => {
     try {
         main()
-    } catch(e) {
+    } catch (e) {
         printError(e);
     }
 });

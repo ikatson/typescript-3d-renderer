@@ -1,7 +1,6 @@
 import {mat4, vec3} from "gl-matrix"
-import {ShaderProgram} from "./shaders";
 import {AxisAlignedBox} from "./axisAlignedBox";
-import {GLArrayBufferV1, GLArrayBufferI, GLArrayBufferGLTF} from "./glArrayBuffer";
+import {GLArrayBufferI, GLArrayBufferV1} from "./glArrayBuffer";
 import {Material} from "./material";
 
 export abstract class Component {
@@ -57,6 +56,7 @@ export class BoundingBoxComponent extends Component {
     computedFromChildren: boolean = false;
 
     private glArrayBuffer: GLArrayBufferI;
+
     constructor(box: AxisAlignedBox) {
         super();
         this.box = box;
@@ -147,7 +147,7 @@ export class TransformComponent extends Component {
 
 }
 
-export class MaterialComponent extends Component{
+export class MaterialComponent extends Component {
     material: Material;
 
     constructor(m: Material) {

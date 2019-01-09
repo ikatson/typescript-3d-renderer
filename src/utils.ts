@@ -97,7 +97,7 @@ export const makeWorldSpaceCameraFrustum = (() => {
     return (camera: Camera, pointsOnly: boolean = false, isTemporary: boolean = true): GLArrayBufferData => {
         const camToWorld = camera.getCameraToWorld();
         let cubeVertices: GLArrayBufferData;
-        if (pointsOnly){
+        if (pointsOnly) {
             cubeVertices = identityAABB().asVerticesBuffer();
         } else {
             cubeVertices = identityAABB().asWireFrameBuffer();
@@ -161,7 +161,7 @@ export const orthoProjection = (out, left, right, bottom, top, near, far) => {
     const tb = 1. / (top - bottom);
     const rl = 1. / (right - left);
     mat4.set(out,
-        2* rl, 0, 0, 0,
+        2 * rl, 0, 0, 0,
         0, 2 * tb, 0, 0,
         0, 0, -2 * fn, 0,
         -(right + left) * rl, -(bottom + top) * tb, (far + near) * fn, 1,
@@ -213,7 +213,7 @@ export const computeBoundingBoxInTransformedSpace = (() => {
                 vec3.transformMat4(tmpVec3, l.object.transform.position, transform);
                 const b = bb(0);
                 const offset = l.radius + 0.1;
-                b.setMin(vec3.set(tmpVec3_2,  tmpVec3[0] - offset, tmpVec3[1] - offset, tmpVec3[2] - offset));
+                b.setMin(vec3.set(tmpVec3_2, tmpVec3[0] - offset, tmpVec3[1] - offset, tmpVec3[2] - offset));
                 b.setMax(vec3.set(tmpVec3_2, tmpVec3[0] + offset, tmpVec3[1] + offset, tmpVec3[2] + offset));
 
                 tmpVec1[0] = b;
@@ -288,7 +288,6 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (() => {
         return out;
     };
 })();
-
 
 
 export function hexToRgb1(out: vec4, hex: string): vec4 {

@@ -2,7 +2,7 @@ import {vec3} from "gl-matrix";
 import {tmpVec4} from "./utils";
 import * as parseDDS from 'parse-dds';
 
-function r1to255 (v: number): number {
+function r1to255(v: number): number {
     return Math.trunc(v * 255);
 }
 
@@ -48,7 +48,7 @@ export class ImagePixels implements Pixels {
     }
 }
 
-function getDDSFormat (ext: WEBGL_compressed_texture_s3tc, ddsFormat: string) {
+function getDDSFormat(ext: WEBGL_compressed_texture_s3tc, ddsFormat: string) {
     switch (ddsFormat) {
         case 'dxt1':
             return ext.COMPRESSED_RGB_S3TC_DXT1_EXT;
@@ -101,16 +101,16 @@ export class Texture {
         this.promise = pixels.then(img => this.bindImageToTexture(gl, img));
     }
 
-    private bindImageToTexture(gl: WebGL2RenderingContext, pixels: Pixels) {
-        gl.bindTexture(gl.TEXTURE_2D, this.texture);
-        pixels.setupTexture(gl);
-    }
-
     getTexture() {
         return this.texture;
     }
 
     getPromise() {
         return this.promise;
+    }
+
+    private bindImageToTexture(gl: WebGL2RenderingContext, pixels: Pixels) {
+        gl.bindTexture(gl.TEXTURE_2D, this.texture);
+        pixels.setupTexture(gl);
     }
 }
