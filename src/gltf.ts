@@ -210,15 +210,15 @@ export class GLTFLoader {
             throw new Error(`Not trianges: ${p.mode}`);
         }
 
-        const posAccessor = this.g.accessors[p.attributes.POSITION];
+        const posAccessor = this.g.accessors[p.attributes['POSITION']];
         const bb = new AxisAlignedBox().setMin(posAccessor.min).setMax(posAccessor.max);
 
         return Promise.all([
             this.loadAccessorIndices(p.indices),
-            this.loadAccessorArrays(p.attributes.POSITION),
-            this.loadAccessorArrays(p.attributes.TEXCOORD_0),
-            this.loadAccessorArrays(p.attributes.NORMAL),
-            this.loadAccessorArrays(p.attributes.TANGENT)
+            this.loadAccessorArrays(p.attributes['POSITION']),
+            this.loadAccessorArrays(p.attributes['TEXCOORD_0']),
+            this.loadAccessorArrays(p.attributes['NORMAL']),
+            this.loadAccessorArrays(p.attributes['TANGENT'])
         ]).then(([indices, pos, uv, normal, tangent]) => {
             return new GLArrayBufferGLTF(
                 this.gl, indices, pos, uv, normal, tangent, bb
