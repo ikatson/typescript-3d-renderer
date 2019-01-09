@@ -19,3 +19,4 @@ export const UNIFORM_GBUF_MR = "gbuf_metallic_roughness";
 export const UNIFORM_HAS_TANGENT = "u_hasTangent";
 
 export const SAMPLE_GLTF_SPONZA = "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Sponza/glTF/Sponza.gltf";
+export const SAMPLE_GLTF_SPONZA_DDS = "/glTF-Sample-Models/2.0/Sponza/glTF/Sponza-dds.gltf";

@@ -1,6 +1,6 @@
 import {Scene} from "./scene";
 import {quat, vec3, vec4} from "gl-matrix";
-import {ImagePixels, Texture} from "./texture";
+import {DDSPixels, ImagePixels, Pixels, Texture} from "./texture";
 import {Material} from "./material";
 import {GlTf, MeshPrimitive} from "gltf-loader-ts/lib/gltf";
 import {
@@ -30,7 +30,7 @@ export class GLTFLoader {
     private buffers: Map<number, Promise<Uint8Array>> = m();
     private bufferViewsIndices: Map<number, Promise<BufferView<ElementArrayWebGLBufferWrapper>>> = m();
     private bufferViewsArrays: Map<number, Promise<BufferView<ArrayWebGLBufferWrapper>>> = m();
-    private images: Map<number, Promise<HTMLImageElement>> = m();
+    private images: Map<number, Promise<Pixels>> = m();
     private textures: Map<number, Texture> = m();
     private materials: Map<number, Material> = m();
     private accessorsIndices: Map<number, Promise<GLTFAccessor<ElementArrayWebGLBufferWrapper>>> = m();
@@ -67,22 +67,33 @@ export class GLTFLoader {
         return this.urlPrefix + suffix;
     };
 
-    private loadImage(id: number): Promise<HTMLImageElement> {
+    private loadImage(id: number): Promise<Pixels> {
         return mapComputeIfAbsent(this.images, id, id => {
             const img = this.g.images[id];
             const uri = this.urlJoin(img.uri);
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.src = uri;
-                img.crossOrigin = "anonymous";
-                img.addEventListener('load', () => {
-                    resolve(img);
-                });
-                img.addEventListener('error', e => {
-                    console.log(`error loading image ${id}`);
-                    reject(e);
-                })
-            });
+
+            switch (img.mimeType) {
+                case "image/vnd-ms.dds":
+                    return fetch(uri).then(response => {
+                        if (!response.ok) {
+                            throw new Error(response.statusText)
+                        }
+                        return response.arrayBuffer();
+                    }).then(b => new DDSPixels(b));
+                default:
+                    return new Promise((resolve, reject) => {
+                        const img = new Image();
+                        img.src = uri;
+                        img.crossOrigin = "anonymous";
+                        img.addEventListener('load', () => {
+                            resolve(new ImagePixels(img));
+                        });
+                        img.addEventListener('error', e => {
+                            console.log(`error loading image ${id}`);
+                            reject(e);
+                        })
+                    });
+            }
         });
     };
 
@@ -141,7 +152,7 @@ export class GLTFLoader {
     private loadTexture(id: number): Texture {
         return mapComputeIfAbsent(this.textures, id, () => {
             const t = this.g.textures[id];
-            const img = this.loadImage(t.source).then(i => new ImagePixels(i));
+            const img = this.loadImage(t.source);
             return new Texture(this.gl, img, white);
         });
     };

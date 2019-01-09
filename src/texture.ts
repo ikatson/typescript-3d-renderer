@@ -1,5 +1,6 @@
 import {vec3} from "gl-matrix";
 import {tmpVec4} from "./utils";
+import * as parseDDS from 'parse-dds';
 
 function r1to255 (v: number): number {
     return Math.trunc(v * 255);
@@ -28,17 +29,6 @@ export function fillTexture2DWithEmptyTexture(gl: WebGL2RenderingContext, defaul
         pixel);
 }
 
-export function loadImage(uri: string): Promise<HTMLImageElement> {
-    return <Promise<HTMLImageElement>>new Promise((resolve, reject) => {
-        const img = new Image();
-        img.src = uri;
-
-        img.addEventListener('load', () => {
-            resolve(img);
-        })
-    });
-}
-
 export interface Pixels {
     setupTexture(gl: WebGL2RenderingContext)
 }
@@ -55,6 +45,48 @@ export class ImagePixels implements Pixels {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
         gl.generateMipmap(gl.TEXTURE_2D);
+    }
+}
+
+function getDDSFormat (ext: WEBGL_compressed_texture_s3tc, ddsFormat: string) {
+    switch (ddsFormat) {
+        case 'dxt1':
+            return ext.COMPRESSED_RGB_S3TC_DXT1_EXT;
+        case 'dxt3':
+            return ext.COMPRESSED_RGBA_S3TC_DXT3_EXT;
+        case 'dxt5':
+            return ext.COMPRESSED_RGBA_S3TC_DXT5_EXT;
+        default:
+            throw new Error('unsupported format ' + ddsFormat)
+    }
+}
+
+export class DDSPixels implements Pixels {
+    private data: ArrayBuffer;
+    private dds: any;
+
+    constructor(data: ArrayBuffer) {
+        this.data = data;
+        this.dds = parseDDS(this.data);
+    }
+
+    setupTexture(gl: WebGL2RenderingContext) {
+        const ext = gl.getExtension("WEBGL_compressed_texture_s3tc");
+        if (!ext) {
+            throw new Error("Compressed textures not supported, can't load WEBGL_compressed_texture_s3tc")
+        }
+
+        console.log(`mip levels ${this.dds.images.length}`);
+
+        for (let mip = 0; mip < this.dds.images.length; mip++) {
+            const image = this.dds.images[mip];
+            const data = new Uint8Array(this.data, image.offset, image.length);
+            var width = image.shape[0];
+            var height = image.shape[1];
+            gl.compressedTexImage2D(gl.TEXTURE_2D, mip, getDDSFormat(ext, this.dds.format), width, height, 0, data);
+        }
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
     }
 }
 
