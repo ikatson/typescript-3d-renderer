@@ -1,4 +1,5 @@
-import {mat4, vec3} from "gl-matrix"
+import * as mat4 from "gl-matrix/src/gl-matrix/mat4";
+import * as vec3 from "gl-matrix/src/gl-matrix/vec3";
 import {AxisAlignedBox} from "./axisAlignedBox";
 import {GLArrayBufferI, GLArrayBufferV1} from "./glArrayBuffer";
 import {Material} from "./material";

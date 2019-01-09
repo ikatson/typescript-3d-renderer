@@ -1,4 +1,4 @@
-import {vec4} from "gl-matrix";
+import * as vec4 from "gl-matrix/src/gl-matrix/vec4";
 import {Texture} from "./texture";
 
 export class TextureOrValue<T> {

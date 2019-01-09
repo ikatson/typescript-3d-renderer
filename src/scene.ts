@@ -1,5 +1,5 @@
 import {DirectionalLight, GameObject, GameObjectBuilder, PointLightComponent} from "./object";
-import {vec3} from "gl-matrix";
+import * as vec3 from "gl-matrix/src/gl-matrix/vec3";
 import {randVec3} from "./utils";
 
 export function randomPointLight(posScale: number, intensity?: number) {
@@ -27,9 +27,9 @@ export function randomPointLights(count: number, posScale: number, totalIntensit
 }
 
 export class Scene {
-    children = new Array<GameObject>();
-    directionalLights = new Array<DirectionalLight>();
-    pointLights = new Array<PointLightComponent>();
+    children: GameObject[] = [];
+    directionalLights: DirectionalLight[] = [];
+    pointLights: PointLightComponent[] = [];
 
     constructor() {
     }

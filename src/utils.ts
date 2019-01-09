@@ -1,4 +1,6 @@
-import {mat4, vec3, vec4} from "gl-matrix";
+import * as vec3 from "gl-matrix/src/gl-matrix/vec3";
+import * as mat4 from "gl-matrix/src/gl-matrix/mat4";
+import * as vec4 from "gl-matrix/src/gl-matrix/vec4";
 import {fetchObject, ObjParser} from "./objparser";
 import {computeBoundingBox, GLArrayBufferData, tmpIter} from "./glArrayBuffer";
 import {Camera, ProjectionMatrix} from "./camera";

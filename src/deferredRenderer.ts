@@ -1,5 +1,6 @@
 import {Camera, ProjectionMatrix} from "./camera";
-import {mat4, vec3} from "gl-matrix";
+import * as vec3 from "gl-matrix/src/gl-matrix/vec3";
+import * as mat4 from "gl-matrix/src/gl-matrix/mat4";
 import {DirectionalLight, GameObject, GameObjectBuilder, MeshComponent, PointLightComponent} from "./object";
 import {Scene} from "./scene";
 import {FragmentShader, ShaderProgram, ShaderSourceBuilder, VertexShader} from "./shaders";

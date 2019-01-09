@@ -1,5 +1,7 @@
 import {Scene} from "./scene";
-import {quat, vec3, vec4} from "gl-matrix";
+import * as quat from "gl-matrix/src/gl-matrix/quat";
+import * as vec3 from "gl-matrix/src/gl-matrix/vec3";
+import * as vec4 from "gl-matrix/src/gl-matrix/vec4";
 import {DDSPixels, ImagePixels, Pixels, Texture} from "./texture";
 import {Material} from "./material";
 import {

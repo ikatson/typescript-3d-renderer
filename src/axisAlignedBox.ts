@@ -1,5 +1,5 @@
 import {ArrayBufferDataType, GLArrayBufferData, GLArrayBufferDataParams} from "./glArrayBuffer";
-import {vec3} from "gl-matrix";
+import * as vec3 from "gl-matrix/src/gl-matrix/vec3";
 
 export class AxisAlignedBox {
     private _cacheNeedsUpdate = false;

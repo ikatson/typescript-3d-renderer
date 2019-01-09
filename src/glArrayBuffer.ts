@@ -1,5 +1,7 @@
 import {AxisAlignedBox} from "./axisAlignedBox";
-import {mat4, vec3, vec4} from "gl-matrix";
+import * as vec3 from "gl-matrix/src/gl-matrix/vec3";
+import * as mat4 from "gl-matrix/src/gl-matrix/mat4";
+import * as vec4 from "gl-matrix/src/gl-matrix/vec4";
 import {Accessor} from "./gltf-types";
 import {GLTF} from "./gltf-enums";
 import {ATTRIBUTE_NORMALS_LOC, ATTRIBUTE_POSITION_LOC, ATTRIBUTE_TANGENT_LOC, ATTRIBUTE_UV_LOC,} from "./constants";

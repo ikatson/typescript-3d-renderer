@@ -4,7 +4,7 @@ import {ProgressBar, ProgressBarCommon} from "./progressbar";
 import {DirectionalLight, GameObjectBuilder, MaterialComponent} from "./object";
 import {Camera} from "./camera";
 
-import {vec3} from "gl-matrix";
+import * as vec3 from "gl-matrix/src/gl-matrix/vec3";
 import {randomPointLight, Scene} from "./scene";
 import {DeferredRenderer, DeferredRendererConfig, ShadowMapConfig, ShowLayer, SSRConfig} from "./deferredRenderer";
 import {GLArrayBufferI, GLArrayBufferV1} from "./glArrayBuffer";

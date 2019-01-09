@@ -1,4 +1,4 @@
-import {vec3} from "gl-matrix";
+import * as vec3 from "gl-matrix/src/gl-matrix/vec3";
 import {tmpVec4} from "./utils";
 import * as parseDDS from 'parse-dds';
 
