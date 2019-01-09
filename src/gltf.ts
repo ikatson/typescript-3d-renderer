@@ -2,7 +2,6 @@ import {Scene} from "./scene";
 import {quat, vec3, vec4} from "gl-matrix";
 import {DDSPixels, ImagePixels, Pixels, Texture} from "./texture";
 import {Material} from "./material";
-import {GlTf, MeshPrimitive} from "gltf-loader-ts/lib/gltf";
 import {
     ArrayWebGLBufferWrapper,
     BufferView, computeBoundingBox,
@@ -15,6 +14,7 @@ import {GLTF} from "./gltf-enums";
 import {BoundingBoxComponent, GameObject, GameObjectBuilder, MaterialComponent, MeshComponent} from "./object";
 import {mapComputeIfAbsent} from "./utils";
 import {AxisAlignedBox} from "./axisAlignedBox";
+import {GlTf, MeshPrimitive} from "./gltf-types";
 
 export function constructUrlBase(url: string) {
     const parts = url.split('/');

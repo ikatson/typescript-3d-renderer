@@ -1,15 +1,12 @@
-import {ShaderProgram} from "./shaders";
 import {AxisAlignedBox} from "./axisAlignedBox";
 import {mat4, vec3, vec4} from "gl-matrix";
-import {Accessor} from "gltf-loader-ts/lib/gltf";
+import {Accessor} from "./gltf-types";
 import {GLTF} from "./gltf-enums";
 import {
-    ATTRIBUTE_NORMALS, ATTRIBUTE_NORMALS_LOC,
-    ATTRIBUTE_POSITION,
+    ATTRIBUTE_NORMALS_LOC,
     ATTRIBUTE_POSITION_LOC,
-    ATTRIBUTE_TANGENT, ATTRIBUTE_TANGENT_LOC,
-    ATTRIBUTE_UV, ATTRIBUTE_UV_LOC,
-    UNIFORM_HAS_TANGENT
+    ATTRIBUTE_TANGENT_LOC,
+    ATTRIBUTE_UV_LOC,
 } from "./constants";
 import {tmpVec3} from "./utils";
 
@@ -179,15 +176,6 @@ export class GLArrayBufferData {
         outIter.initialize(this);
         return outIter;
     }
-
-    /**
-     * @deprecated
-     */
-    iterData(callback: (vs: number, ve: number, ns: number, ne: number, us: number, ue: number) => void) {
-        for (const i of this.iterator(tmpIter)) {
-            callback(i.vs, i.ve, i.ns, i.ne, i.us, i.ue);
-        }
-    };
 }
 
 export class GlArrayBufferDataIterator {
@@ -254,14 +242,8 @@ export interface GLArrayBufferI {
     hasUV(): boolean;
     hasTangent(): boolean;
 
-    // setupVertexPositionsPointer(gl, attribLocation): void;
-    // setupVertexNormalsPointer(gl, attribLocation): void;
-    // setupVertexUVPointer(gl, attribLocation): void;
-    // setupTangentPointer(gl: WebGL2RenderingContext, attribLocation: number);
-
     draw(gl: WebGL2RenderingContext, renderMode?: number): void;
     delete(gl: WebGL2RenderingContext): void;
-    // prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext, program?: ShaderProgram): void;
 }
 
 
@@ -452,18 +434,6 @@ export class GLArrayBufferGLTF implements GLArrayBufferI {
                 this.position.accessor.count,
             );
         }
-    }
-
-    private prepareMeshVertexAndShaderDataForRendering(gl: WebGL2RenderingContext, program?: ShaderProgram): void {
-        const tangent = !!this.tangent;
-
-        gl.bindVertexArray(this.vao);
-
-        if (tangent && program) {
-            program.use(gl);
-            gl.uniform1i(program.getUniformLocation(gl, UNIFORM_HAS_TANGENT), 1);
-        }
-        return;
     }
 
     private prepareVAO(gl: WebGL2RenderingContext): WebGLVertexArrayObject {
