@@ -1,5 +1,5 @@
 type Props = {
-    // onChange: Function,
+    // onchange: Function,
     checked?: boolean,
     id?: string;
     name?: string;
@@ -10,7 +10,7 @@ type Props = {
     min?: number,
     max?: number,
     step?: number,
-    onChange?: Function,
+    onchange?: Function,
 }
 
 type HTMLOrString = HTMLElement | string;
@@ -26,7 +26,7 @@ const nextId = (() => {
         id++;
         return id;
     }
-})()
+})();
 
 export const c = (name: string) => {
     return {className: name}
@@ -40,9 +40,9 @@ export const funcRef: Function = (ref?: Function) => {
     };
     f.ref = ref;
     return f;
-}
+};
 
-export const e = (name: string, props: Props, ...children: HTMLOrString[]) => {
+export const e = (name: string, props: Props, ...children: Child[]) => {
     const el = document.createElement(name);
     if (props) {
         for (const k in props) {
@@ -54,42 +54,38 @@ export const e = (name: string, props: Props, ...children: HTMLOrString[]) => {
                 case 'for':
                     el.setAttribute('for', props.for);
                     break;
-                case 'onChange':
-                    el.onchange = v;
-                    break;
                 default:
                     el[k] = v;
             }
         }
     }
-    children.map(c => {
+    const cb = c => {
         if (c instanceof Array) {
-            c.map(c => {
-                el.appendChild(c);
-            })
+            c.map(cb);
         } else if (typeof c === 'string') {
             el.textContent = c;
         } else {
             el.appendChild(c);
         }
-    })
+    };
+    children.map(cb);
     return el;
-}
+};
 
 export const Form = (...children) => {
     return e('div', c('form'), ...children);
-}
+};
 
 export const FormGroup = (label: string, ...children) => {
     return e('div', c('form-group'),
         e('label', null, label),
         ...children
     );
-}
+};
 
 export const FormRow = (...children) => {
     return e('div', c('form-row'), ...children);
-}
+};
 
 /**
  * @deprecated
@@ -97,7 +93,7 @@ export const FormRow = (...children) => {
 export const InputGroup = (...children) => {
     // return e('div', c('input-group input-group-sm'), ...children);
     return children;
-}
+};
 
 export const NumberInput = (label: string, props: Props, onChange: (number) => void) => {
     return e('div', c('input-group input-group-xs'),
@@ -108,7 +104,7 @@ export const NumberInput = (label: string, props: Props, onChange: (number) => v
             ...props,
             className: 'form-control',
             type: 'number',
-            onChange: (ev) => {
+            onchange: (ev) => {
                 props.value = ev.target.value;
                 onChange(ev.target.value);
             },
@@ -125,7 +121,7 @@ export const SliderInput = (label: string, props: Props, onChange: (number) => v
             className: 'form-control-range',
             type: 'range',
             id: id.toString(),
-            onChange: (ev) => {
+            onchange: (ev) => {
                 props.value = ev.target.value;
                 onChange(ev.target.value);
             },
@@ -144,7 +140,7 @@ export const ColorInput = (label: string, props: Props, onChange: (string) => vo
             ...props,
             className: 'form-control',
             type: 'color',
-            onChange: (ev) => {
+            onchange: (ev) => {
                 const v = ev.target.value;
                 props.value = v;
                 valueLabel.textContent = v;
@@ -167,7 +163,7 @@ export const RadioInput = (options: RadioInputOption[], props: Props, onChange: 
                 id: eid.toString(),
                 value: o.value,
                 checked: o.value === props.value,
-                onChange: (ev) => {
+                onchange: (ev) => {
                     props.value = ev.target.value;
                     onChange(ev.target.value);
                 }
@@ -175,7 +171,7 @@ export const RadioInput = (options: RadioInputOption[], props: Props, onChange: 
             e('label', {className: 'form-check-label', for: eid.toString()}, o.label)
         )
     });
-}
+};
 
 export const CheckBoxInput = (label: string, props: Props, onChange: (boolean) => void) => {
     const id = nextId();
@@ -185,11 +181,11 @@ export const CheckBoxInput = (label: string, props: Props, onChange: (boolean) =
             className: 'form-check-input',
             type: 'checkbox',
             id: id.toString(),
-            onChange: (ev) => {
+            onchange: (ev) => {
                 props.checked = ev.target.checked;
                 onChange(ev.target.checked)
             }
         }),
         e('label', {className: 'form-check-label', for: id.toString()}, label)
     )
-}
+};
