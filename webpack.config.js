@@ -40,11 +40,12 @@ module.exports = {
                             'getReader', // new dom API
                             'fromValues',
                             // gl-matrix
-                            'rotateX',
-                            'rotateY',
-                            'rotateZ',
-                            'cross',
-                            'copy', 'scale', 'dot', 'sub', 'normalize', 'mul', 'transformMat4', 'transformMat3', 'fromTranslation', "invert",
+                            // 'rotateX',
+                            // 'rotateY',
+                            // 'rotateZ',
+                            // 'cross',
+                            // 'copy', 'scale', 'dot', 'sub', 'normalize', 'mul', 'transformMat4', 'transformMat3', 'fromTranslation', "invert",
+
                             // webgl2
                             'RG',
                             'RGB16F',

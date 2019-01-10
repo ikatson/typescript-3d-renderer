@@ -6,8 +6,12 @@
         // "esModuleInterop": true
         "typeRoots": [
             "./src/types",
-            "./node_modules/@types/webgl2"
+            "./node_modules/@types"
         ],
+//        "types": [
+//            "glmatrix",
+//            "webgl2"
+//        ],
         "module": "es6",
         "moduleResolution": "node"
     }
