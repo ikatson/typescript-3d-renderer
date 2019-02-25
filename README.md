@@ -12,6 +12,9 @@ At the moment of writing this, the project is complete and no further work is pl
 
 ## Demo
 
+> WARNING: at the moment it won't display any textures on devices that don't support DDS compression.
+> TODO: select a different scene in this case, that referes to the original Sponza with JPG textures.
+
 [Demo is here](https://ikatson.github.io/typescript-3d-renderer/)
 
 In the Demo you can navigate the camera with WASD, Space and Ctrl, tweak various settings, look at intenal framebuffer textures etc.
