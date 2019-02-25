@@ -106,29 +106,7 @@ function main() {
             onChange: ui.funcRef(),
             checked: false,
         },
-        materials: {
-            corvette: {
-                albedo: {
-                    value: '#ff0000', onChange: ui.funcRef(),
-                },
-                metallic: {value: 1., min: 0, max: 1, step: 0.01, onChange: ui.funcRef()},
-                roughness: {value: 0.1, min: 0, max: 1, step: 0.01, onChange: ui.funcRef()},
-            },
-            plane: {
-                albedo: {
-                    value: '#ffffff', onChange: ui.funcRef(),
-                },
-                metallic: {value: 0., min: 0, max: 1, step: 0.01, onChange: ui.funcRef()},
-                roughness: {value: 0.5, min: 0, max: 1, step: 0.01, onChange: ui.funcRef()},
-            },
-            aphrodite: {
-                albedo: {
-                    value: '#ffdebd', onChange: ui.funcRef(),
-                },
-                metallic: {value: 0., min: 0, max: 1, step: 0.01, onChange: ui.funcRef()},
-                roughness: {value: 0.8, min: 0, max: 1, step: 0.01, onChange: ui.funcRef()},
-            }
-        },
+        materials: {},
         fps: {
             min: 0,
             max: 0,
@@ -204,21 +182,6 @@ function main() {
                         n('Pos scale', state.lighting.new.posScale),
                         n('Intensity', state.lighting.new.intensity),
                     ),
-                    ui.FormGroup('Car colors',
-                        color('Albedo', state.materials.corvette.albedo),
-                        slider('Metallic', state.materials.corvette.metallic),
-                        slider('Roughness', state.materials.corvette.roughness),
-                    ),
-                    ui.FormGroup('Aphrodite colors',
-                        color('Albedo', state.materials.aphrodite.albedo),
-                        slider('Metallic', state.materials.aphrodite.metallic),
-                        slider('Roughness', state.materials.aphrodite.roughness),
-                    ),
-                    ui.FormGroup('Plane colors',
-                        color('Albedo', state.materials.plane.albedo),
-                        slider('Metallic', state.materials.plane.metallic),
-                        slider('Roughness', state.materials.plane.roughness),
-                    )
                 ),
             ),
         )
@@ -273,46 +236,13 @@ function main() {
     };
 
     Promise.all([
-        fetchObject('resources/aphrodite/aphrodite.obj', onHeaders).then(parser => {
-            const aphrodite = new GameObjectBuilder("aphrodite.obj")
-                .setMeshFromBuffer(parser.getArrayBuffer().intoGLArrayBuffer(gl))
-                .setMaterialComponent(new MaterialComponent(
-                    makeMaterialFromState(state.materials.aphrodite)
-                ))
-                .build();
-            vec3.copy(aphrodite.transform.scale, [1 / 3, 1 / 3, 1 / 3]);
-            vec3.copy(aphrodite.transform.rotation, [0, -Math.PI / 2.0, 0]);
-            vec3.copy(aphrodite.transform.position, [0, 1., 0]);
-            aphrodite.transform.update();
-            onColorChanges(state.materials.aphrodite, aphrodite.material.material);
-            return aphrodite;
-        }),
-        fetchObject('resources/corvette/corvette.obj', onHeaders).then(parser => {
-            const arrayBuffer = parser.getArrayBuffer();
-            const corvette = new GameObjectBuilder("corvette.obj")
-                .setMeshFromBuffer(arrayBuffer.intoGLArrayBuffer(gl))
-                .setMaterialComponent(new MaterialComponent(
-                    makeMaterialFromState(state.materials.corvette)
-                        .setMetallic(1.)
-                        .setRoughness(0.1)
-                ))
-                .build();
-            vec3.copy(corvette.transform.position, [0, -1., 0]);
-            corvette.transform.update();
-
-            onColorChanges(state.materials.corvette, corvette.material.material);
-            return corvette;
-        }),
         fetchObject('resources/sphere.obj', onHeaders).then(parser => {
             return parser.getArrayBuffer().intoGLArrayBuffer(gl);
         }),
-        // fetchObject('resources/cube.obj', onHeaders, new ObjParser(true)).then(parser => {
-        //     return parser;
-        // }),
         fetchObject('resources/plane.obj', onHeaders).then(parser => {
             return parser.getArrayBuffer().intoGLArrayBuffer(gl);
         }),
-    ]).then(([aphrodite, corvette, sphereMesh, planeMesh]) => {
+    ]).then(([sphereMesh, planeMesh]) => {
         const camera = new Camera(gl.canvas.width / gl.canvas.height);
         camera.position = vec3.fromValues(0, 0, -3.);
 
@@ -397,23 +327,6 @@ function main() {
         //
         // scene.directionalLights.push(sun2.directionalLight);
 
-
-        const plane = new GameObjectBuilder("plane")
-            .setMeshFromBuffer(planeMesh)
-            .setMaterialComponent(new MaterialComponent(
-                makeMaterialFromState(state.materials.plane)
-            ))
-            .build();
-        plane.mesh.setShadowCaster(false);
-        vec3.copy(plane.transform.position, [0, -0.8, 0]);
-        vec3.copy(plane.transform.scale, [5, 5, 5]);
-        plane.transform.update();
-        onColorChanges(state.materials.plane, plane.material.material);
-
-        scene.addChild(plane);
-        scene.addChild(corvette);
-        corvette.addChild(aphrodite);
-
         let delta = 1000. / 60;
         let lastStart = null;
         let frame = 0;
@@ -481,9 +394,6 @@ function main() {
             });
 
             if (state.shouldRotate.checked) {
-                corvette.transform.rotation[1] += delta / 2000;
-                corvette.transform.update();
-
                 vec3.normalize(sun.directionalLight.direction,
                     [-0.5, -0.95, Math.sin(timestamp / 8000) * 0.25]
                 );

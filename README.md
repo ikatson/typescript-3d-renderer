@@ -28,3 +28,5 @@ Missing important features:
 - Cube maps and cube map generation
 - Image-based lighting
 - Optimizations for algorithms and their state-of-the-art implementations
+- Does not support transparency at all
+- Only this shading/lighting model is supported. There was a forward renderer here before but I removed it as I didn't need it to further study the topic.
