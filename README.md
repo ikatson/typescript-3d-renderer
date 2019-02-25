@@ -6,6 +6,10 @@ Code quality, structure, comments, documentation etc where not the goal. The goa
 
 At the moment of writing this, the project is complete and no further work is planned. I got my understanding to the level where I'm comfortable watching GDC presentations and understanding what people are talking about there.
 
+## Screenshots
+
+![alt Crytek Sponza](https://ikatson.github.io/typescript-3d-renderer/docs/screenshots/sponza.png)
+
 ## Demo
 
 [Demo is here](https://ikatson.github.io/typescript-3d-renderer/)
