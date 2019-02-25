@@ -8,9 +8,9 @@ At the moment of writing this, the project is complete and no further work is pl
 
 ## Demo
 
-Demo is here.
+[Demo is here](https://ikatson.github.io/typescript-3d-renderer/)
 
-In the Demo you can navigate the camera with WASD, Space and Ctrl, tweak various settings, looks at textures etc.
+In the Demo you can navigate the camera with WASD, Space and Ctrl, tweak various settings, look at intenal framebuffer textures etc.
 
 ## Features
 
