@@ -20,6 +20,18 @@ export const UNIFORM_HAS_TANGENT = "u_hasTangent";
 
 export const SAMPLE_GLTF_SPONZA = "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Sponza/glTF/Sponza.gltf";
 
-// DDS variant produced like this:
-// cat Sponza.gltf | sed -E 's/\.(jpg|png)/.\1.dds/g' | sed -E 's/(image\/jpeg|image\/png)/image\/vnd-ms.dds/g' > Sponza-dds.gltf
-export const SAMPLE_GLTF_SPONZA_DDS = "https://raw.githubusercontent.com/ikatson/glTF-Sample-Models/master/2.0/Sponza/glTF/Sponza-dds.gltf";
+let sponza_ddf: string = "";
+
+if (/localhost|127.0.0.1/.test(window.location.hostname)) {
+    sponza_ddf = "/glTF-Sample-Models/2.0/Sponza/glTF/Sponza-dds.gltf"
+} else {
+
+    // DDS variant produced like this:
+    // cat Sponza.gltf | sed -E 's/\.(jpg|png)/.\1.dds/g' | sed -E 's/(image\/jpeg|image\/png)/image\/vnd-ms.dds/g' > Sponza-dds.gltf
+    sponza_ddf = "https://raw.githubusercontent.com/ikatson/glTF-Sample-Models/master/2.0/Sponza/glTF/Sponza-dds.gltf";
+}
+
+export const SAMPLE_GLTF_SPONZA_DDS = sponza_ddf;
+
+
+
