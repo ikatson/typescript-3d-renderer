@@ -15,6 +15,8 @@ import {FullScreenQuad, QuadArrayBufferData} from "./quad";
 import {loadSceneFromGLTF} from "./gltf";
 import {SAMPLE_GLTF_SPONZA_DDS} from "./constants";
 
+import * as wasm from "wasm";
+
 
 const originZero = vec3.create();
 const PI2 = Math.PI / 2.0 - 0.01;
@@ -27,6 +29,7 @@ const printError = e => {
 };
 
 function main() {
+    wasm.greet();
     const state = {
         lighting: {
             lightCount: {

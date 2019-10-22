@@ -2,12 +2,16 @@
   "name": "typescript-3d-renderer",
   "version": "0.0.1",
   "description": "An experimental 3D engine in TypeScript",
-  "keywords": ["typescript", "3d", "deferred renderer", "webgl2"],
+  "keywords": [
+    "typescript",
+    "3d",
+    "deferred renderer",
+    "webgl2"
+  ],
   "license": "MIT",
   "author": "Igor Katson",
   "repository": "https://github.com/ikatson/typescript-3d-renderer",
   "homepage": "https://github.com/ikatson/typescript-3d-renderer",
-
   "devDependencies": {
     "@types/webgl2": "0.0.4",
     "source-map-loader": "^0.2.4",
@@ -18,7 +22,8 @@
   },
   "dependencies": {
     "gl-matrix": "^2.8.1",
-    "parse-dds": "^1.2.1"
+    "parse-dds": "^1.2.1",
+    "wasm": "file:typescript-3d-renderer-rust/pkg"
   },
   "scripts": {
     "start": "./node_modules/.bin/webpack --config webpack.config.js --watch",

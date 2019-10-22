@@ -3,15 +3,11 @@
         "outDir": "./dist/",
         "target": "es2017",
         "sourceMap": true,
-        // "esModuleInterop": true
         "typeRoots": [
             "./src/types",
+            "./typescript-3d-renderer-rust/pkg/",
             "./node_modules/@types"
         ],
-//        "types": [
-//            "glmatrix",
-//            "webgl2"
-//        ],
         "module": "es6",
         "moduleResolution": "node"
     }
