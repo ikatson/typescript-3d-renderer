@@ -8,7 +8,7 @@
             "./typescript-3d-renderer-rust/pkg/",
             "./node_modules/@types"
         ],
-        "module": "es6",
+        "module": "esnext",
         "moduleResolution": "node"
     }
 }

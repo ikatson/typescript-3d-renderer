@@ -17,8 +17,9 @@
     "source-map-loader": "^0.2.4",
     "ts-loader": "^5.3.2",
     "typescript": "^3.2.2",
-    "webpack": "^4.28.3",
-    "webpack-cli": "^3.1.2"
+    "webpack": "^4.29.3",
+    "webpack-cli": "^3.1.2",
+    "webpack-dev-server": "^3.1.5"
   },
   "dependencies": {
     "gl-matrix": "^2.8.1",
@@ -26,7 +27,7 @@
     "wasm": "file:typescript-3d-renderer-rust/pkg"
   },
   "scripts": {
-    "start": "./node_modules/.bin/webpack --config webpack.config.js --watch",
+    "start": "./node_modules/.bin/webpack-dev-server",
     "prod": "./node_modules/.bin/webpack --config webpack.config.js --mode production"
   },
   "sideEffects": false
