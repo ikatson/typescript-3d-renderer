@@ -14,6 +14,6 @@ extern {
 }
 
 #[wasm_bindgen]
-pub fn greet() {
-    alert("Hello, typescript-3d-renderer-rust!");
+pub fn greet(message: &str) {
+    alert(message);
 }

@@ -29,7 +29,7 @@ const printError = e => {
 };
 
 function main() {
-    wasm.greet();
+    wasm.greet("msg");
     const state = {
         lighting: {
             lightCount: {
