@@ -7,6 +7,7 @@ import {Camera, ProjectionMatrix} from "./camera";
 import {AxisAlignedBox} from "./axisAlignedBox";
 import {Scene} from "./scene";
 import {DirectionalLight, GameObject} from "./object";
+import * as wasm from 'wasm';
 
 export function initGL(canvas: HTMLCanvasElement): WebGL2RenderingContext {
     let gl = <WebGL2RenderingContext>canvas.getContext("webgl2", {
@@ -306,7 +307,7 @@ export function hexToRgb1(out: vec4, hex: string): vec4 {
 }
 
 export function rgbToHex(r, g, b) {
-    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    return wasm.rgb_to_hex(r, g, b)
 }
 
 export function mapComputeIfAbsent<K, V>(m: Map<K, V>, key: K, callback: (K) => V): V {

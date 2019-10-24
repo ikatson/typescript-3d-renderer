@@ -29,7 +29,8 @@ const printError = e => {
 };
 
 function main() {
-    wasm.greet("msg");
+    wasm.greet(wasm.rgb_to_hex(10, 15, 255));
+    return;
     const state = {
         lighting: {
             lightCount: {
