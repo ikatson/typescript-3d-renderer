@@ -29,7 +29,7 @@ const printError = e => {
 };
 
 function main() {
-    wasm.greet(wasm.rgb_to_hex(10, 15, 255));
+    wasm.greet(wasm.hex_to_rgb('#ffffff').toString());
     return;
     const state = {
         lighting: {

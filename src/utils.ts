@@ -294,7 +294,7 @@ export const computeDirectionalLightCameraWorldToProjectionMatrix = (() => {
 
 
 export function hexToRgb1(out: vec4, hex: string): vec4 {
-    const bigint = parseInt(hex.slice(1, hex.length), 16);
+    const bigint = wasm.hex_to_rgb(hex);
     const r = (bigint >> 16) & 255;
     const g = (bigint >> 8) & 255;
     const b = bigint & 255;
